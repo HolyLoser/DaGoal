@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#D1D5DB"
+    android:weightSum="10">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="4.5"
+        android:background="#D2DDCB"
+        android:padding="16dp">
+
+        <ImageButton
+            android:id="@+id/btn_back_avatar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="#4B5563" />
+
+        <ImageView
+            android:id="@+id/iv_avatar_preview"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_centerInParent="true"
+            android:src="@android:drawable/sym_def_app_icon" />
+
+        <LinearLayout
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="#E5E7EB"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#E0A980" android:layout_gravity="center" android:layout_margin="4dp"/>
+            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#C38E65" android:layout_gravity="center" android:layout_margin="4dp"/>
+            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#8C5B36" android:layout_gravity="center" android:layout_margin="4dp"/>
+        </LinearLayout>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="5.5"
+        android:background="#E2DFCD"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button android:id="@+id/tab_hair" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Hair" android:textSize="12sp" android:backgroundTint="#A3B19B" android:textColor="#000000" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/tab_eyes" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Eyes" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/tab_nose" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Nose" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
+                <Button android:id="@+id/tab_mouth" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Mouth" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <GridLayout
+                android:id="@+id/grid_assets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:alignmentMode="alignBounds"
+                android:rowOrderPreserved="false">
+
+                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
+                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
+                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
+            </GridLayout>
+        </ScrollView>
+
+        <Button
+            android:id="@+id/btn_save_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Create"
+            android:backgroundTint="#819E74"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="8dp"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>
