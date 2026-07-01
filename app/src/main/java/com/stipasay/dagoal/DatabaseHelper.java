@@ -8,10 +8,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 5;
 
-    private static final String CREATE_TABLE_USER =
-            "CREATE TABLE user (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, available_shuffles INTEGER DEFAULT 1, last_login_date TEXT);";
+    private static final String CREATE_TABLE_USER = "CREATE TABLE user (" +
+            "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "username TEXT DEFAULT 'Adventurer', " +
+            "level INTEGER DEFAULT 1, " +
+            "gold INTEGER DEFAULT 0, " +
+            "xp INTEGER DEFAULT 0);";
 
     private static final String CREATE_TABLE_PREFERENCES =
             "CREATE TABLE preferences (_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, activity_type TEXT, difficulty TEXT);";

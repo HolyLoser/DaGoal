@@ -135,4 +135,96 @@ public class TaskManager {
         }
         return val;
     }
+
+    public void completeTask(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        String[] columns = {
+                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
+                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
+        };
+        String selection = DatabaseContract.DailyTaskEntry._ID + " = ?";
+        String[] selectionArgs = { String.valueOf(taskId) };
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                columns, selection, selectionArgs, null, null, null
+        );
+
+        int rewardGold = 0;
+        int rewardXp = 0;
+
+        if (cursor != null && cursor.moveToFirst()) {
+            rewardGold = cursor.getInt(0);
+            rewardXp = cursor.getInt(1);
+            cursor.close();
+        }
+
+        ContentValues taskValues = new ContentValues();
+        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 1);
+        db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, taskValues, selection, selectionArgs);
+
+        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
+        int currentGold = 0;
+        int currentXp = 0;
+
+        if (userCursor != null && userCursor.moveToFirst()) {
+            currentGold = userCursor.getInt(0);
+            currentXp = userCursor.getInt(1);
+            userCursor.close();
+        }
+
+        int newGold = currentGold + rewardGold;
+        int newXp = currentXp + rewardXp;
+        int currentLevel = 1;
+
+        Cursor levelCursor = db.rawQuery("SELECT level FROM user WHERE _id = 1", null);
+        if (levelCursor != null && levelCursor.moveToFirst()) {
+            currentLevel = levelCursor.getInt(0);
+            levelCursor.close();
+        }
+
+        if (newXp >= 100) {
+            currentLevel += 1;
+            newXp = newXp - 100;
+        }
+
+        ContentValues userValues = new ContentValues();
+        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
+        userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
+        userValues.put("level", currentLevel);
+
+        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+    }
+
+    public Cursor getUserProfile() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        return db.rawQuery("SELECT username, level, gold, xp FROM user WHERE _id = 1", null);
+    }
+
+    public int getUserGoldBalance() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT gold FROM user WHERE _id = 1", null);
+        int gold = 0;
+        if (cursor != null && cursor.moveToFirst()) {
+            gold = cursor.getInt(0);
+            cursor.close();
+        }
+        return gold;
+    }
+
+    public java.util.List<ShopItem> getShopItems() {
+        java.util.List<ShopItem> items = new java.util.ArrayList<>();
+        items.add(new ShopItem(1, "Red Shirt", 50, "shirt", "shirt_red"));
+        items.add(new ShopItem(2, "Blue Shirt", 75, "shirt", "shirt_blue"));
+        items.add(new ShopItem(3, "Spiky Hair", 100, "hair", "hair_spiky"));
+        return items;
+    }
+
+    public void resetDailyQuests() {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+        db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, values, null, null);
+    }
 }

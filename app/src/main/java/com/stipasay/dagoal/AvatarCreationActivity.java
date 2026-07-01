@@ -47,6 +47,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
         switchTab("Hair", tabHair);
 
         btnSaveAvatar.setOnClickListener(v -> {
+            TaskManager taskManager = new TaskManager(AvatarCreationActivity.this);
+            taskManager.resetDailyQuests();
+
             Toast.makeText(AvatarCreationActivity.this, "Character Created! Onboarding Complete.", Toast.LENGTH_SHORT).show();
 
             Intent intent = new Intent(AvatarCreationActivity.this, DashboardActivity.class);
