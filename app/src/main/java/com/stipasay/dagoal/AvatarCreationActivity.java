@@ -49,12 +49,15 @@ public class AvatarCreationActivity extends AppCompatActivity {
         btnSaveAvatar.setOnClickListener(v -> {
             TaskManager taskManager = new TaskManager(AvatarCreationActivity.this);
             taskManager.resetDailyQuests();
+            taskManager.generateDailyTasks();
+
+            android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("isFirstRun", false).apply();
 
             Toast.makeText(AvatarCreationActivity.this, "Character Created! Onboarding Complete.", Toast.LENGTH_SHORT).show();
 
             Intent intent = new Intent(AvatarCreationActivity.this, DashboardActivity.class);
             startActivity(intent);
-
             finish();
         });
     }

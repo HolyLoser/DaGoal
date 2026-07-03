@@ -39,6 +39,10 @@
         <activity
             android:name=".DashboardActivity"
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+        <activity
+            android:name=".StreakActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
     </application>
+
 
 </manifest>

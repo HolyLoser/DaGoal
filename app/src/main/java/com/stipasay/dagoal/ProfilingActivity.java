@@ -91,8 +91,17 @@ public class ProfilingActivity extends AppCompatActivity {
             RadioButton rb = new RadioButton(this);
             rb.setText(optionText);
             rb.setTextSize(16);
-            rb.setTextColor(Color.BLACK);
-            rb.setPadding(12, 12, 12, 12);
+            rb.setTextColor(Color.DKGRAY);
+
+            // Fixed the inner dimensions layout configuration types explicitly
+            RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
+                    RadioGroup.LayoutParams.MATCH_PARENT,
+                    RadioGroup.LayoutParams.WRAP_CONTENT
+            );
+            params.setMargins(0, 8, 0, 8);
+            rb.setLayoutParams(params);
+
+            rb.setPadding(16, 16, 16, 16);
             rgOptions.addView(rb);
         }
     }
@@ -150,6 +159,10 @@ public class ProfilingActivity extends AppCompatActivity {
         saveMetricRow(db, "Detox Duration Multiplier", String.valueOf(detoxMultiplier));
         saveMetricRow(db, "Creative Activity Multiplier", String.valueOf(creativeMultiplier));
         saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[6]);
+
+        // Save the first run completion token before navigating away
+        android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        prefs.edit().putBoolean("isFirstRun", false).apply();
 
         TaskManager taskManager = new TaskManager(ProfilingActivity.this);
         taskManager.generateDailyTasks();

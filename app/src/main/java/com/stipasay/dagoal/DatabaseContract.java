@@ -43,4 +43,11 @@ public final class DatabaseContract {
         public static final String COLUMN_REWARD_GOLD = "reward_gold";
         public static final String COLUMN_REWARD_XP = "reward_xp";
     }
+    public static class InventoryEntry implements BaseColumns {
+        public static final String TABLE_NAME = "inventory";
+        public static final String COLUMN_ITEM_ID = "item_id";
+        public static final String COLUMN_ITEM_NAME = "item_name";
+        public static final String COLUMN_CATEGORY = "category";
+        public static final String COLUMN_RES_NAME = "res_name";
+    }
 }

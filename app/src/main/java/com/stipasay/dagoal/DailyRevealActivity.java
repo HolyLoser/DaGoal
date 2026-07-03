@@ -2,6 +2,7 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -16,6 +17,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class DailyRevealActivity extends AppCompatActivity {
 
@@ -42,10 +46,17 @@ public class DailyRevealActivity extends AppCompatActivity {
             return insets;
         });
 
+        TaskManager taskManager = new TaskManager(this);
+        taskManager.generateDailyTasks();
+
         loadDailyTasksFromDatabase();
 
         btnAcceptTasks.setOnClickListener(v -> {
-            Intent intent = new Intent(DailyRevealActivity.this, AvatarCreationActivity.class);
+            String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+            prefs.edit().putString("last_quest_generation_date", todayDateStr).apply();
+
+            Intent intent = new Intent(DailyRevealActivity.this, DashboardActivity.class);
             startActivity(intent);
             finish();
         });

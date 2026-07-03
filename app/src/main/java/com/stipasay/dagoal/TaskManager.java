@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -22,6 +23,9 @@ public class TaskManager {
 
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
+        // Check for broken streaks before generating tasks for the new day
+        checkAndUpdateStreak(db, currentDate);
+
         if (areTasksAlreadyGenerated(db, currentDate)) {
             return;
         }
@@ -29,26 +33,50 @@ public class TaskManager {
         double physicalMult = getMultiplier(db, "Physical Step Multiplier");
         double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
         double creativeMult = getMultiplier(db, "Creative Activity Multiplier");
-        String preferredHobby = getPreferenceString(db, "Preferred Offline Hobby Type");
 
         db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
 
-        if (physicalMult == 1.0) {
-            scaleAndInsertTask(db, "core_step", physicalMult, currentDate);
-            scaleAndInsertTask(db, "secondary_move", physicalMult, currentDate);
-            scaleAndInsertTask(db, "core_detox", detoxMult, currentDate);
-            scaleAndInsertTask(db, "arts", creativeMult, currentDate);
-        } else {
-            scaleAndInsertTask(db, "core_step", physicalMult, currentDate);
-            scaleAndInsertTask(db, "core_detox", detoxMult, currentDate);
+        scaleAndInsertTask(db, "Physical Step Multiplier", physicalMult, currentDate);
+        scaleAndInsertTask(db, "Detox Duration Multiplier", detoxMult, currentDate);
+        scaleAndInsertTask(db, "Creative Activity Multiplier", creativeMult, currentDate);
+    }
 
-            if (preferredHobby.contains("Journaling") || preferredHobby.contains("Writing")) {
-                scaleAndInsertTask(db, "journaling", creativeMult, currentDate);
-            } else {
-                scaleAndInsertTask(db, "arts", creativeMult, currentDate);
+    private void checkAndUpdateStreak(SQLiteDatabase db, String currentDateStr) {
+        Cursor cursor = db.rawQuery("SELECT last_completed_date, streak FROM user WHERE _id = 1", null);
+        if (cursor != null && cursor.moveToFirst()) {
+            String lastCompleted = cursor.getString(0);
+            cursor.close();
+
+            if (lastCompleted == null || lastCompleted.isEmpty()) {
+                return;
             }
 
-            scaleAndInsertTask(db, "journaling", creativeMult, currentDate);
+            if (lastCompleted.equals(currentDateStr)) {
+                return; // Already completed tasks today
+            }
+
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date lastDate = sdf.parse(lastCompleted);
+                Date todayDate = sdf.parse(currentDateStr);
+
+                Calendar cal = Calendar.getInstance();
+                if (lastDate != null) {
+                    cal.setTime(lastDate);
+                }
+                cal.add(Calendar.DAY_OF_YEAR, 1); // Fixed variable reference name
+                String expectedExtensionDate = sdf.format(cal.getTime());
+
+                // If today is past the expected continuation day, the streak was broken
+                if (todayDate != null && !currentDateStr.equals(expectedExtensionDate) && todayDate.after(cal.getTime())) {
+                    ContentValues values = new ContentValues();
+                    values.put("streak", 0);
+                    db.update("user", values, "_id = 1", null);
+                    Log.i("TaskManager", "Streak reset to 0. A day was missed.");
+                }
+            } catch (Exception e) {
+                Log.e("TaskManager", "Error parsing streak dates", e);
+            }
         }
     }
 
@@ -139,38 +167,25 @@ public class TaskManager {
     public void completeTask(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        String[] columns = {
-                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
-                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
-        };
         String selection = DatabaseContract.DailyTaskEntry._ID + " = ?";
         String[] selectionArgs = { String.valueOf(taskId) };
 
-        Cursor cursor = db.query(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                columns, selection, selectionArgs, null, null, null
-        );
-
-        int rewardGold = 0;
-        int rewardXp = 0;
-
-        if (cursor != null && cursor.moveToFirst()) {
-            rewardGold = cursor.getInt(0);
-            rewardXp = cursor.getInt(1);
-            cursor.close();
-        }
+        int rewardGold = 100;
+        int rewardXp = 15;
 
         ContentValues taskValues = new ContentValues();
         taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 1);
         db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, taskValues, selection, selectionArgs);
 
-        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
-        int currentGold = 0;
+        Cursor userCursor = db.rawQuery("SELECT gold, xp, streak FROM user WHERE _id = 1", null);
+        int currentGold = 1000;
         int currentXp = 0;
+        int currentStreak = 0;
 
         if (userCursor != null && userCursor.moveToFirst()) {
             currentGold = userCursor.getInt(0);
             currentXp = userCursor.getInt(1);
+            currentStreak = userCursor.getInt(2); // Fixed variable reference target matching name
             userCursor.close();
         }
 
@@ -193,6 +208,22 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
         userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
         userValues.put("level", currentLevel);
+
+        // Check if all active tasks for today are now complete
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        Cursor pendingTasksCursor = db.rawQuery(
+                "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
+                        " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0", null);
+
+        if (pendingTasksCursor != null) {
+            if (pendingTasksCursor.moveToFirst() && pendingTasksCursor.getInt(0) == 0) {
+                // No uncompleted tasks left today. Increment the daily streak.
+                currentStreak += 1;
+                userValues.put("streak", currentStreak);
+                userValues.put("last_completed_date", currentDate);
+            }
+            pendingTasksCursor.close();
+        }
 
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
     }
@@ -226,5 +257,58 @@ public class TaskManager {
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
         db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, values, null, null);
+    }
+
+    public boolean purchaseShopItem(ShopItem item) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        int currentGold = getUserGoldBalance();
+        if (currentGold < item.getPrice()) {
+            return false;
+        }
+
+        int newGold = currentGold - item.getPrice();
+        ContentValues userValues = new ContentValues();
+        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
+        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+
+        ContentValues invValues = new ContentValues();
+        invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_ID, item.getId());
+        invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_NAME, item.getName());
+        invValues.put(DatabaseContract.InventoryEntry.COLUMN_CATEGORY, item.getCategory());
+        invValues.put(DatabaseContract.InventoryEntry.COLUMN_RES_NAME, item.getResName());
+        db.insert(DatabaseContract.InventoryEntry.TABLE_NAME, null, invValues);
+
+        return true;
+    }
+
+    public java.util.List<ShopItem> getOwnedItems() {
+        java.util.List<ShopItem> items = new java.util.ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+        String[] columns = {
+                DatabaseContract.InventoryEntry.COLUMN_ITEM_ID,
+                DatabaseContract.InventoryEntry.COLUMN_ITEM_NAME,
+                DatabaseContract.InventoryEntry.COLUMN_CATEGORY,
+                DatabaseContract.InventoryEntry.COLUMN_RES_NAME
+        };
+
+        Cursor cursor = db.query(
+                DatabaseContract.InventoryEntry.TABLE_NAME,
+                columns, null, null, null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                String category = cursor.getString(2);
+                String resName = cursor.getString(3);
+
+                items.add(new ShopItem(id, name, 0, category, resName));
+            }
+            cursor.close();
+        }
+        return items;
     }
 }

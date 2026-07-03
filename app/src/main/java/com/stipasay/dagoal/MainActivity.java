@@ -2,6 +2,7 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.Button;
@@ -10,6 +11,9 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,6 +25,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
+
+        if (!isFirstRun) {
+            String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            String lastQuestDate = prefs.getString("last_quest_generation_date", "");
+
+            if (!todayDateStr.equals(lastQuestDate)) {
+                Intent intent = new Intent(this, DailyRevealActivity.class);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(this, DashboardActivity.class);
+                startActivity(intent);
+            }
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
         dbHelper = new DatabaseHelper(this);

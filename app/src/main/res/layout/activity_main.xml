@@ -3,115 +3,119 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#FFFFFF">
+    android:background="#F7F4EB">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome to DaGoal"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="#000000"
-            android:layout_gravity="center"
-            android:layout_marginTop="40dp"
-            android:layout_marginBottom="30dp" />
-
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#E0E0E0"
-            android:orientation="vertical"
-            android:padding="24dp"
-            android:layout_marginBottom="40dp">
+            android:layout_height="280dp"
+            android:background="#E1C6A7">
+
+            <TextView
+                android:id="@+id/tv_main_branding_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DaGoal"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="24dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Enter Username"
-                android:textColor="#000000"
+                android:text="Your self-care best friend."
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:layout_below="@id/tv_main_branding_title"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="4dp" />
+
+            <ImageView
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_centerInParent="true"
+                android:layout_marginTop="20dp"
+                android:src="@android:drawable/sym_def_app_icon" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ABOUT YOU"
+                android:textColor="#FF9F43"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="24dp" />
 
             <EditText
                 android:id="@+id/edit_username"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="20dp"
-                android:background="#FFFFFF"
-                android:hint="Username"
+                android:layout_height="54dp"
+                android:layout_marginBottom="16dp"
+                android:background="@android:drawable/editbox_background"
+                android:hint="What's your name?"
                 android:inputType="text"
-                android:paddingLeft="12dp"
+                android:paddingLeft="16dp"
                 android:textColor="#000000" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Enter Age"
-                android:textColor="#000000"
-                android:textStyle="bold"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp" />
 
             <EditText
                 android:id="@+id/edit_age"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="20dp"
-                android:background="#FFFFFF"
-                android:hint="Age"
+                android:layout_height="54dp"
+                android:layout_marginBottom="16dp"
+                android:background="@android:drawable/editbox_background"
+                android:hint="How old are you?"
                 android:inputType="number"
-                android:paddingLeft="12dp"
+                android:paddingLeft="16dp"
                 android:textColor="#000000" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Enter Gender"
-                android:textColor="#000000"
-                android:textStyle="bold"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp" />
 
             <RadioGroup
                 android:id="@+id/rg_gender"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:orientation="horizontal">
+                android:layout_marginBottom="32dp"
+                android:orientation="vertical">
 
                 <RadioButton
                     android:id="@+id/rb_male"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Male ♂"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="Male"
                     android:textColor="#000000"
-                    android:layout_marginRight="20dp"/>
+                    android:layout_marginBottom="8dp" />
 
                 <RadioButton
                     android:id="@+id/rb_female"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Female ♀"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="Female"
                     android:textColor="#000000" />
             </RadioGroup>
 
+            <Button
+                android:id="@+id/btn_proceed"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="Next"
+                android:backgroundTint="#FF9F43"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textAllCaps="false" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btn_proceed"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="Proceed"
-            android:backgroundTint="#4A00E0"
-            android:textColor="#FFFFFF"
-            android:textAllCaps="false" />
-
     </LinearLayout>
 </ScrollView>
