@@ -2,61 +2,80 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#E1C6A7">
-
-        <ImageView
-            android:id="@+id/img_dashboard_avatar"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:layout_centerInParent="true"
-            android:src="@android:drawable/sym_def_app_icon" />
-
-        <TextView
-            android:id="@+id/tv_dashboard_lvl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentLeft="true"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="16dp"
-            android:background="#778A66"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:text="LVL 01"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </RelativeLayout>
+    android:orientation="vertical"
+    android:background="@drawable/bg_panel_rounded"
+    android:paddingLeft="20dp"
+    android:paddingRight="20dp"
+    android:paddingBottom="20dp">
 
     <LinearLayout
+        android:id="@+id/drag_handle_touch_area"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#D1DBC4"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="48dp"
+        android:gravity="center"
+        android:clickable="true"
+        android:focusable="true">
 
-        <TextView
-            android:id="@+id/tv_quests_remaining_header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Quests left today"
-            android:textColor="#2D3748"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp" />
+        <View
+            android:layout_width="50dp"
+            android:layout_height="5dp"
+            android:background="@drawable/bg_drag_handle" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:overScrollMode="never">
 
         <LinearLayout
-            android:id="@+id/container_active_dashboard_quests"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </LinearLayout>
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_quests_remaining_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quests left today"
+                android:textColor="#2D3748"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/container_active_dashboard_quests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btn_dashboard_add_goal"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="+ Add a goal"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#778A66"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Completed quests"
+                android:textColor="#2D3748"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/container_completed_dashboard_quests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 9; // Incremented version to apply table modification
+    private static final int DATABASE_VERSION = 10;
 
     private static final String CREATE_TABLE_USER = "CREATE TABLE user (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -19,7 +19,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "gold INTEGER DEFAULT 0, " +
             "xp INTEGER DEFAULT 0, " +
             "streak INTEGER DEFAULT 0, " +
-            "last_completed_date TEXT DEFAULT '');"; // Track streak completion timeline
+            "last_completed_date TEXT DEFAULT '');";
 
     private static final String CREATE_TABLE_PREFERENCES = "CREATE TABLE preferences (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -54,6 +54,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "base_value INTEGER, " +
             "unit TEXT);";
 
+    private static final String CREATE_TABLE_ACHIEVEMENTS = "CREATE TABLE " +
+            DatabaseContract.AchievementEntry.TABLE_NAME + " (" +
+            DatabaseContract.AchievementEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            DatabaseContract.AchievementEntry.COLUMN_TITLE + " TEXT, " +
+            DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION + " TEXT, " +
+            DatabaseContract.AchievementEntry.COLUMN_TYPE + " TEXT, " +
+            DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS + " INTEGER DEFAULT 0, " +
+            DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE + " INTEGER);";
+
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -65,12 +74,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_TABLE_INVENTORY);
         db.execSQL(CREATE_TABLE_PREFERENCES);
         db.execSQL(CREATE_TABLE_TASK_TEMPLATES);
+        db.execSQL(CREATE_TABLE_ACHIEVEMENTS);
         seedTaskTemplates(db);
+        seedAchievements(db);
     }
 
     private void seedTaskTemplates(SQLiteDatabase db) {
         ContentValues values = new ContentValues();
 
+        // --- PHYSICAL CATEGORY VARIATIONS ---
         values.put("sub_category", "Physical Step Multiplier");
         values.put("title", "Walk steps");
         values.put("base_value", 5000);
@@ -78,6 +90,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.insert("task_templates", null, values);
         values.clear();
 
+        values.put("sub_category", "Physical Step Multiplier");
+        values.put("title", "Do stretching exercise");
+        values.put("base_value", 10);
+        values.put("unit", "minutes");
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Physical Step Multiplier");
+        values.put("title", "Jumping jacks routine");
+        values.put("base_value", 30);
+        values.put("unit", "reps");
+        db.insert("task_templates", null, values);
+        values.clear();
+
+
+        // --- DETOX CATEGORY VARIATIONS ---
         values.put("sub_category", "Detox Duration Multiplier");
         values.put("title", "Reduce screen time");
         values.put("base_value", 60);
@@ -85,11 +113,69 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.insert("task_templates", null, values);
         values.clear();
 
+        values.put("sub_category", "Detox Duration Multiplier");
+        values.put("title", "No social media apps");
+        values.put("base_value", 2);
+        values.put("unit", "hours");
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Detox Duration Multiplier");
+        values.put("title", "Stay away from PC or Console gaming");
+        values.put("base_value", 3);
+        values.put("unit", "hours");
+        db.insert("task_templates", null, values);
+        values.clear();
+
+
+        // --- CREATIVE CATEGORY VARIATIONS ---
         values.put("sub_category", "Creative Activity Multiplier");
         values.put("title", "Read a book");
         values.put("base_value", 20);
         values.put("unit", "pages");
         db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Creative Activity Multiplier");
+        values.put("title", "Practice programming syntax layout");
+        values.put("base_value", 30);
+        values.put("unit", "minutes");
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Creative Activity Multiplier");
+        values.put("title", "Sketch or draw something down");
+        values.put("base_value", 1);
+        values.put("unit", "drawing");
+        db.insert("task_templates", null, values);
+        values.clear();
+    }
+
+    private void seedAchievements(SQLiteDatabase db) {
+        ContentValues values = new ContentValues();
+
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TITLE, "First Steps");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION, "Complete 5 daily quests.");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "QUEST_COUNT");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 5);
+        db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
+        values.clear();
+
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TITLE, "Quest Master");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION, "Complete 25 daily quests.");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "QUEST_COUNT");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 25);
+        db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
+        values.clear();
+
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TITLE, "Consistent");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION, "Reach a 7-day streak.");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "STREAK_COUNT");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 7);
+        db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
     }
 
     @Override
@@ -99,6 +185,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS inventory");
         db.execSQL("DROP TABLE IF EXISTS preferences");
         db.execSQL("DROP TABLE IF EXISTS task_templates");
+        db.execSQL("DROP TABLE IF EXISTS achievements");
         onCreate(db);
     }
 }

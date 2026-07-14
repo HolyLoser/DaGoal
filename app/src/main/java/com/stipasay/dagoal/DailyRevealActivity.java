@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageButton;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -89,12 +89,16 @@ public class DailyRevealActivity extends AppCompatActivity {
 
                 TextView tvTitle = taskRow.findViewById(R.id.tv_task_title);
                 TextView tvTarget = taskRow.findViewById(R.id.tv_task_target);
-                ImageButton btnShuffle = taskRow.findViewById(R.id.btn_shuffle_item);
+                CheckBox btnShuffle = taskRow.findViewById(R.id.btn_shuffle_item);
 
                 tvTitle.setText(title);
                 tvTarget.setText("Target: " + targetValue + " " + unit);
 
-                btnShuffle.setOnClickListener(v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                // Using standard OnClickListener and resetting check state manually to keep execution clean
+                btnShuffle.setOnClickListener(v -> {
+                    btnShuffle.setChecked(false);
+                    handleTaskShuffle(taskId, tvTitle, tvTarget);
+                });
 
                 containerDailyTasks.addView(taskRow);
             }
@@ -110,7 +114,12 @@ public class DailyRevealActivity extends AppCompatActivity {
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        Cursor cursor = db.rawQuery("SELECT title, base_value, unit FROM task_templates ORDER BY RANDOM() LIMIT 1", null);
+        String excludeQuery = "SELECT title, base_value, unit FROM task_templates WHERE " +
+                DatabaseContract.TaskTemplateEntry.COLUMN_TITLE + " NOT IN (SELECT " +
+                DatabaseContract.DailyTaskEntry.COLUMN_TITLE + " FROM " +
+                DatabaseContract.DailyTaskEntry.TABLE_NAME + ") ORDER BY RANDOM() LIMIT 1";
+
+        Cursor cursor = db.rawQuery(excludeQuery, null);
 
         if (cursor != null && cursor.moveToFirst()) {
             String newTitle = cursor.getString(0);
@@ -133,6 +142,11 @@ public class DailyRevealActivity extends AppCompatActivity {
             availableShuffles--;
             tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
             Toast.makeText(this, "Task shuffled successfully!", Toast.LENGTH_SHORT).show();
+        } else {
+            if (cursor != null) {
+                cursor.close();
+            }
+            Toast.makeText(this, "No alternative tasks found in templates!", Toast.LENGTH_SHORT).show();
         }
     }
 }

@@ -23,7 +23,6 @@ public class TaskManager {
 
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
-        // Check for broken streaks before generating tasks for the new day
         checkAndUpdateStreak(db, currentDate);
 
         if (areTasksAlreadyGenerated(db, currentDate)) {
@@ -45,14 +44,22 @@ public class TaskManager {
         Cursor cursor = db.rawQuery("SELECT last_completed_date, streak FROM user WHERE _id = 1", null);
         if (cursor != null && cursor.moveToFirst()) {
             String lastCompleted = cursor.getString(0);
+            int currentStreak = cursor.getInt(1);
             cursor.close();
 
+            ContentValues values = new ContentValues();
+
+            // First time setup check
             if (lastCompleted == null || lastCompleted.isEmpty()) {
+                values.put("streak", 1);
+                values.put("last_completed_date", currentDateStr);
+                db.update("user", values, "_id = 1", null);
                 return;
             }
 
+            // Already verified login today, do nothing and safely exit loop
             if (lastCompleted.equals(currentDateStr)) {
-                return; // Already completed tasks today
+                return;
             }
 
             try {
@@ -64,18 +71,31 @@ public class TaskManager {
                 if (lastDate != null) {
                     cal.setTime(lastDate);
                 }
-                cal.add(Calendar.DAY_OF_YEAR, 1); // Fixed variable reference name
+
+                // Add exactly 1 day to calculate the expected consecutive login target date
+                cal.add(Calendar.DAY_OF_YEAR, 1);
                 String expectedExtensionDate = sdf.format(cal.getTime());
 
-                // If today is past the expected continuation day, the streak was broken
-                if (todayDate != null && !currentDateStr.equals(expectedExtensionDate) && todayDate.after(cal.getTime())) {
-                    ContentValues values = new ContentValues();
-                    values.put("streak", 0);
+                if (currentDateStr.equals(expectedExtensionDate)) {
+                    // Logged in exactly the next day -> Increment streak by 1
+                    int newStreak = currentStreak + 1;
+                    values.put("streak", newStreak);
+                    values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
-                    Log.i("TaskManager", "Streak reset to 0. A day was missed.");
+                    Log.i("TaskManager", "Streak incremented to " + newStreak + " via daily login.");
+                } else if (todayDate != null && todayDate.after(cal.getTime())) {
+                    // Missed one or more full days -> Reset streak back to 1 baseline
+                    values.put("streak", 1);
+                    values.put("last_completed_date", currentDateStr);
+                    db.update("user", values, "_id = 1", null);
+                    Log.i("TaskManager", "Streak reset to 1. Calendar day gap detected.");
+                } else {
+                    // Safeguard for edge cases -> Just log date stamp up to today safely
+                    values.put("last_completed_date", currentDateStr);
+                    db.update("user", values, "_id = 1", null);
                 }
             } catch (Exception e) {
-                Log.e("TaskManager", "Error parsing streak dates", e);
+                Log.e("TaskManager", "Error parsing streak login sequence dates", e);
             }
         }
     }
@@ -92,7 +112,7 @@ public class TaskManager {
 
         Cursor cursor = db.query(
                 DatabaseContract.TaskTemplateEntry.TABLE_NAME,
-                columns, selection, selectionArgs, null, null, null, "1"
+                columns, selection, selectionArgs, null, null, "RANDOM()", "1"
         );
 
         if (cursor != null && cursor.moveToFirst()) {
@@ -180,12 +200,10 @@ public class TaskManager {
         Cursor userCursor = db.rawQuery("SELECT gold, xp, streak FROM user WHERE _id = 1", null);
         int currentGold = 1000;
         int currentXp = 0;
-        int currentStreak = 0;
 
         if (userCursor != null && userCursor.moveToFirst()) {
             currentGold = userCursor.getInt(0);
             currentXp = userCursor.getInt(1);
-            currentStreak = userCursor.getInt(2); // Fixed variable reference target matching name
             userCursor.close();
         }
 
@@ -209,27 +227,17 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
         userValues.put("level", currentLevel);
 
-        // Check if all active tasks for today are now complete
-        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        Cursor pendingTasksCursor = db.rawQuery(
-                "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
-                        " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0", null);
-
-        if (pendingTasksCursor != null) {
-            if (pendingTasksCursor.moveToFirst() && pendingTasksCursor.getInt(0) == 0) {
-                // No uncompleted tasks left today. Increment the daily streak.
-                currentStreak += 1;
-                userValues.put("streak", currentStreak);
-                userValues.put("last_completed_date", currentDate);
-            }
-            pendingTasksCursor.close();
-        }
+        // Entire old task completion streak increment sequence was cleaned out from here to allow login tracking only
 
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
     }
 
     public Cursor getUserProfile() {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        checkAndUpdateStreak(db, todayDateStr);
+
         return db.rawQuery("SELECT username, level, gold, xp FROM user WHERE _id = 1", null);
     }
 

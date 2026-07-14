@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:background="#F3F4F6"
+    android:background="@drawable/bg_task_card"
     android:padding="16dp"
     android:layout_marginBottom="12dp"
     android:gravity="center_vertical">
@@ -33,13 +33,14 @@
             android:layout_marginTop="2dp" />
     </LinearLayout>
 
-    <ImageButton
+    <CheckBox
         android:id="@+id/btn_shuffle_item"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_rotate"
-        android:contentDescription="Shuffle Task"
-        android:tint="#4A00E0" />
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:button="@null"
+        android:background="@android:drawable/checkbox_on_background"
+        android:contentDescription="Complete Task Checkbox"
+        android:focusable="false"
+        android:clickable="false" />
 
 </LinearLayout>

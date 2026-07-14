@@ -3,71 +3,36 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F7F4EB">
+    android:background="@drawable/bg_panel_rounded"
+    android:padding="20dp">
 
-    <RelativeLayout
+    <TextView
+        android:id="@+id/tv_shop_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Shops"
+        android:textColor="#2D3748"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_shop_gold_balance"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/iv_avatar_preview"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1.2"
-        android:background="#E1C6A7">
-
-        <ImageView
-            android:id="@+id/iv_avatar_preview"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:layout_centerInParent="true"
-            android:src="@android:drawable/sym_def_app_icon" />
-
-        <TextView
-            android:id="@+id/tv_shop_gold_balance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"
-            android:layout_marginTop="16dp"
-            android:layout_marginRight="16dp"
-            android:background="#778A66"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:text="Gold: 0"
-            android:textColor="#FFFF00"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btn_shop_action"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
-            android:layout_marginBottom="20dp"
-            android:backgroundTint="#FF9F43"
-            android:text="Purchase Item"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:elevation="4dp" />
-    </RelativeLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#FFFFFF"
-        android:elevation="8dp"
-        android:orientation="vertical"
-        android:padding="20dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Shops"
-            android:textColor="#FF9F43"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp" />
+        android:layout_weight="1">
 
         <GridView
             android:id="@+id/grid_shop_items"
@@ -77,5 +42,15 @@
             android:horizontalSpacing="16dp"
             android:verticalSpacing="16dp"
             android:stretchMode="columnWidth" />
-    </LinearLayout>
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/btn_shop_action"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:backgroundTint="#778A66"
+        android:text="Purchase Item"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textAllCaps="false" />
 </LinearLayout>
