@@ -43,4 +43,15 @@
         android:focusable="false"
         android:clickable="false" />
 
+    <ImageView
+        android:id="@+id/iv_auto_tracked_icon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@android:drawable/ic_menu_compass"
+        android:contentDescription="Auto-tracked quest"
+        android:visibility="gone"
+        android:clickable="false"
+        android:focusable="false"
+        android:alpha="0.7" />
+
 </LinearLayout>

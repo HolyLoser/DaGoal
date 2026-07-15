@@ -547,13 +547,18 @@ public class DashboardActivity extends AppCompatActivity {
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
                 TextView tvTarget = row.findViewById(R.id.tv_task_target);
                 CheckBox cbComplete = row.findViewById(R.id.btn_shuffle_item);
+                ImageView ivAutoTrackedIcon = row.findViewById(R.id.iv_auto_tracked_icon);
 
                 tvTitle.setText(title);
 
                 if (isAutoTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    cbComplete.setVisibility(View.GONE);
+                    ivAutoTrackedIcon.setVisibility(View.VISIBLE);
                 } else {
                     tvTarget.setText("Goal: " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    cbComplete.setVisibility(View.VISIBLE);
+                    ivAutoTrackedIcon.setVisibility(View.GONE);
                 }
 
                 if (isCompleted == 1) {
@@ -571,8 +576,10 @@ public class DashboardActivity extends AppCompatActivity {
                     if (isAutoTracked) {
                         cbComplete.setEnabled(false);
                         cbComplete.setClickable(false);
+                        cbComplete.setOnClickListener(null);
                     } else {
                         cbComplete.setEnabled(true);
+                        cbComplete.setClickable(true);
                         cbComplete.setOnClickListener(v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.completeTask(taskId);
