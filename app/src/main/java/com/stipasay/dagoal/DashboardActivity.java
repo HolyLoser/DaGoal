@@ -1,14 +1,19 @@
 package com.stipasay.dagoal;
 
-import android.animation.ValueAnimator;
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -18,13 +23,19 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class DashboardActivity extends AppCompatActivity {
@@ -42,6 +53,11 @@ public class DashboardActivity extends AppCompatActivity {
     private View rootLayout;
     private View bottomNavBar;
     private int contentFrameHeightPx;
+
+    private ActivityResultLauncher<String[]> stepPermissionLauncher;
+    private BroadcastReceiver taskProgressReceiver;
+    private LinearLayout currentActiveQuestContainer;
+    private LinearLayout currentCompletedQuestContainer;
 
     private ShopItem selectedShopItem = null;
     private ShopItem selectedWardrobeItem = null;
@@ -72,6 +88,20 @@ public class DashboardActivity extends AppCompatActivity {
             return insets;
         });
 
+        stepPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> StepTrackingService.start(this)
+        );
+
+        taskProgressReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
+                    populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+                }
+            }
+        };
+
         navQuest.setOnClickListener(v -> selectTab("QUEST"));
         navWardrobe.setOnClickListener(v -> selectTab("WARDROBE"));
         navShop.setOnClickListener(v -> selectTab("SHOP"));
@@ -82,8 +112,42 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         checkDailyStreakPopup();
+        checkAndRequestStepPermissions();
 
         selectTab("QUEST");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter("com.stipasay.dagoal.TASK_PROGRESS_UPDATED");
+        ContextCompat.registerReceiver(this, taskProgressReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(taskProgressReceiver);
+    }
+
+    private void checkAndRequestStepPermissions() {
+        List<String> permissionsNeeded = new ArrayList<>();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACTIVITY_RECOGNITION);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (permissionsNeeded.isEmpty()) {
+            StepTrackingService.start(this);
+        } else {
+            stepPermissionLauncher.launch(permissionsNeeded.toArray(new String[0]));
+        }
     }
 
     private boolean checkNewDayQuestRouting() {
@@ -113,7 +177,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void animateContentFrameHeight(int targetHeightPx) {
         CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
-        ValueAnimator animator = ValueAnimator.ofInt(contentFrameHeightPx, targetHeightPx);
+        android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(contentFrameHeightPx, targetHeightPx);
         animator.setDuration(220);
         animator.addUpdateListener(animation -> {
             int animatedHeight = (int) animation.getAnimatedValue();
@@ -184,6 +248,9 @@ public class DashboardActivity extends AppCompatActivity {
 
         updateGlobalAvatarHeader();
 
+        currentActiveQuestContainer = null;
+        currentCompletedQuestContainer = null;
+
         CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
         float density = getResources().getDisplayMetrics().density;
 
@@ -206,6 +273,8 @@ public class DashboardActivity extends AppCompatActivity {
 
                 LinearLayout activeContainer = questView.findViewById(R.id.container_active_dashboard_quests);
                 LinearLayout completedContainer = questView.findViewById(R.id.container_completed_dashboard_quests);
+                currentActiveQuestContainer = activeContainer;
+                currentCompletedQuestContainer = completedContainer;
                 populateQuestLists(activeContainer, completedContainer);
                 break;
 
@@ -448,7 +517,9 @@ public class DashboardActivity extends AppCompatActivity {
                 DatabaseContract.DailyTaskEntry.COLUMN_UNIT,
                 DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED,
                 DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
-                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
+                DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP,
+                DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE,
+                DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE
         };
 
         Cursor cursor = db.query(
@@ -467,6 +538,10 @@ public class DashboardActivity extends AppCompatActivity {
                 int isCompleted = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED));
                 int rewardGold = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD));
                 int rewardXp = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP));
+                String questType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE));
+                int currentValue = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE));
+
+                boolean isAutoTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType);
 
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, null, false);
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
@@ -474,7 +549,12 @@ public class DashboardActivity extends AppCompatActivity {
                 CheckBox cbComplete = row.findViewById(R.id.btn_shuffle_item);
 
                 tvTitle.setText(title);
-                tvTarget.setText("Goal: " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+
+                if (isAutoTracked) {
+                    tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                } else {
+                    tvTarget.setText("Goal: " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                }
 
                 if (isCompleted == 1) {
                     tvTitle.setTextColor(Color.GRAY);
@@ -487,12 +567,18 @@ public class DashboardActivity extends AppCompatActivity {
                 } else {
                     uncompletedCount++;
                     cbComplete.setChecked(false);
-                    cbComplete.setEnabled(true);
-                    cbComplete.setOnClickListener(v -> {
-                        TaskManager taskManager = new TaskManager(DashboardActivity.this);
-                        taskManager.completeTask(taskId);
-                        populateQuestLists(activeContainer, completedContainer);
-                    });
+
+                    if (isAutoTracked) {
+                        cbComplete.setEnabled(false);
+                        cbComplete.setClickable(false);
+                    } else {
+                        cbComplete.setEnabled(true);
+                        cbComplete.setOnClickListener(v -> {
+                            TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                            taskManager.completeTask(taskId);
+                            populateQuestLists(activeContainer, completedContainer);
+                        });
+                    }
                     activeContainer.addView(row);
                 }
             }

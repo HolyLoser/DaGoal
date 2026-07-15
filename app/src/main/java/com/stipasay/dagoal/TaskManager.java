@@ -49,7 +49,6 @@ public class TaskManager {
 
             ContentValues values = new ContentValues();
 
-            // First time setup check
             if (lastCompleted == null || lastCompleted.isEmpty()) {
                 values.put("streak", 1);
                 values.put("last_completed_date", currentDateStr);
@@ -57,7 +56,6 @@ public class TaskManager {
                 return;
             }
 
-            // Already verified login today, do nothing and safely exit loop
             if (lastCompleted.equals(currentDateStr)) {
                 return;
             }
@@ -72,25 +70,21 @@ public class TaskManager {
                     cal.setTime(lastDate);
                 }
 
-                // Add exactly 1 day to calculate the expected consecutive login target date
                 cal.add(Calendar.DAY_OF_YEAR, 1);
                 String expectedExtensionDate = sdf.format(cal.getTime());
 
                 if (currentDateStr.equals(expectedExtensionDate)) {
-                    // Logged in exactly the next day -> Increment streak by 1
                     int newStreak = currentStreak + 1;
                     values.put("streak", newStreak);
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
                     Log.i("TaskManager", "Streak incremented to " + newStreak + " via daily login.");
                 } else if (todayDate != null && todayDate.after(cal.getTime())) {
-                    // Missed one or more full days -> Reset streak back to 1 baseline
                     values.put("streak", 1);
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
                     Log.i("TaskManager", "Streak reset to 1. Calendar day gap detected.");
                 } else {
-                    // Safeguard for edge cases -> Just log date stamp up to today safely
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
                 }
@@ -104,7 +98,8 @@ public class TaskManager {
         String[] columns = {
                 DatabaseContract.TaskTemplateEntry.COLUMN_TITLE,
                 DatabaseContract.TaskTemplateEntry.COLUMN_BASE_VALUE,
-                DatabaseContract.TaskTemplateEntry.COLUMN_UNIT
+                DatabaseContract.TaskTemplateEntry.COLUMN_UNIT,
+                DatabaseContract.TaskTemplateEntry.COLUMN_QUEST_TYPE
         };
 
         String selection = DatabaseContract.TaskTemplateEntry.COLUMN_SUB_CATEGORY + " = ?";
@@ -119,6 +114,7 @@ public class TaskManager {
             String title = cursor.getString(0);
             int baseValue = cursor.getInt(1);
             String unit = cursor.getString(2);
+            String questType = cursor.getString(3);
             cursor.close();
 
             int finalTargetValue = (int) (baseValue * multiplier);
@@ -130,6 +126,8 @@ public class TaskManager {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
 
             db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
         }
@@ -227,9 +225,55 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
         userValues.put("level", currentLevel);
 
-        // Entire old task completion streak increment sequence was cleaned out from here to allow login tracking only
-
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+    }
+
+    public void updateTaskProgress(String questType, int newValue) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        String[] projection = {
+                DatabaseContract.DailyTaskEntry._ID,
+                DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED
+        };
+
+        String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?";
+        String[] selectionArgs = { questType, currentDate };
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                projection, selection, selectionArgs, null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                int taskId = cursor.getInt(0);
+                int targetValue = cursor.getInt(1);
+                int isCompleted = cursor.getInt(2);
+
+                if (isCompleted == 1) {
+                    continue;
+                }
+
+                int clampedValue = Math.min(newValue, targetValue);
+
+                ContentValues progressValues = new ContentValues();
+                progressValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, clampedValue);
+                db.update(
+                        DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                        progressValues,
+                        DatabaseContract.DailyTaskEntry._ID + " = ?",
+                        new String[]{ String.valueOf(taskId) }
+                );
+
+                if (clampedValue >= targetValue) {
+                    completeTask(taskId);
+                }
+            }
+            cursor.close();
+        }
     }
 
     public Cursor getUserProfile() {
