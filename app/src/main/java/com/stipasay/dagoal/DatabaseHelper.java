@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 10;
+    private static final int DATABASE_VERSION = 11;
 
     private static final String CREATE_TABLE_USER = "CREATE TABLE user (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -37,7 +37,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " INTEGER DEFAULT 0, " +
             DatabaseContract.DailyTaskEntry.COLUMN_DATE + " TEXT, " +
             DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD + " INTEGER DEFAULT 10, " +
-            DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP + " INTEGER DEFAULT 15);";
+            DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP + " INTEGER DEFAULT 15, " +
+            DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " TEXT DEFAULT 'GENERIC', " +
+            DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE + " INTEGER DEFAULT 0);";
 
     private static final String CREATE_TABLE_INVENTORY = "CREATE TABLE " +
             DatabaseContract.InventoryEntry.TABLE_NAME + " (" +
@@ -52,7 +54,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "sub_category TEXT, " +
             "title TEXT, " +
             "base_value INTEGER, " +
-            "unit TEXT);";
+            "unit TEXT, " +
+            "quest_type TEXT DEFAULT 'GENERIC');";
 
     private static final String CREATE_TABLE_ACHIEVEMENTS = "CREATE TABLE " +
             DatabaseContract.AchievementEntry.TABLE_NAME + " (" +
@@ -82,11 +85,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private void seedTaskTemplates(SQLiteDatabase db) {
         ContentValues values = new ContentValues();
 
-        // --- PHYSICAL CATEGORY VARIATIONS ---
         values.put("sub_category", "Physical Step Multiplier");
         values.put("title", "Walk steps");
         values.put("base_value", 5000);
         values.put("unit", "steps");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -94,6 +97,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Do stretching exercise");
         values.put("base_value", 10);
         values.put("unit", "minutes");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -101,15 +105,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Jumping jacks routine");
         values.put("base_value", 30);
         values.put("unit", "reps");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
-
-        // --- DETOX CATEGORY VARIATIONS ---
         values.put("sub_category", "Detox Duration Multiplier");
         values.put("title", "Reduce screen time");
         values.put("base_value", 60);
         values.put("unit", "minutes");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -117,6 +121,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "No social media apps");
         values.put("base_value", 2);
         values.put("unit", "hours");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -124,15 +129,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Stay away from PC or Console gaming");
         values.put("base_value", 3);
         values.put("unit", "hours");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
-
-        // --- CREATIVE CATEGORY VARIATIONS ---
         values.put("sub_category", "Creative Activity Multiplier");
         values.put("title", "Read a book");
         values.put("base_value", 20);
         values.put("unit", "pages");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -140,6 +145,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Practice programming syntax layout");
         values.put("base_value", 30);
         values.put("unit", "minutes");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -147,8 +153,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Sketch or draw something down");
         values.put("base_value", 1);
         values.put("unit", "drawing");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
         db.insert("task_templates", null, values);
-        values.clear();
     }
 
     private void seedAchievements(SQLiteDatabase db) {

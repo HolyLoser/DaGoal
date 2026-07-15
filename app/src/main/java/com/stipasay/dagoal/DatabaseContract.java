@@ -30,6 +30,7 @@ public final class DatabaseContract {
         public static final String COLUMN_UNIT = "unit";
         public static final String COLUMN_CATEGORY = "category_tag";
         public static final String COLUMN_SUB_CATEGORY = "sub_category";
+        public static final String COLUMN_QUEST_TYPE = "quest_type";
     }
 
     public static class DailyTaskEntry implements BaseColumns {
@@ -42,6 +43,10 @@ public final class DatabaseContract {
         public static final String COLUMN_DATE = "task_date";
         public static final String COLUMN_REWARD_GOLD = "reward_gold";
         public static final String COLUMN_REWARD_XP = "reward_xp";
+        public static final String COLUMN_QUEST_TYPE = "quest_type";
+        public static final String COLUMN_CURRENT_VALUE = "current_value";
+        public static final String QUEST_TYPE_GENERIC = "GENERIC";
+        public static final String QUEST_TYPE_STEPS = "STEPS";
     }
 
     public static class InventoryEntry implements BaseColumns {

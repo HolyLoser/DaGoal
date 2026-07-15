@@ -5,8 +5,7 @@
     android:orientation="vertical"
     android:background="@drawable/bg_panel_rounded"
     android:paddingLeft="20dp"
-    android:paddingRight="20dp"
-    android:paddingBottom="20dp">
+    android:paddingRight="20dp">
 
     <LinearLayout
         android:id="@+id/drag_handle_touch_area"
@@ -31,7 +30,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
 
             <TextView
                 android:id="@+id/tv_quests_remaining_header"

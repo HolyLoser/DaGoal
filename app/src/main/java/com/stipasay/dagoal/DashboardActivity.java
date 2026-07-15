@@ -185,12 +185,14 @@ public class DashboardActivity extends AppCompatActivity {
         updateGlobalAvatarHeader();
 
         CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
+        float density = getResources().getDisplayMetrics().density;
 
         if (tabName.equals("ME")) {
             if (panelAvatarHost != null) panelAvatarHost.setVisibility(View.GONE);
             contentParams.height = CoordinatorLayout.LayoutParams.MATCH_PARENT;
         } else {
             if (panelAvatarHost != null) panelAvatarHost.setVisibility(View.VISIBLE);
+            contentFrameHeightPx = (int) (COLLAPSED_HEIGHT_DP * density);
             contentParams.height = contentFrameHeightPx;
         }
         contentFrame.setLayoutParams(contentParams);
