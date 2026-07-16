@@ -94,7 +94,6 @@ public class DailyRevealActivity extends AppCompatActivity {
                 tvTitle.setText(title);
                 tvTarget.setText("Target: " + targetValue + " " + unit);
 
-                // Using standard OnClickListener and resetting check state manually to keep execution clean
                 btnShuffle.setOnClickListener(v -> {
                     btnShuffle.setChecked(false);
                     handleTaskShuffle(taskId, tvTitle, tvTarget);
@@ -114,7 +113,7 @@ public class DailyRevealActivity extends AppCompatActivity {
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        String excludeQuery = "SELECT title, base_value, unit FROM task_templates WHERE " +
+        String excludeQuery = "SELECT title, base_value, unit, quest_type FROM task_templates WHERE " +
                 DatabaseContract.TaskTemplateEntry.COLUMN_TITLE + " NOT IN (SELECT " +
                 DatabaseContract.DailyTaskEntry.COLUMN_TITLE + " FROM " +
                 DatabaseContract.DailyTaskEntry.TABLE_NAME + ") ORDER BY RANDOM() LIMIT 1";
@@ -125,6 +124,7 @@ public class DailyRevealActivity extends AppCompatActivity {
             String newTitle = cursor.getString(0);
             int baseValue = cursor.getInt(1);
             String unit = cursor.getString(2);
+            String newQuestType = cursor.getString(3);
             cursor.close();
 
             int finalTarget = baseValue;
@@ -133,6 +133,8 @@ public class DailyRevealActivity extends AppCompatActivity {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, newTitle);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTarget);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, newQuestType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
 
             db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, values, "_id = ?", new String[]{String.valueOf(taskId)});
 

@@ -143,10 +143,31 @@ public class DashboardActivity extends AppCompatActivity {
             }
         }
 
-        if (permissionsNeeded.isEmpty()) {
-            StepTrackingService.start(this);
-        } else {
+        if (!permissionsNeeded.isEmpty()) {
             stepPermissionLauncher.launch(permissionsNeeded.toArray(new String[0]));
+            return;
+        }
+
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String query = "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
+                " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0";
+        Cursor cursor = db.rawQuery(query, new String[]{
+                DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS, todayDateStr
+        });
+
+        boolean hasIncompleteStepQuest = false;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                hasIncompleteStepQuest = cursor.getInt(0) > 0;
+            }
+            cursor.close();
+        }
+
+        if (hasIncompleteStepQuest) {
+            StepTrackingService.start(this);
         }
     }
 

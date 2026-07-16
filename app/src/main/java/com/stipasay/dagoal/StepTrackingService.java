@@ -41,10 +41,22 @@ public class StepTrackingService extends Service implements SensorEventListener 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
-        startForeground(NOTIFICATION_ID, buildNotificationWithSteps(0));
 
-        if (sensorManager != null && stepCounterSensor != null) {
-            sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        int lastKnownSteps = 0;
+        if (todayDateStr.equals(prefs.getString("last_reported_date", ""))) {
+            lastKnownSteps = prefs.getInt("last_reported_steps", 0);
+        }
+
+        startForeground(NOTIFICATION_ID, buildNotificationWithSteps(lastKnownSteps));
+
+        if (hasIncompleteStepQuestToday()) {
+            if (sensorManager != null && stepCounterSensor != null) {
+                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+        } else {
+            stopSelf();
         }
 
         return START_STICKY;
@@ -89,16 +101,49 @@ public class StepTrackingService extends Service implements SensorEventListener 
             stepsToday = 0;
         }
 
+        SharedPreferences.Editor reportedEditor = prefs.edit();
+        reportedEditor.putString("last_reported_date", todayDateStr);
+        reportedEditor.putInt("last_reported_steps", stepsToday);
+        reportedEditor.apply();
+
         TaskManager taskManager = new TaskManager(this);
         taskManager.updateTaskProgress(DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS, stepsToday);
 
         Intent progressIntent = new Intent("com.stipasay.dagoal.TASK_PROGRESS_UPDATED");
         sendBroadcast(progressIntent);
 
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.notify(NOTIFICATION_ID, buildNotificationWithSteps(stepsToday));
+        if (hasIncompleteStepQuestToday()) {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.notify(NOTIFICATION_ID, buildNotificationWithSteps(stepsToday));
+            }
+        } else {
+            stopSelf();
         }
+    }
+
+    private boolean hasIncompleteStepQuestToday() {
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        android.database.sqlite.SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        String query = "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
+                " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0";
+
+        android.database.Cursor cursor = db.rawQuery(query, new String[]{
+                DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS, todayDateStr
+        });
+
+        boolean hasIncomplete = false;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                hasIncomplete = cursor.getInt(0) > 0;
+            }
+            cursor.close();
+        }
+        return hasIncomplete;
     }
 
     @Override
