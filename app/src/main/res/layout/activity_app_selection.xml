@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_app_selection_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F4EB"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#E1C6A7">
+
+            <ImageView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_centerInParent="true"
+                android:src="@android:drawable/sym_def_app_icon" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.8"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/tv_app_selection_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="The first step to better health is taking time for yourself and reducing the time you spend looking at screens."
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#2D3748"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_app_selection_subheader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Check the apps that you think consume most of your time"
+                android:textSize="14sp"
+                android:textColor="#4B5563"
+                android:layout_marginBottom="16dp" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:id="@+id/container_app_checklist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+
+            <Button
+                android:id="@+id/btn_app_selection_continue"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="Continue"
+                android:backgroundTint="#FF9F43"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textAllCaps="false" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -45,8 +45,11 @@ public final class DatabaseContract {
         public static final String COLUMN_REWARD_XP = "reward_xp";
         public static final String COLUMN_QUEST_TYPE = "quest_type";
         public static final String COLUMN_CURRENT_VALUE = "current_value";
+        public static final String COLUMN_PACKAGE_NAME = "package_name";
+        public static final String COLUMN_START_TIMESTAMP = "start_timestamp";
         public static final String QUEST_TYPE_GENERIC = "GENERIC";
         public static final String QUEST_TYPE_STEPS = "STEPS";
+        public static final String QUEST_TYPE_SCREEN_AVOID = "SCREEN_AVOID";
     }
 
     public static class InventoryEntry implements BaseColumns {
@@ -64,5 +67,11 @@ public final class DatabaseContract {
         public static final String COLUMN_TYPE = "type";
         public static final String COLUMN_CURRENT_PROGRESS = "current_progress";
         public static final String COLUMN_TARGET_VALUE = "target_value";
+    }
+
+    public static class BlockedAppEntry implements BaseColumns {
+        public static final String TABLE_NAME = "blocked_apps";
+        public static final String COLUMN_PACKAGE_NAME = "package_name";
+        public static final String COLUMN_APP_NAME = "app_name";
     }
 }

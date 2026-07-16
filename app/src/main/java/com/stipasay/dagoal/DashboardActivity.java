@@ -15,6 +15,8 @@ import android.widget.CheckBox;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,7 +29,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -58,6 +59,8 @@ public class DashboardActivity extends AppCompatActivity {
     private BroadcastReceiver taskProgressReceiver;
     private LinearLayout currentActiveQuestContainer;
     private LinearLayout currentCompletedQuestContainer;
+    private Handler avoidanceTickHandler = new Handler(Looper.getMainLooper());
+    private Runnable avoidanceTickRunnable;
 
     private ShopItem selectedShopItem = null;
     private ShopItem selectedWardrobeItem = null;
@@ -90,7 +93,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         stepPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> StepTrackingService.start(this)
+                result -> checkAndRequestStepPermissions()
         );
 
         taskProgressReceiver = new BroadcastReceiver() {
@@ -128,6 +131,7 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(taskProgressReceiver);
+        stopAvoidanceTicker();
     }
 
     private void checkAndRequestStepPermissions() {
@@ -262,6 +266,35 @@ public class DashboardActivity extends AppCompatActivity {
         });
     }
 
+    private void startAvoidanceTicker() {
+        stopAvoidanceTicker();
+        avoidanceTickRunnable = new Runnable() {
+            @Override
+            public void run() {
+                TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                taskManager.checkAndCompleteAvoidanceQuests();
+                if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
+                    populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+                }
+                avoidanceTickHandler.postDelayed(this, 60000);
+            }
+        };
+        avoidanceTickHandler.postDelayed(avoidanceTickRunnable, 60000);
+    }
+
+    private void stopAvoidanceTicker() {
+        if (avoidanceTickRunnable != null) {
+            avoidanceTickHandler.removeCallbacks(avoidanceTickRunnable);
+            avoidanceTickRunnable = null;
+        }
+    }
+
+    private String formatDuration(int minutes) {
+        int hours = minutes / 60;
+        int mins = minutes % 60;
+        return hours + "h " + mins + "m";
+    }
+
     private void selectTab(String tabName) {
         resetTabColors();
         contentFrame.removeAllViews();
@@ -271,6 +304,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         currentActiveQuestContainer = null;
         currentCompletedQuestContainer = null;
+        stopAvoidanceTicker();
 
         CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
         float density = getResources().getDisplayMetrics().density;
@@ -296,7 +330,12 @@ public class DashboardActivity extends AppCompatActivity {
                 LinearLayout completedContainer = questView.findViewById(R.id.container_completed_dashboard_quests);
                 currentActiveQuestContainer = activeContainer;
                 currentCompletedQuestContainer = completedContainer;
+
+                TaskManager tickManager = new TaskManager(this);
+                tickManager.checkAndCompleteAvoidanceQuests();
+
                 populateQuestLists(activeContainer, completedContainer);
+                startAvoidanceTicker();
                 break;
 
             case "WARDROBE":
@@ -540,7 +579,8 @@ public class DashboardActivity extends AppCompatActivity {
                 DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
                 DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP,
                 DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE,
-                DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE
+                DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP
         };
 
         Cursor cursor = db.query(
@@ -561,25 +601,42 @@ public class DashboardActivity extends AppCompatActivity {
                 int rewardXp = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP));
                 String questType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE));
                 int currentValue = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE));
+                long startTimestamp = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP));
 
-                boolean isAutoTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType);
+                boolean isStepTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType);
+                boolean isAvoidanceTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType);
 
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, null, false);
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
                 TextView tvTarget = row.findViewById(R.id.tv_task_target);
                 CheckBox cbComplete = row.findViewById(R.id.btn_shuffle_item);
                 ImageView ivAutoTrackedIcon = row.findViewById(R.id.iv_auto_tracked_icon);
+                Button btnStartAvoidance = row.findViewById(R.id.btn_start_avoidance);
 
                 tvTitle.setText(title);
+                cbComplete.setVisibility(View.GONE);
+                ivAutoTrackedIcon.setVisibility(View.GONE);
+                btnStartAvoidance.setVisibility(View.GONE);
 
-                if (isAutoTracked) {
+                if (isStepTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
-                    cbComplete.setVisibility(View.GONE);
                     ivAutoTrackedIcon.setVisibility(View.VISIBLE);
+                } else if (isAvoidanceTracked) {
+                    if (startTimestamp <= 0) {
+                        tvTarget.setText("Goal: " + formatDuration(target) + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                        btnStartAvoidance.setVisibility(View.VISIBLE);
+                        btnStartAvoidance.setOnClickListener(v -> {
+                            TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                            taskManager.startAvoidanceQuest(taskId);
+                            populateQuestLists(activeContainer, completedContainer);
+                        });
+                    } else {
+                        int remainingMinutes = Math.max(target - currentValue, 0);
+                        tvTarget.setText(formatDuration(remainingMinutes) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    }
                 } else {
                     tvTarget.setText("Goal: " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                     cbComplete.setVisibility(View.VISIBLE);
-                    ivAutoTrackedIcon.setVisibility(View.GONE);
                 }
 
                 if (isCompleted == 1) {
@@ -589,16 +646,13 @@ public class DashboardActivity extends AppCompatActivity {
                     row.setAlpha(0.6f);
                     cbComplete.setChecked(true);
                     cbComplete.setEnabled(false);
+                    btnStartAvoidance.setVisibility(View.GONE);
                     completedContainer.addView(row);
                 } else {
                     uncompletedCount++;
                     cbComplete.setChecked(false);
 
-                    if (isAutoTracked) {
-                        cbComplete.setEnabled(false);
-                        cbComplete.setClickable(false);
-                        cbComplete.setOnClickListener(null);
-                    } else {
+                    if (!isStepTracked && !isAvoidanceTracked) {
                         cbComplete.setEnabled(true);
                         cbComplete.setClickable(true);
                         cbComplete.setOnClickListener(v -> {

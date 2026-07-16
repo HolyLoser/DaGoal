@@ -160,7 +160,6 @@ public class ProfilingActivity extends AppCompatActivity {
         saveMetricRow(db, "Creative Activity Multiplier", String.valueOf(creativeMultiplier));
         saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[6]);
 
-        // Save the first run completion token before navigating away
         android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
         prefs.edit().putBoolean("isFirstRun", false).apply();
 
@@ -169,7 +168,7 @@ public class ProfilingActivity extends AppCompatActivity {
 
         Toast.makeText(this, "Profile Tier and Tasks Generated!", Toast.LENGTH_LONG).show();
 
-        Intent intent = new Intent(ProfilingActivity.this, DailyRevealActivity.class);
+        Intent intent = new Intent(ProfilingActivity.this, AppSelectionActivity.class);
         startActivity(intent);
         finish();
     }

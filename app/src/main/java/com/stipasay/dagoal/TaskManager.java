@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Random;
 
 public class TaskManager {
 
@@ -36,8 +37,65 @@ public class TaskManager {
         db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
 
         scaleAndInsertTask(db, "Physical Step Multiplier", physicalMult, currentDate);
-        scaleAndInsertTask(db, "Detox Duration Multiplier", detoxMult, currentDate);
+        insertDetoxOrAvoidanceTask(db, detoxMult, currentDate);
         scaleAndInsertTask(db, "Creative Activity Multiplier", creativeMult, currentDate);
+    }
+
+    private void insertDetoxOrAvoidanceTask(SQLiteDatabase db, double multiplier, String dateStr) {
+        java.util.List<String[]> blockedApps = getBlockedApps(db);
+
+        if (blockedApps.isEmpty()) {
+            scaleAndInsertTask(db, "Detox Duration Multiplier", multiplier, dateStr);
+            return;
+        }
+
+        Random random = new Random();
+        boolean useGroupQuest = random.nextBoolean();
+        int baseMinutes = 180;
+        int targetMinutes = (int) (baseMinutes * multiplier);
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, targetMinutes);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, "minutes");
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
+
+        if (useGroupQuest) {
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid social media");
+            values.putNull(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME);
+        } else {
+            String[] randomApp = blockedApps.get(random.nextInt(blockedApps.size()));
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid " + randomApp[1]);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME, randomApp[0]);
+        }
+
+        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+    }
+
+    private java.util.List<String[]> getBlockedApps(SQLiteDatabase db) {
+        java.util.List<String[]> result = new java.util.ArrayList<>();
+
+        Cursor cursor = db.query(
+                DatabaseContract.BlockedAppEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.BlockedAppEntry.COLUMN_PACKAGE_NAME,
+                        DatabaseContract.BlockedAppEntry.COLUMN_APP_NAME
+                },
+                null, null, null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                result.add(new String[]{cursor.getString(0), cursor.getString(1)});
+            }
+            cursor.close();
+        }
+
+        return result;
     }
 
     private void checkAndUpdateStreak(SQLiteDatabase db, String currentDateStr) {
@@ -269,6 +327,68 @@ public class TaskManager {
                 );
 
                 if (clampedValue >= targetValue) {
+                    completeTask(taskId);
+                }
+            }
+            cursor.close();
+        }
+    }
+
+    public void startAvoidanceQuest(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+    }
+
+    public void checkAndCompleteAvoidanceQuests() {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        String[] projection = {
+                DatabaseContract.DailyTaskEntry._ID,
+                DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP
+        };
+
+        String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0";
+        String[] selectionArgs = { DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, currentDate };
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                projection, selection, selectionArgs, null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                int taskId = cursor.getInt(0);
+                int targetMinutes = cursor.getInt(1);
+                long startTimestamp = cursor.getLong(2);
+
+                if (startTimestamp <= 0) {
+                    continue;
+                }
+
+                long elapsedMinutes = (System.currentTimeMillis() - startTimestamp) / 60000L;
+                int clampedElapsed = (int) Math.min(elapsedMinutes, targetMinutes);
+
+                ContentValues progressValues = new ContentValues();
+                progressValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, clampedElapsed);
+                db.update(
+                        DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                        progressValues,
+                        DatabaseContract.DailyTaskEntry._ID + " = ?",
+                        new String[]{ String.valueOf(taskId) }
+                );
+
+                if (clampedElapsed >= targetMinutes) {
                     completeTask(taskId);
                 }
             }
