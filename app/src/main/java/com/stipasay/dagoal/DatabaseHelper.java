@@ -8,7 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 12;
+    private static final int DATABASE_VERSION = 13;
+
+    private final Context appContext;
 
     private static final String CREATE_TABLE_USER = "CREATE TABLE user (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -41,7 +43,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " TEXT DEFAULT 'GENERIC', " +
             DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE + " INTEGER DEFAULT 0, " +
             DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME + " TEXT, " +
-            DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP + " INTEGER DEFAULT 0);";
+            DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP + " INTEGER DEFAULT 0, " +
+            DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG + " TEXT DEFAULT '');";
 
     private static final String CREATE_TABLE_INVENTORY = "CREATE TABLE " +
             DatabaseContract.InventoryEntry.TABLE_NAME + " (" +
@@ -76,6 +79,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.appContext = context.getApplicationContext();
     }
 
     @Override
@@ -122,7 +126,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "Reduce screen time");
         values.put("base_value", 60);
         values.put("unit", "minutes");
-        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -130,7 +134,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("title", "No social media apps");
         values.put("base_value", 2);
         values.put("unit", "hours");
-        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID);
         db.insert("task_templates", null, values);
         values.clear();
 
@@ -203,5 +207,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS achievements");
         db.execSQL("DROP TABLE IF EXISTS blocked_apps");
         onCreate(db);
+
+        if (appContext != null) {
+            android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putBoolean("isFirstRun", true)
+                    .remove("last_quest_generation_date")
+                    .apply();
+        }
     }
 }

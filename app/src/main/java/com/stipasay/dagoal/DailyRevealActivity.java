@@ -1,6 +1,5 @@
 package com.stipasay.dagoal;
 
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -27,7 +26,7 @@ public class DailyRevealActivity extends AppCompatActivity {
     private TextView tvShuffleCounter;
     private Button btnAcceptTasks;
     private DatabaseHelper dbHelper;
-    private int availableShuffles = 1;
+    private int availableShuffles = 999;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +48,7 @@ public class DailyRevealActivity extends AppCompatActivity {
         TaskManager taskManager = new TaskManager(this);
         taskManager.generateDailyTasks();
 
+        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
         loadDailyTasksFromDatabase();
 
         btnAcceptTasks.setOnClickListener(v -> {
@@ -60,6 +60,13 @@ public class DailyRevealActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+    }
+
+    private String formatTargetText(int targetValue, String unit) {
+        if ("minutes".equalsIgnoreCase(unit)) {
+            return "Target: " + TaskManager.formatDurationMinutes(targetValue);
+        }
+        return "Target: " + targetValue + " " + unit;
     }
 
     private void loadDailyTasksFromDatabase() {
@@ -92,7 +99,7 @@ public class DailyRevealActivity extends AppCompatActivity {
                 CheckBox btnShuffle = taskRow.findViewById(R.id.btn_shuffle_item);
 
                 tvTitle.setText(title);
-                tvTarget.setText("Target: " + targetValue + " " + unit);
+                tvTarget.setText(formatTargetText(targetValue, unit));
 
                 btnShuffle.setOnClickListener(v -> {
                     btnShuffle.setChecked(false);
@@ -111,44 +118,39 @@ public class DailyRevealActivity extends AppCompatActivity {
             return;
         }
 
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        TaskManager taskManager = new TaskManager(this);
+        boolean success = taskManager.shuffleQuest(taskId);
 
-        String excludeQuery = "SELECT title, base_value, unit, quest_type FROM task_templates WHERE " +
-                DatabaseContract.TaskTemplateEntry.COLUMN_TITLE + " NOT IN (SELECT " +
-                DatabaseContract.DailyTaskEntry.COLUMN_TITLE + " FROM " +
-                DatabaseContract.DailyTaskEntry.TABLE_NAME + ") ORDER BY RANDOM() LIMIT 1";
+        if (!success) {
+            Toast.makeText(this, "No alternative tasks found!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        Cursor cursor = db.rawQuery(excludeQuery, null);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor updatedCursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.DailyTaskEntry.COLUMN_TITLE,
+                        DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
+                        DatabaseContract.DailyTaskEntry.COLUMN_UNIT
+                },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
 
-        if (cursor != null && cursor.moveToFirst()) {
-            String newTitle = cursor.getString(0);
-            int baseValue = cursor.getInt(1);
-            String unit = cursor.getString(2);
-            String newQuestType = cursor.getString(3);
-            cursor.close();
-
-            int finalTarget = baseValue;
-
-            ContentValues values = new ContentValues();
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, newTitle);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTarget);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, newQuestType);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
-
-            db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, values, "_id = ?", new String[]{String.valueOf(taskId)});
+        if (updatedCursor != null && updatedCursor.moveToFirst()) {
+            String newTitle = updatedCursor.getString(0);
+            int newTarget = updatedCursor.getInt(1);
+            String newUnit = updatedCursor.getString(2);
+            updatedCursor.close();
 
             tvTitle.setText(newTitle);
-            tvTarget.setText("Target: " + finalTarget + " " + unit);
-
-            availableShuffles--;
-            tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
-            Toast.makeText(this, "Task shuffled successfully!", Toast.LENGTH_SHORT).show();
-        } else {
-            if (cursor != null) {
-                cursor.close();
-            }
-            Toast.makeText(this, "No alternative tasks found in templates!", Toast.LENGTH_SHORT).show();
+            tvTarget.setText(formatTargetText(newTarget, newUnit));
         }
+
+        availableShuffles--;
+        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
+        Toast.makeText(this, "Task shuffled successfully!", Toast.LENGTH_SHORT).show();
     }
 }

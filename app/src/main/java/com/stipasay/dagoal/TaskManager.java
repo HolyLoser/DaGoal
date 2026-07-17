@@ -32,23 +32,121 @@ public class TaskManager {
 
         double physicalMult = getMultiplier(db, "Physical Step Multiplier");
         double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
-        double creativeMult = getMultiplier(db, "Creative Activity Multiplier");
 
         db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
 
-        scaleAndInsertTask(db, "Physical Step Multiplier", physicalMult, currentDate);
+        insertSpecificTemplateTask(db, "Physical Step Multiplier", "Walk steps", physicalMult, currentDate);
         insertDetoxOrAvoidanceTask(db, detoxMult, currentDate);
-        scaleAndInsertTask(db, "Creative Activity Multiplier", creativeMult, currentDate);
+        insertRandomAdditionalTasks(db, currentDate, 3);
+    }
+
+    public static String formatDurationMinutes(int totalMinutes) {
+        if (totalMinutes < 60) {
+            return totalMinutes + " minutes";
+        }
+        int hours = totalMinutes / 60;
+        int mins = totalMinutes % 60;
+        if (mins == 0) {
+            return hours + "h";
+        }
+        return hours + "h " + mins + "m";
+    }
+
+    private void insertSpecificTemplateTask(SQLiteDatabase db, String subCategory, String specificTitle, double multiplier, String dateStr) {
+        String[] columns = {
+                DatabaseContract.TaskTemplateEntry.COLUMN_BASE_VALUE,
+                DatabaseContract.TaskTemplateEntry.COLUMN_UNIT,
+                DatabaseContract.TaskTemplateEntry.COLUMN_QUEST_TYPE
+        };
+
+        String selection = DatabaseContract.TaskTemplateEntry.COLUMN_SUB_CATEGORY + " = ? AND " +
+                DatabaseContract.TaskTemplateEntry.COLUMN_TITLE + " = ?";
+        String[] selectionArgs = { subCategory, specificTitle };
+
+        Cursor cursor = db.query(
+                DatabaseContract.TaskTemplateEntry.TABLE_NAME,
+                columns, selection, selectionArgs, null, null, null, "1"
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            int baseValue = cursor.getInt(0);
+            String unit = cursor.getString(1);
+            String questType = cursor.getString(2);
+            cursor.close();
+
+            int finalTargetValue = (int) (baseValue * multiplier);
+
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, specificTitle);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTargetValue);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
+
+            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+        } else {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     private void insertDetoxOrAvoidanceTask(SQLiteDatabase db, double multiplier, String dateStr) {
         java.util.List<String[]> blockedApps = getBlockedApps(db);
 
         if (blockedApps.isEmpty()) {
-            scaleAndInsertTask(db, "Detox Duration Multiplier", multiplier, dateStr);
+            insertSpecificTemplateTask(db, "Detox Duration Multiplier", "Reduce screen time", multiplier, dateStr);
             return;
         }
 
+        ContentValues values = buildAvoidanceValues(blockedApps, multiplier, dateStr);
+        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+    }
+
+    private void insertRandomAdditionalTasks(SQLiteDatabase db, String dateStr, int count) {
+        for (int i = 0; i < count; i++) {
+            String query = "SELECT title, base_value, unit, quest_type, sub_category FROM task_templates WHERE title NOT IN (SELECT title FROM " +
+                    DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
+
+            Cursor cursor = db.rawQuery(query, new String[]{ dateStr });
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String title = cursor.getString(0);
+                int baseValue = cursor.getInt(1);
+                String unit = cursor.getString(2);
+                String questType = cursor.getString(3);
+                String subCategory = cursor.getString(4);
+                cursor.close();
+
+                double multiplier = getMultiplier(db, subCategory);
+                int finalTarget = (int) (baseValue * multiplier);
+
+                ContentValues values = new ContentValues();
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTarget);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
+
+                db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+            } else {
+                if (cursor != null) {
+                    cursor.close();
+                }
+                break;
+            }
+        }
+    }
+
+    private ContentValues buildAvoidanceValues(java.util.List<String[]> blockedApps, double multiplier, String dateStr) {
         Random random = new Random();
         boolean useGroupQuest = random.nextBoolean();
         int baseMinutes = 180;
@@ -63,6 +161,7 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Detox Duration Multiplier");
 
         if (useGroupQuest) {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid social media");
@@ -73,7 +172,92 @@ public class TaskManager {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME, randomApp[0]);
         }
 
-        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+        return values;
+    }
+
+    public boolean refreshAvoidanceQuest(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        java.util.List<String[]> blockedApps = getBlockedApps(db);
+
+        if (blockedApps.isEmpty()) {
+            return false;
+        }
+
+        double multiplier = getMultiplier(db, "Detox Duration Multiplier");
+        ContentValues values = buildAvoidanceValues(blockedApps, multiplier, currentDate);
+
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+
+        return true;
+    }
+
+    public boolean shuffleQuest(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        Cursor typeCursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        String questType = "";
+        if (typeCursor != null && typeCursor.moveToFirst()) {
+            questType = typeCursor.getString(0);
+            typeCursor.close();
+        }
+
+        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+            return refreshAvoidanceQuest(taskId);
+        }
+
+        String query = "SELECT title, base_value, unit, quest_type, sub_category FROM task_templates WHERE title NOT IN (SELECT title FROM " +
+                DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
+
+        Cursor cursor = db.rawQuery(query, new String[]{ currentDate });
+
+        if (cursor != null && cursor.moveToFirst()) {
+            String title = cursor.getString(0);
+            int baseValue = cursor.getInt(1);
+            String unit = cursor.getString(2);
+            String newQuestType = cursor.getString(3);
+            String subCategory = cursor.getString(4);
+            cursor.close();
+
+            double multiplier = getMultiplier(db, subCategory);
+            int finalTarget = (int) (baseValue * multiplier);
+
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTarget);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, newQuestType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
+            values.putNull(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME);
+
+            db.update(
+                    DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                    values,
+                    DatabaseContract.DailyTaskEntry._ID + " = ?",
+                    new String[]{ String.valueOf(taskId) }
+            );
+
+            return true;
+        } else {
+            if (cursor != null) {
+                cursor.close();
+            }
+            return false;
+        }
     }
 
     private java.util.List<String[]> getBlockedApps(SQLiteDatabase db) {
@@ -149,45 +333,6 @@ public class TaskManager {
             } catch (Exception e) {
                 Log.e("TaskManager", "Error parsing streak login sequence dates", e);
             }
-        }
-    }
-
-    private void scaleAndInsertTask(SQLiteDatabase db, String subCategory, double multiplier, String dateStr) {
-        String[] columns = {
-                DatabaseContract.TaskTemplateEntry.COLUMN_TITLE,
-                DatabaseContract.TaskTemplateEntry.COLUMN_BASE_VALUE,
-                DatabaseContract.TaskTemplateEntry.COLUMN_UNIT,
-                DatabaseContract.TaskTemplateEntry.COLUMN_QUEST_TYPE
-        };
-
-        String selection = DatabaseContract.TaskTemplateEntry.COLUMN_SUB_CATEGORY + " = ?";
-        String[] selectionArgs = { subCategory };
-
-        Cursor cursor = db.query(
-                DatabaseContract.TaskTemplateEntry.TABLE_NAME,
-                columns, selection, selectionArgs, null, null, "RANDOM()", "1"
-        );
-
-        if (cursor != null && cursor.moveToFirst()) {
-            String title = cursor.getString(0);
-            int baseValue = cursor.getInt(1);
-            String unit = cursor.getString(2);
-            String questType = cursor.getString(3);
-            cursor.close();
-
-            int finalTargetValue = (int) (baseValue * multiplier);
-
-            ContentValues values = new ContentValues();
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTargetValue);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
-
-            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
         }
     }
 

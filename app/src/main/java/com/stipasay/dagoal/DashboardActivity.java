@@ -289,11 +289,6 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
-    private String formatDuration(int minutes) {
-        int hours = minutes / 60;
-        int mins = minutes % 60;
-        return hours + "h " + mins + "m";
-    }
 
     private void selectTab(String tabName) {
         resetTabColors();
@@ -623,7 +618,7 @@ public class DashboardActivity extends AppCompatActivity {
                     ivAutoTrackedIcon.setVisibility(View.VISIBLE);
                 } else if (isAvoidanceTracked) {
                     if (startTimestamp <= 0) {
-                        tvTarget.setText("Goal: " + formatDuration(target) + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                        tvTarget.setText("Goal: " + TaskManager.formatDurationMinutes(target) + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                         btnStartAvoidance.setVisibility(View.VISIBLE);
                         btnStartAvoidance.setOnClickListener(v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
@@ -632,10 +627,11 @@ public class DashboardActivity extends AppCompatActivity {
                         });
                     } else {
                         int remainingMinutes = Math.max(target - currentValue, 0);
-                        tvTarget.setText(formatDuration(remainingMinutes) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
+                        tvTarget.setText(TaskManager.formatDurationMinutes(remainingMinutes) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
                     }
                 } else {
-                    tvTarget.setText("Goal: " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    String targetText = "minutes".equalsIgnoreCase(unit) ? TaskManager.formatDurationMinutes(target) : target + " " + unit;
+                    tvTarget.setText("Goal: " + targetText + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                     cbComplete.setVisibility(View.VISIBLE);
                 }
 
