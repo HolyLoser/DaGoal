@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#CC000000"
+    android:padding="32dp">
+
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@android:drawable/sym_def_app_icon"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tv_overlay_quest_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Avoid Instagram"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="You're supposed to be avoiding this app right now."
+        android:textColor="#E2E8F0"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btn_overlay_understand"
+        android:layout_width="240dp"
+        android:layout_height="54dp"
+        android:text="I understand"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#778A66"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_overlay_ignore"
+        android:layout_width="240dp"
+        android:layout_height="54dp"
+        android:text="Ignore for 5 minutes"
+        android:textColor="#2D3748"
+        android:textAllCaps="false"
+        android:backgroundTint="#E1C6A7" />
+
+</LinearLayout>

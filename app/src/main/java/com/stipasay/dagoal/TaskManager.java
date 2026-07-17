@@ -540,6 +540,136 @@ public class TaskManager {
             cursor.close();
         }
     }
+    public static class ActiveAvoidanceQuest {
+        public int taskId;
+        public String title;
+        public java.util.List<String> targetPackages;
+    }
+
+    public java.util.List<ActiveAvoidanceQuest> getStartedAvoidanceQuests() {
+        java.util.List<ActiveAvoidanceQuest> result = new java.util.ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        String[] projection = {
+                DatabaseContract.DailyTaskEntry._ID,
+                DatabaseContract.DailyTaskEntry.COLUMN_TITLE,
+                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME
+        };
+
+        String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED + " = 0 AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP + " > 0";
+        String[] selectionArgs = { DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, currentDate };
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                projection, selection, selectionArgs, null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                ActiveAvoidanceQuest quest = new ActiveAvoidanceQuest();
+                quest.taskId = cursor.getInt(0);
+                quest.title = cursor.getString(1);
+                String packageName = cursor.getString(2);
+
+                quest.targetPackages = new java.util.ArrayList<>();
+                if (packageName != null && !packageName.isEmpty()) {
+                    quest.targetPackages.add(packageName);
+                } else {
+                    java.util.List<String[]> blockedApps = getBlockedApps(db);
+                    for (String[] app : blockedApps) {
+                        quest.targetPackages.add(app[0]);
+                    }
+                }
+
+                result.add(quest);
+            }
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    public int getIgnoreStage(int taskId) {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+        int stage = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                stage = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+        return stage;
+    }
+
+    public long getSnoozeUntil(int taskId) {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+        long snoozeUntil = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                snoozeUntil = cursor.getLong(0);
+            }
+            cursor.close();
+        }
+        return snoozeUntil;
+    }
+
+    public int handleIgnorePressed(int taskId) {
+        int stage = getIgnoreStage(taskId);
+        if (stage >= 3) {
+            resetAvoidanceQuest(taskId);
+            return -1;
+        }
+
+        int newStage = stage + 1;
+        int minutes = newStage == 1 ? 5 : (newStage == 2 ? 10 : 15);
+        long snoozeUntil = System.currentTimeMillis() + (long) minutes * 60000L;
+
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, newStage);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+
+        return minutes;
+    }
+
+    public void resetAvoidanceQuest(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+    }
 
     public Cursor getUserProfile() {
         SQLiteDatabase db = dbHelper.getWritableDatabase();

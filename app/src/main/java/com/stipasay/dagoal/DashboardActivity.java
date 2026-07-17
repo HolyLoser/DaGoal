@@ -116,6 +116,8 @@ public class DashboardActivity extends AppCompatActivity {
 
         checkDailyStreakPopup();
         checkAndRequestStepPermissions();
+        checkAndRequestAvoidancePermissions();
+        startAvoidanceServiceIfNeeded();
 
         selectTab("QUEST");
     }
@@ -125,6 +127,7 @@ public class DashboardActivity extends AppCompatActivity {
         super.onResume();
         IntentFilter filter = new IntentFilter("com.stipasay.dagoal.TASK_PROGRESS_UPDATED");
         ContextCompat.registerReceiver(this, taskProgressReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+        startAvoidanceServiceIfNeeded();
     }
 
     @Override
@@ -133,7 +136,65 @@ public class DashboardActivity extends AppCompatActivity {
         unregisterReceiver(taskProgressReceiver);
         stopAvoidanceTicker();
     }
+    private void checkAndRequestAvoidancePermissions() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String query = "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
+                " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{
+                DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, todayDateStr
+        });
 
+        boolean hasAvoidanceQuestToday = false;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                hasAvoidanceQuestToday = cursor.getInt(0) > 0;
+            }
+            cursor.close();
+        }
+
+        if (!hasAvoidanceQuestToday) {
+            return;
+        }
+
+        boolean hasUsageAccess = AppMonitorService.hasUsageAccess(this);
+        boolean hasOverlayPermission = android.provider.Settings.canDrawOverlays(this);
+
+        if (hasUsageAccess && hasOverlayPermission) {
+            return;
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Permissions needed");
+        builder.setMessage("To enforce your avoidance quests, DaGoal needs Usage Access and Display Over Other Apps permissions.");
+
+        if (!hasUsageAccess) {
+            builder.setPositiveButton("Grant Usage Access", (dialog, which) -> {
+                startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS));
+            });
+        } else {
+            builder.setPositiveButton("Grant Overlay Permission", (dialog, which) -> {
+                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            });
+        }
+
+        builder.setNegativeButton("Later", null);
+        builder.show();
+    }
+
+    private void startAvoidanceServiceIfNeeded() {
+        if (!AppMonitorService.hasUsageAccess(this) || !android.provider.Settings.canDrawOverlays(this)) {
+            return;
+        }
+
+        TaskManager taskManager = new TaskManager(this);
+        if (!taskManager.getStartedAvoidanceQuests().isEmpty()) {
+            AppMonitorService.start(this);
+        }
+    }
     private void checkAndRequestStepPermissions() {
         List<String> permissionsNeeded = new ArrayList<>();
 
@@ -623,6 +684,7 @@ public class DashboardActivity extends AppCompatActivity {
                         btnStartAvoidance.setOnClickListener(v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.startAvoidanceQuest(taskId);
+                            startAvoidanceServiceIfNeeded();
                             populateQuestLists(activeContainer, completedContainer);
                         });
                     } else {

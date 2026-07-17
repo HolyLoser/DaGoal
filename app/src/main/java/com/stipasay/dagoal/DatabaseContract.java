@@ -51,6 +51,8 @@ public final class DatabaseContract {
         public static final String QUEST_TYPE_STEPS = "STEPS";
         public static final String QUEST_TYPE_SCREEN_AVOID = "SCREEN_AVOID";
         public static final String COLUMN_CATEGORY_TAG = "category_tag";
+        public static final String COLUMN_IGNORE_STAGE = "ignore_stage";
+        public static final String COLUMN_SNOOZE_UNTIL = "snooze_until";
     }
 
     public static class InventoryEntry implements BaseColumns {
