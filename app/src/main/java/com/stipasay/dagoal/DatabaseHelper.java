@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 14;
+    private static final int DATABASE_VERSION = 16;
 
     private final Context appContext;
 
@@ -121,6 +121,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("base_value", 30);
         values.put("unit", "reps");
         values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Physical Step Multiplier");
+        values.put("title", "Drink water");
+        values.put("base_value", 8);
+        values.put("unit", "glasses");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT);
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Physical Step Multiplier");
+        values.put("title", "Take stretch breaks");
+        values.put("base_value", 4);
+        values.put("unit", "breaks");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT);
+        db.insert("task_templates", null, values);
+        values.clear();
+
+        values.put("sub_category", "Creative Activity Multiplier");
+        values.put("title", "Write journal entries");
+        values.put("base_value", 3);
+        values.put("unit", "entries");
+        values.put("quest_type", DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT);
         db.insert("task_templates", null, values);
         values.clear();
 

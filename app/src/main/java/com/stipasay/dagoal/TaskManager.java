@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import android.widget.Toast;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -14,9 +15,11 @@ import java.util.Random;
 public class TaskManager {
 
     private final DatabaseHelper dbHelper;
+    private final Context appContext;
 
     public TaskManager(Context context) {
         this.dbHelper = new DatabaseHelper(context);
+        this.appContext = context.getApplicationContext();
     }
 
     public void generateDailyTasks() {
@@ -30,14 +33,20 @@ public class TaskManager {
             return;
         }
 
-        double physicalMult = getMultiplier(db, "Physical Step Multiplier");
-        double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
-
         db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
 
-        insertSpecificTemplateTask(db, "Physical Step Multiplier", "Walk steps", physicalMult, currentDate);
-        insertDetoxOrAvoidanceTask(db, detoxMult, currentDate);
-        insertRandomAdditionalTasks(db, currentDate, 3);
+        boolean avoidanceInserted = false;
+        java.util.List<String[]> blockedApps = getBlockedApps(db);
+
+        if (!blockedApps.isEmpty() && new Random().nextBoolean()) {
+            double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
+            ContentValues values = buildAvoidanceValues(blockedApps, detoxMult, currentDate);
+            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+            avoidanceInserted = true;
+        }
+
+        int remainingSlots = avoidanceInserted ? 4 : 5;
+        insertRandomAdditionalTasks(db, currentDate, remainingSlots);
     }
 
     public static String formatDurationMinutes(int totalMinutes) {
@@ -50,61 +59,6 @@ public class TaskManager {
             return hours + "h";
         }
         return hours + "h " + mins + "m";
-    }
-
-    private void insertSpecificTemplateTask(SQLiteDatabase db, String subCategory, String specificTitle, double multiplier, String dateStr) {
-        String[] columns = {
-                DatabaseContract.TaskTemplateEntry.COLUMN_BASE_VALUE,
-                DatabaseContract.TaskTemplateEntry.COLUMN_UNIT,
-                DatabaseContract.TaskTemplateEntry.COLUMN_QUEST_TYPE
-        };
-
-        String selection = DatabaseContract.TaskTemplateEntry.COLUMN_SUB_CATEGORY + " = ? AND " +
-                DatabaseContract.TaskTemplateEntry.COLUMN_TITLE + " = ?";
-        String[] selectionArgs = { subCategory, specificTitle };
-
-        Cursor cursor = db.query(
-                DatabaseContract.TaskTemplateEntry.TABLE_NAME,
-                columns, selection, selectionArgs, null, null, null, "1"
-        );
-
-        if (cursor != null && cursor.moveToFirst()) {
-            int baseValue = cursor.getInt(0);
-            String unit = cursor.getString(1);
-            String questType = cursor.getString(2);
-            cursor.close();
-
-            int finalTargetValue = (int) (baseValue * multiplier);
-
-            ContentValues values = new ContentValues();
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, specificTitle);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, finalTargetValue);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
-
-            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
-        } else {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
-    private void insertDetoxOrAvoidanceTask(SQLiteDatabase db, double multiplier, String dateStr) {
-        java.util.List<String[]> blockedApps = getBlockedApps(db);
-
-        if (blockedApps.isEmpty()) {
-            insertSpecificTemplateTask(db, "Detox Duration Multiplier", "Reduce screen time", multiplier, dateStr);
-            return;
-        }
-
-        ContentValues values = buildAvoidanceValues(blockedApps, multiplier, dateStr);
-        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
     }
 
     private void insertRandomAdditionalTasks(SQLiteDatabase db, String dateStr, int count) {
@@ -162,6 +116,8 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Detox Duration Multiplier");
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
 
         if (useGroupQuest) {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid social media");
@@ -197,6 +153,24 @@ public class TaskManager {
         return true;
     }
 
+    private boolean hasAvoidanceQuestExcluding(SQLiteDatabase db, String dateStr, int excludeTaskId) {
+        String query = "SELECT COUNT(*) FROM " + DatabaseContract.DailyTaskEntry.TABLE_NAME +
+                " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ? AND " +
+                DatabaseContract.DailyTaskEntry._ID + " != ?";
+        Cursor cursor = db.rawQuery(query, new String[]{
+                DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, dateStr, String.valueOf(excludeTaskId)
+        });
+        boolean exists = false;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                exists = cursor.getInt(0) > 0;
+            }
+            cursor.close();
+        }
+        return exists;
+    }
+
     public boolean shuffleQuest(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
@@ -217,6 +191,23 @@ public class TaskManager {
 
         if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
             return refreshAvoidanceQuest(taskId);
+        }
+
+        java.util.List<String[]> blockedApps = getBlockedApps(db);
+        boolean avoidanceExistsElsewhere = hasAvoidanceQuestExcluding(db, currentDate, taskId);
+
+        if (!blockedApps.isEmpty() && !avoidanceExistsElsewhere && new Random().nextInt(3) == 0) {
+            double multiplier = getMultiplier(db, "Detox Duration Multiplier");
+            ContentValues avoidanceValues = buildAvoidanceValues(blockedApps, multiplier, currentDate);
+
+            db.update(
+                    DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                    avoidanceValues,
+                    DatabaseContract.DailyTaskEntry._ID + " = ?",
+                    new String[]{ String.valueOf(taskId) }
+            );
+
+            return true;
         }
 
         String query = "SELECT title, base_value, unit, quest_type, sub_category FROM task_templates WHERE title NOT IN (SELECT title FROM " +
@@ -295,6 +286,7 @@ public class TaskManager {
                 values.put("streak", 1);
                 values.put("last_completed_date", currentDateStr);
                 db.update("user", values, "_id = 1", null);
+                syncStreakAchievements(db, 1);
                 return;
             }
 
@@ -320,11 +312,13 @@ public class TaskManager {
                     values.put("streak", newStreak);
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
+                    syncStreakAchievements(db, newStreak);
                     Log.i("TaskManager", "Streak incremented to " + newStreak + " via daily login.");
                 } else if (todayDate != null && todayDate.after(cal.getTime())) {
                     values.put("streak", 1);
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
+                    syncStreakAchievements(db, 1);
                     Log.i("TaskManager", "Streak reset to 1. Calendar day gap detected.");
                 } else {
                     values.put("last_completed_date", currentDateStr);
@@ -429,6 +423,98 @@ public class TaskManager {
         userValues.put("level", currentLevel);
 
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+
+        incrementQuestCountAchievements(db);
+    }
+
+    private void incrementQuestCountAchievements(SQLiteDatabase db) {
+        Cursor cursor = db.query(
+                DatabaseContract.AchievementEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.AchievementEntry._ID,
+                        DatabaseContract.AchievementEntry.COLUMN_TITLE,
+                        DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS,
+                        DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE
+                },
+                DatabaseContract.AchievementEntry.COLUMN_TYPE + " = ?",
+                new String[]{ "QUEST_COUNT" },
+                null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                int achievementId = cursor.getInt(0);
+                String title = cursor.getString(1);
+                int oldProgress = cursor.getInt(2);
+                int targetValue = cursor.getInt(3);
+
+                if (oldProgress >= targetValue) {
+                    continue;
+                }
+
+                int newProgress = Math.min(oldProgress + 1, targetValue);
+
+                ContentValues values = new ContentValues();
+                values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, newProgress);
+                db.update(
+                        DatabaseContract.AchievementEntry.TABLE_NAME,
+                        values,
+                        DatabaseContract.AchievementEntry._ID + " = ?",
+                        new String[]{ String.valueOf(achievementId) }
+                );
+
+                if (newProgress >= targetValue) {
+                    showAchievementUnlockedToast(title);
+                }
+            }
+            cursor.close();
+        }
+    }
+
+    private void syncStreakAchievements(SQLiteDatabase db, int streakValue) {
+        Cursor cursor = db.query(
+                DatabaseContract.AchievementEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.AchievementEntry._ID,
+                        DatabaseContract.AchievementEntry.COLUMN_TITLE,
+                        DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS,
+                        DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE
+                },
+                DatabaseContract.AchievementEntry.COLUMN_TYPE + " = ?",
+                new String[]{ "STREAK_COUNT" },
+                null, null, null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                int achievementId = cursor.getInt(0);
+                String title = cursor.getString(1);
+                int oldProgress = cursor.getInt(2);
+                int targetValue = cursor.getInt(3);
+
+                int newProgress = Math.min(streakValue, targetValue);
+
+                ContentValues values = new ContentValues();
+                values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, newProgress);
+                db.update(
+                        DatabaseContract.AchievementEntry.TABLE_NAME,
+                        values,
+                        DatabaseContract.AchievementEntry._ID + " = ?",
+                        new String[]{ String.valueOf(achievementId) }
+                );
+
+                if (newProgress >= targetValue && oldProgress < targetValue) {
+                    showAchievementUnlockedToast(title);
+                }
+            }
+            cursor.close();
+        }
+    }
+
+    private void showAchievementUnlockedToast(String title) {
+        if (appContext != null) {
+            Toast.makeText(appContext, "Achievement Unlocked: " + title + "!", Toast.LENGTH_LONG).show();
+        }
     }
 
     public void updateTaskProgress(String questType, int newValue) {
@@ -476,6 +562,47 @@ public class TaskManager {
                 }
             }
             cursor.close();
+        }
+    }
+
+    public void incrementQuestProgress(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE,
+                        DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE
+                },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        int currentValue = 0;
+        int targetValue = 0;
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                currentValue = cursor.getInt(0);
+                targetValue = cursor.getInt(1);
+            }
+            cursor.close();
+        }
+
+        int newValue = Math.min(currentValue + 1, targetValue);
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, newValue);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+
+        if (newValue >= targetValue) {
+            completeTask(taskId);
         }
     }
 
@@ -540,6 +667,7 @@ public class TaskManager {
             cursor.close();
         }
     }
+
     public static class ActiveAvoidanceQuest {
         public int taskId;
         public String title;

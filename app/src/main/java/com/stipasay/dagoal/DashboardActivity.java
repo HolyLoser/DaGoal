@@ -127,7 +127,33 @@ public class DashboardActivity extends AppCompatActivity {
         super.onResume();
         IntentFilter filter = new IntentFilter("com.stipasay.dagoal.TASK_PROGRESS_UPDATED");
         ContextCompat.registerReceiver(this, taskProgressReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+
+        if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
+            TaskManager refreshManager = new TaskManager(this);
+            refreshManager.checkAndCompleteAvoidanceQuests();
+            populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+        }
+
         startAvoidanceServiceIfNeeded();
+        requestBatteryOptimizationExemption();
+    }
+
+    private void requestBatteryOptimizationExemption() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        if (prefs.getBoolean("batteryOptPromptShown", false)) {
+            return;
+        }
+
+        android.os.PowerManager powerManager = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+            prefs.edit().putBoolean("batteryOptPromptShown", true).apply();
+            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+            try {
+                startActivity(intent);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     @Override
@@ -661,6 +687,7 @@ public class DashboardActivity extends AppCompatActivity {
 
                 boolean isStepTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType);
                 boolean isAvoidanceTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType);
+                boolean isIncrementTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT.equals(questType);
 
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, null, false);
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
@@ -668,15 +695,27 @@ public class DashboardActivity extends AppCompatActivity {
                 CheckBox cbComplete = row.findViewById(R.id.btn_shuffle_item);
                 ImageView ivAutoTrackedIcon = row.findViewById(R.id.iv_auto_tracked_icon);
                 Button btnStartAvoidance = row.findViewById(R.id.btn_start_avoidance);
+                Button btnIncrementProgress = row.findViewById(R.id.btn_increment_progress);
 
                 tvTitle.setText(title);
                 cbComplete.setVisibility(View.GONE);
                 ivAutoTrackedIcon.setVisibility(View.GONE);
                 btnStartAvoidance.setVisibility(View.GONE);
+                btnIncrementProgress.setVisibility(View.GONE);
 
                 if (isStepTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                     ivAutoTrackedIcon.setVisibility(View.VISIBLE);
+                } else if (isIncrementTracked) {
+                    tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    if (isCompleted == 0) {
+                        btnIncrementProgress.setVisibility(View.VISIBLE);
+                        btnIncrementProgress.setOnClickListener(v -> {
+                            TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                            taskManager.incrementQuestProgress(taskId);
+                            populateQuestLists(activeContainer, completedContainer);
+                        });
+                    }
                 } else if (isAvoidanceTracked) {
                     if (startTimestamp <= 0) {
                         tvTarget.setText("Goal: " + TaskManager.formatDurationMinutes(target) + " | " + rewardXp + " XP / " + rewardGold + " Gold");
@@ -710,7 +749,7 @@ public class DashboardActivity extends AppCompatActivity {
                     uncompletedCount++;
                     cbComplete.setChecked(false);
 
-                    if (!isStepTracked && !isAvoidanceTracked) {
+                    if (!isStepTracked && !isAvoidanceTracked && !isIncrementTracked) {
                         cbComplete.setEnabled(true);
                         cbComplete.setClickable(true);
                         cbComplete.setOnClickListener(v -> {
