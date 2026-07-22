@@ -583,7 +583,9 @@ public class DashboardActivity extends AppCompatActivity {
             int gold = profileCursor.getInt(2);
             int xp = profileCursor.getInt(3);
 
-            if (tvProfileUsername != null) tvProfileUsername.setText(username);
+            String title = TaskManager.getLevelTitle(level);
+
+            if (tvProfileUsername != null) tvProfileUsername.setText(username + " \u2022 " + title);
             if (tvProfileLevel != null) tvProfileLevel.setText("Level " + level + " (" + xp + " / 100 XP) | Gold: " + gold);
             profileCursor.close();
         }

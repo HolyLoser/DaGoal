@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 16;
+    private static final int DATABASE_VERSION = 17;
 
     private final Context appContext;
 
@@ -70,6 +70,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.BlockedAppEntry.COLUMN_PACKAGE_NAME + " TEXT, " +
             DatabaseContract.BlockedAppEntry.COLUMN_APP_NAME + " TEXT);";
 
+    private static final String CREATE_TABLE_INVENTORY_CONSUMABLES = "CREATE TABLE " +
+            DatabaseContract.InventoryConsumableEntry.TABLE_NAME + " (" +
+            DatabaseContract.InventoryConsumableEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE + " TEXT, " +
+            DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY + " INTEGER DEFAULT 0);";
+
     private static final String CREATE_TABLE_ACHIEVEMENTS = "CREATE TABLE " +
             DatabaseContract.AchievementEntry.TABLE_NAME + " (" +
             DatabaseContract.AchievementEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -89,6 +95,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_TABLE_USER);
         db.execSQL(CREATE_TABLE_DAILY_TASKS);
         db.execSQL(CREATE_TABLE_INVENTORY);
+        db.execSQL(CREATE_TABLE_INVENTORY_CONSUMABLES);
         db.execSQL(CREATE_TABLE_PREFERENCES);
         db.execSQL(CREATE_TABLE_TASK_TEMPLATES);
         db.execSQL(CREATE_TABLE_ACHIEVEMENTS);
@@ -228,6 +235,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS user");
         db.execSQL("DROP TABLE IF EXISTS daily_tasks");
         db.execSQL("DROP TABLE IF EXISTS inventory");
+        db.execSQL("DROP TABLE IF EXISTS inventory_consumables");
         db.execSQL("DROP TABLE IF EXISTS preferences");
         db.execSQL("DROP TABLE IF EXISTS task_templates");
         db.execSQL("DROP TABLE IF EXISTS achievements");

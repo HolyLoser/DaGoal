@@ -412,6 +412,8 @@ public class TaskManager {
             levelCursor.close();
         }
 
+        int levelBeforeThisCompletion = currentLevel;
+
         if (newXp >= 100) {
             currentLevel += 1;
             newXp = newXp - 100;
@@ -424,7 +426,87 @@ public class TaskManager {
 
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
 
+        if (currentLevel > levelBeforeThisCompletion) {
+            grantLevelUpRewards(db, currentLevel);
+        }
+
         incrementQuestCountAchievements(db);
+    }
+
+    private void grantLevelUpRewards(SQLiteDatabase db, int newLevel) {
+        String rewardType = null;
+
+        if (newLevel == 3) {
+            rewardType = DatabaseContract.InventoryConsumableEntry.TYPE_STREAK_PROTECTOR;
+        } else if (newLevel == 5) {
+            rewardType = DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST;
+        } else if (newLevel == 7) {
+            rewardType = DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST;
+        } else if (newLevel % 5 == 0) {
+            rewardType = DatabaseContract.InventoryConsumableEntry.TYPE_STREAK_PROTECTOR;
+        }
+
+        if (rewardType == null) {
+            return;
+        }
+
+        grantConsumable(db, rewardType, 1);
+        showAchievementUnlockedToast("Level " + newLevel + " reward: " + formatConsumableName(rewardType));
+    }
+
+    private void grantConsumable(SQLiteDatabase db, String type, int amount) {
+        Cursor cursor = db.query(
+                DatabaseContract.InventoryConsumableEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.InventoryConsumableEntry._ID, DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY },
+                DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE + " = ?",
+                new String[]{ type },
+                null, null, null
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(0);
+            int currentQuantity = cursor.getInt(1);
+            cursor.close();
+
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY, currentQuantity + amount);
+            db.update(
+                    DatabaseContract.InventoryConsumableEntry.TABLE_NAME,
+                    values,
+                    DatabaseContract.InventoryConsumableEntry._ID + " = ?",
+                    new String[]{ String.valueOf(id) }
+            );
+        } else {
+            if (cursor != null) {
+                cursor.close();
+            }
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE, type);
+            values.put(DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY, amount);
+            db.insert(DatabaseContract.InventoryConsumableEntry.TABLE_NAME, null, values);
+        }
+    }
+
+    private String formatConsumableName(String type) {
+        if (DatabaseContract.InventoryConsumableEntry.TYPE_STREAK_PROTECTOR.equals(type)) {
+            return "Streak Protector";
+        } else if (DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST.equals(type)) {
+            return "XP Boost";
+        } else if (DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST.equals(type)) {
+            return "Gold Boost";
+        }
+        return type;
+    }
+
+    public static String getLevelTitle(int level) {
+        if (level >= 15) {
+            return "Trailblazer";
+        } else if (level >= 10) {
+            return "Wanderer";
+        } else if (level >= 5) {
+            return "Explorer";
+        }
+        return "Adventurer";
     }
 
     private void incrementQuestCountAchievements(SQLiteDatabase db) {

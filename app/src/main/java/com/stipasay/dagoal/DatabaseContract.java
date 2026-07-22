@@ -78,4 +78,13 @@ public final class DatabaseContract {
         public static final String COLUMN_PACKAGE_NAME = "package_name";
         public static final String COLUMN_APP_NAME = "app_name";
     }
+
+    public static class InventoryConsumableEntry implements BaseColumns {
+        public static final String TABLE_NAME = "inventory_consumables";
+        public static final String COLUMN_TYPE = "type";
+        public static final String COLUMN_QUANTITY = "quantity";
+        public static final String TYPE_STREAK_PROTECTOR = "STREAK_PROTECTOR";
+        public static final String TYPE_XP_BOOST = "XP_BOOST";
+        public static final String TYPE_GOLD_BOOST = "GOLD_BOOST";
+    }
 }
