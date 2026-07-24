@@ -1,34 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
     android:padding="8dp">
 
-    <View
-        android:id="@+id/view_achievement_badge_bg"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:layout_gravity="center"
-        android:background="@drawable/bg_achievement_badge" />
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
 
-    <ImageView
-        android:id="@+id/iv_achievement_icon"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_gravity="center"
-        android:src="@android:drawable/ic_menu_myplaces"
-        android:tint="#FFFFFF" />
+        <View
+            android:id="@+id/view_achievement_badge_bg"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_achievement_badge" />
+
+        <TextView
+            android:id="@+id/tv_achievement_emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="\uD83C\uDFC6"
+            android:textSize="28sp" />
+
+        <TextView
+            android:id="@+id/tv_achievement_rank_badge"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/bg_achievement_rank_badge"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+    </FrameLayout>
 
     <TextView
-        android:id="@+id/tv_achievement_rank_badge"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_gravity="bottom|end"
-        android:background="@drawable/bg_achievement_rank_badge"
-        android:gravity="center"
-        android:text="1"
+        android:id="@+id/tv_achievement_grid_title"
+        android:layout_width="88dp"
+        android:layout_height="wrap_content"
+        android:text="Achievement Title"
         android:textColor="#FFFFFF"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:maxLines="2"
+        android:layout_marginTop="6dp" />
 
-</FrameLayout>
+    <TextView
+        android:id="@+id/tv_achievement_rank_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Unranked"
+        android:textColor="#A0AEC0"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="2dp" />
+
+</LinearLayout>

@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 17;
+    private static final int DATABASE_VERSION = 18;
 
     private final Context appContext;
 
@@ -83,7 +83,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION + " TEXT, " +
             DatabaseContract.AchievementEntry.COLUMN_TYPE + " TEXT, " +
             DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS + " INTEGER DEFAULT 0, " +
-            DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE + " INTEGER);";
+            DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE + " INTEGER, " +
+            DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI + " TEXT DEFAULT '\uD83C\uDFC6');";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -211,6 +212,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "QUEST_COUNT");
         values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
         values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 5);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI, "\uD83D\uDC63");
         db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
         values.clear();
 
@@ -219,6 +221,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "QUEST_COUNT");
         values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
         values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 25);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI, "\uD83D\uDC51");
         db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
         values.clear();
 
@@ -227,6 +230,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "STREAK_COUNT");
         values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
         values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 7);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI, "\uD83D\uDD25");
         db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
     }
 

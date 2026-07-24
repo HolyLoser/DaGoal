@@ -627,15 +627,30 @@ public class DashboardActivity extends AppCompatActivity {
                     String desc = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION));
                     int currentProgress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS));
                     int baseTarget = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE));
+                    String emoji = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI));
 
                     View badgeBg = convertView.findViewById(R.id.view_achievement_badge_bg);
                     TextView tvRankBadge = convertView.findViewById(R.id.tv_achievement_rank_badge);
+                    TextView tvEmoji = convertView.findViewById(R.id.tv_achievement_emoji);
+                    TextView tvGridTitle = convertView.findViewById(R.id.tv_achievement_grid_title);
+                    TextView tvRankLabel = convertView.findViewById(R.id.tv_achievement_rank_label);
 
                     int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
                     androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
 
                     int rankIndex = AchievementTierHelper.getCurrentRankIndex(currentProgress, baseTarget);
                     tvRankBadge.setText(rankIndex < 0 ? "-" : String.valueOf(rankIndex + 1));
+
+                    tvEmoji.setText(emoji);
+                    tvGridTitle.setText(title);
+
+                    if (rankIndex < 0) {
+                        tvRankLabel.setText("Unranked");
+                        tvRankLabel.setTextColor(Color.parseColor("#A0AEC0"));
+                    } else {
+                        tvRankLabel.setText(AchievementTierHelper.RANK_NAMES[rankIndex] + " " + (rankIndex + 1));
+                        tvRankLabel.setTextColor(badgeColor);
+                    }
 
                     convertView.setOnClickListener(v -> showAchievementDetailDialog(title, desc, currentProgress, baseTarget));
 

@@ -71,6 +71,7 @@ public final class DatabaseContract {
         public static final String COLUMN_TYPE = "type";
         public static final String COLUMN_CURRENT_PROGRESS = "current_progress";
         public static final String COLUMN_TARGET_VALUE = "target_value";
+        public static final String COLUMN_ICON_EMOJI = "icon_emoji";
     }
 
     public static class BlockedAppEntry implements BaseColumns {
