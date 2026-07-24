@@ -70,18 +70,21 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Achievements Progress"
+        android:text="Achievements"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold"
         android:layout_marginBottom="12dp" />
 
-    <ListView
+    <GridView
         android:id="@+id/list_profile_achievements"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="@android:color/transparent"
-        android:dividerHeight="12dp"
+        android:numColumns="3"
+        android:horizontalSpacing="8dp"
+        android:verticalSpacing="8dp"
+        android:gravity="center"
+        android:stretchMode="columnWidth"
         android:scrollbars="none" />
 </LinearLayout>

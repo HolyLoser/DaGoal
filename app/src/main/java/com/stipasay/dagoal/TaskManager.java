@@ -386,7 +386,7 @@ public class TaskManager {
         String[] selectionArgs = { String.valueOf(taskId) };
 
         int rewardGold = 100;
-        int rewardXp = 15;
+        int rewardXp = 100;
 
         ContentValues taskValues = new ContentValues();
         taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 1);
@@ -528,13 +528,14 @@ public class TaskManager {
                 int achievementId = cursor.getInt(0);
                 String title = cursor.getString(1);
                 int oldProgress = cursor.getInt(2);
-                int targetValue = cursor.getInt(3);
+                int baseTarget = cursor.getInt(3);
 
-                if (oldProgress >= targetValue) {
+                int maxThreshold = AchievementTierHelper.getMaxThreshold(baseTarget);
+                if (oldProgress >= maxThreshold) {
                     continue;
                 }
 
-                int newProgress = Math.min(oldProgress + 1, targetValue);
+                int newProgress = Math.min(oldProgress + 1, maxThreshold);
 
                 ContentValues values = new ContentValues();
                 values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, newProgress);
@@ -545,8 +546,10 @@ public class TaskManager {
                         new String[]{ String.valueOf(achievementId) }
                 );
 
-                if (newProgress >= targetValue) {
-                    showAchievementUnlockedToast(title);
+                int oldRank = AchievementTierHelper.getCurrentRankIndex(oldProgress, baseTarget);
+                int newRank = AchievementTierHelper.getCurrentRankIndex(newProgress, baseTarget);
+                if (newRank > oldRank) {
+                    showAchievementUnlockedToast(title + " reached " + AchievementTierHelper.RANK_NAMES[newRank]);
                 }
             }
             cursor.close();
@@ -572,9 +575,10 @@ public class TaskManager {
                 int achievementId = cursor.getInt(0);
                 String title = cursor.getString(1);
                 int oldProgress = cursor.getInt(2);
-                int targetValue = cursor.getInt(3);
+                int baseTarget = cursor.getInt(3);
 
-                int newProgress = Math.min(streakValue, targetValue);
+                int maxThreshold = AchievementTierHelper.getMaxThreshold(baseTarget);
+                int newProgress = Math.min(streakValue, maxThreshold);
 
                 ContentValues values = new ContentValues();
                 values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, newProgress);
@@ -585,8 +589,10 @@ public class TaskManager {
                         new String[]{ String.valueOf(achievementId) }
                 );
 
-                if (newProgress >= targetValue && oldProgress < targetValue) {
-                    showAchievementUnlockedToast(title);
+                int oldRank = AchievementTierHelper.getCurrentRankIndex(oldProgress, baseTarget);
+                int newRank = AchievementTierHelper.getCurrentRankIndex(newProgress, baseTarget);
+                if (newRank > oldRank) {
+                    showAchievementUnlockedToast(title + " reached " + AchievementTierHelper.RANK_NAMES[newRank]);
                 }
             }
             cursor.close();

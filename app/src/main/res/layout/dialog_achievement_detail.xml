@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#556B43"
+    android:padding="24dp">
+
+    <View
+        android:id="@+id/view_dialog_badge_bg"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/bg_achievement_badge"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_dialog_achievement_desc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Complete tasks to unlock."
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rank:"
+        android:textColor="#E2E8F0"
+        android:textSize="14sp"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/tv_dialog_rank_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bronze"
+        android:textColor="#7ED6FF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <ProgressBar
+        android:id="@+id/pb_dialog_rank_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#7ED6FF"
+        android:progressBackgroundTint="#FFFFFF"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_dialog_progress_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="5 until next rank"
+        android:textColor="#E2E8F0"
+        android:textSize="13sp"
+        android:gravity="center" />
+
+</LinearLayout>

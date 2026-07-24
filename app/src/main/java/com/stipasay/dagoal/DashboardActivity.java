@@ -600,7 +600,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void populateAchievementsList(View meView) {
-        android.widget.ListView listAchievements = meView.findViewById(R.id.list_profile_achievements);
+        android.widget.GridView gridAchievements = meView.findViewById(R.id.list_profile_achievements);
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
         Cursor cursor = db.query(
@@ -609,7 +609,7 @@ public class DashboardActivity extends AppCompatActivity {
         );
 
         if (cursor != null) {
-            listAchievements.setAdapter(new android.widget.BaseAdapter() {
+            gridAchievements.setAdapter(new android.widget.BaseAdapter() {
                 @Override
                 public int getCount() { return cursor.getCount(); }
                 @Override
@@ -619,34 +619,59 @@ public class DashboardActivity extends AppCompatActivity {
                 @Override
                 public View getView(int position, View convertView, android.view.ViewGroup parent) {
                     if (convertView == null) {
-                        convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_achievement, parent, false);
+                        convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_achievement_grid, parent, false);
                     }
                     cursor.moveToPosition(position);
 
                     String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_TITLE));
                     String desc = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION));
                     int currentProgress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS));
-                    int targetValue = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE));
+                    int baseTarget = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE));
 
-                    TextView tvTitle = convertView.findViewById(R.id.tv_achievement_title);
-                    TextView tvDesc = convertView.findViewById(R.id.tv_achievement_description);
-                    TextView tvProgressFraction = convertView.findViewById(R.id.tv_achievement_progress_text);
-                    android.widget.ProgressBar pbProgress = convertView.findViewById(R.id.pb_achievement_progress);
+                    View badgeBg = convertView.findViewById(R.id.view_achievement_badge_bg);
+                    TextView tvRankBadge = convertView.findViewById(R.id.tv_achievement_rank_badge);
 
-                    tvTitle.setText(title);
-                    tvDesc.setText(desc);
-                    tvProgressFraction.setText(currentProgress + "/" + targetValue);
+                    int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
+                    androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
 
-                    int progressPercent = 0;
-                    if (targetValue > 0) {
-                        progressPercent = (int) (((double) currentProgress / targetValue) * 100);
-                    }
-                    pbProgress.setProgress(Math.min(progressPercent, 100));
+                    int rankIndex = AchievementTierHelper.getCurrentRankIndex(currentProgress, baseTarget);
+                    tvRankBadge.setText(rankIndex < 0 ? "-" : String.valueOf(rankIndex + 1));
+
+                    convertView.setOnClickListener(v -> showAchievementDetailDialog(title, desc, currentProgress, baseTarget));
 
                     return convertView;
                 }
             });
         }
+    }
+
+    private void showAchievementDetailDialog(String title, String description, int currentProgress, int baseTarget) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_achievement_detail, null);
+
+        View badgeBg = dialogView.findViewById(R.id.view_dialog_badge_bg);
+        TextView tvDesc = dialogView.findViewById(R.id.tv_dialog_achievement_desc);
+        TextView tvRankName = dialogView.findViewById(R.id.tv_dialog_rank_name);
+        android.widget.ProgressBar pbProgress = dialogView.findViewById(R.id.pb_dialog_rank_progress);
+        TextView tvProgressLabel = dialogView.findViewById(R.id.tv_dialog_progress_label);
+
+        int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
+        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
+
+        tvDesc.setText(title + " \u2014 " + description);
+        tvRankName.setText(AchievementTierHelper.getRankName(currentProgress, baseTarget));
+        pbProgress.setProgress(AchievementTierHelper.getProgressPercentToNextRank(currentProgress, baseTarget));
+
+        if (AchievementTierHelper.isMaxRank(currentProgress, baseTarget)) {
+            tvProgressLabel.setText("Max rank reached!");
+        } else {
+            int remaining = AchievementTierHelper.getRemainingToNextRank(currentProgress, baseTarget);
+            tvProgressLabel.setText(remaining + " more to reach next rank");
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private void populateQuestLists(LinearLayout activeContainer, LinearLayout completedContainer) {
