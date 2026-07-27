@@ -14,6 +14,8 @@ public final class DatabaseContract {
         public static final String COLUMN_STREAK = "streak";
         public static final String COLUMN_SHUFFLES = "available_shuffles";
         public static final String COLUMN_LAST_LOGIN_DATE = "last_login_date";
+        public static final String COLUMN_CUSTOM_QUEST_COUNT = "custom_quest_count";
+        public static final String COLUMN_CUSTOM_QUEST_WEEK_START = "custom_quest_week_start";
     }
 
     public static class PreferenceEntry implements BaseColumns {
@@ -54,6 +56,7 @@ public final class DatabaseContract {
         public static final String COLUMN_CATEGORY_TAG = "category_tag";
         public static final String COLUMN_IGNORE_STAGE = "ignore_stage";
         public static final String COLUMN_SNOOZE_UNTIL = "snooze_until";
+        public static final String COLUMN_IS_CUSTOM = "is_custom";
     }
 
     public static class InventoryEntry implements BaseColumns {

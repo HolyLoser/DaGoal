@@ -262,6 +262,131 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private int getCurrentUserLevel() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT level FROM user WHERE _id = 1", null);
+        int level = 1;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                level = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+        return level;
+    }
+
+    private void showAddGoalChooserDialog(LinearLayout activeContainer, LinearLayout completedContainer) {
+        int level = getCurrentUserLevel();
+        TaskManager taskManager = new TaskManager(this);
+        int remaining = taskManager.getRemainingCustomQuests(level);
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_goal_chooser, null);
+        TextView tvRemaining = dialogView.findViewById(R.id.tv_chooser_remaining);
+        Button btnManual = dialogView.findViewById(R.id.btn_chooser_manual);
+        Button btnDescribe = dialogView.findViewById(R.id.btn_chooser_describe);
+
+        if (level < 10) {
+            tvRemaining.setText("Custom quests unlock at Level 10");
+        } else {
+            tvRemaining.setText(remaining + " custom quest(s) remaining this week");
+        }
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        btnManual.setOnClickListener(v -> {
+            if (remaining <= 0) {
+                Toast.makeText(this, level < 10 ? "Custom quests unlock at Level 10" : "No custom quests remaining this week", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            dialog.dismiss();
+            showManualGoalDialog(level, activeContainer, completedContainer);
+        });
+
+        btnDescribe.setOnClickListener(v -> {
+            Toast.makeText(this, "AI quest generation coming soon!", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.show();
+    }
+
+    private void showManualGoalDialog(int level, LinearLayout activeContainer, LinearLayout completedContainer) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_custom_quest, null);
+        android.widget.EditText editTitle = dialogView.findViewById(R.id.edit_custom_quest_title);
+        android.widget.EditText editTarget = dialogView.findViewById(R.id.edit_custom_quest_target);
+        android.widget.EditText editUnit = dialogView.findViewById(R.id.edit_custom_quest_unit);
+        TextView tvRewardPreview = dialogView.findViewById(R.id.tv_custom_quest_reward_preview);
+        android.widget.SeekBar seekBarGold = dialogView.findViewById(R.id.seekbar_custom_quest_gold);
+        Button btnCreate = dialogView.findViewById(R.id.btn_create_custom_quest);
+
+        int goldMax = TaskManager.getCustomQuestGoldMax(level);
+        int goldMin = TaskManager.CUSTOM_QUEST_GOLD_MIN;
+        seekBarGold.setMax(goldMax - goldMin);
+
+        updateRewardPreview(tvRewardPreview, goldMin, level);
+
+        seekBarGold.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                int goldPicked = goldMin + progress;
+                updateRewardPreview(tvRewardPreview, goldPicked, level);
+            }
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        btnCreate.setOnClickListener(v -> {
+            String title = editTitle.getText().toString().trim();
+            String targetStr = editTarget.getText().toString().trim();
+            String unit = editUnit.getText().toString().trim();
+
+            if (title.isEmpty() || targetStr.isEmpty() || unit.isEmpty()) {
+                Toast.makeText(this, "Please fill in all fields.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int target;
+            try {
+                target = Integer.parseInt(targetStr);
+                if (target <= 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Target must be a positive number.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int goldPicked = goldMin + seekBarGold.getProgress();
+
+            TaskManager taskManager = new TaskManager(this);
+            boolean success = taskManager.createCustomQuest(title, target, unit, goldPicked, level);
+
+            if (success) {
+                Toast.makeText(this, "Custom quest created!", Toast.LENGTH_SHORT).show();
+                populateQuestLists(activeContainer, completedContainer);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "No custom quests remaining this week.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void updateRewardPreview(TextView tvRewardPreview, int goldPicked, int level) {
+        int xp = TaskManager.computeCustomQuestXp(goldPicked, level);
+        tvRewardPreview.setText("Gold: " + goldPicked + " | XP: " + xp);
+    }
+
     private boolean checkNewDayQuestRouting() {
         String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
@@ -418,6 +543,11 @@ public class DashboardActivity extends AppCompatActivity {
 
                 populateQuestLists(activeContainer, completedContainer);
                 startAvoidanceTicker();
+
+                Button btnAddGoal = questView.findViewById(R.id.btn_dashboard_add_goal);
+                if (btnAddGoal != null) {
+                    btnAddGoal.setOnClickListener(v -> showAddGoalChooserDialog(activeContainer, completedContainer));
+                }
                 break;
 
             case "WARDROBE":

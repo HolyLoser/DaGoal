@@ -387,6 +387,26 @@ public class TaskManager {
 
         int rewardGold = 100;
         int rewardXp = 100;
+        boolean isCustom = false;
+
+        Cursor taskCursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
+                },
+                selection, selectionArgs, null, null, null
+        );
+
+        if (taskCursor != null && taskCursor.moveToFirst()) {
+            isCustom = taskCursor.getInt(0) == 1;
+            if (isCustom) {
+                rewardGold = taskCursor.getInt(1);
+                rewardXp = taskCursor.getInt(2);
+            }
+            taskCursor.close();
+        }
 
         ContentValues taskValues = new ContentValues();
         taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 1);
@@ -430,7 +450,10 @@ public class TaskManager {
             grantLevelUpRewards(db, currentLevel);
         }
 
-        incrementQuestCountAchievements(db);
+        incrementCounterAchievements(db, "QUEST_COUNT");
+        if (isCustom) {
+            incrementCounterAchievements(db, "CUSTOM_QUEST_COUNT");
+        }
     }
 
     private void grantLevelUpRewards(SQLiteDatabase db, int newLevel) {
@@ -509,7 +532,7 @@ public class TaskManager {
         return "Adventurer";
     }
 
-    private void incrementQuestCountAchievements(SQLiteDatabase db) {
+    private void incrementCounterAchievements(SQLiteDatabase db, String achievementType) {
         Cursor cursor = db.query(
                 DatabaseContract.AchievementEntry.TABLE_NAME,
                 new String[]{
@@ -519,7 +542,7 @@ public class TaskManager {
                         DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE
                 },
                 DatabaseContract.AchievementEntry.COLUMN_TYPE + " = ?",
-                new String[]{ "QUEST_COUNT" },
+                new String[]{ achievementType },
                 null, null, null
         );
 
@@ -887,6 +910,100 @@ public class TaskManager {
         );
     }
 
+    public static final int CUSTOM_QUEST_GOLD_MIN = 5;
+
+    public static int getCustomQuestAllowance(int level) {
+        return Math.min(level / 10, 5);
+    }
+
+    public static int getCustomQuestGoldMax(int level) {
+        return 10 + (level - 1) * 5;
+    }
+
+    public static int computeCustomQuestXp(int goldPicked, int level) {
+        int goldMax = getCustomQuestGoldMax(level);
+        int rawXp = (int) Math.round((goldMax - goldPicked + CUSTOM_QUEST_GOLD_MIN) * 1.2);
+        return Math.max(rawXp, 5);
+    }
+
+    private String getCurrentWeekStartDate() {
+        Calendar cal = Calendar.getInstance();
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        return sdf.format(cal.getTime());
+    }
+
+    public int getCustomQuestsUsedThisWeek() {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentWeekStart = getCurrentWeekStartDate();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + ", " +
+                        DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " FROM user WHERE _id = 1",
+                null
+        );
+
+        int usedCount = 0;
+        String storedWeekStart = "";
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                usedCount = cursor.getInt(0);
+                storedWeekStart = cursor.getString(1);
+            }
+            cursor.close();
+        }
+
+        if (!currentWeekStart.equals(storedWeekStart)) {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT, 0);
+            values.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START, currentWeekStart);
+            db.update(DatabaseContract.UserEntry.TABLE_NAME, values, "_id = 1", null);
+            return 0;
+        }
+
+        return usedCount;
+    }
+
+    public int getRemainingCustomQuests(int level) {
+        int allowance = getCustomQuestAllowance(level);
+        int used = getCustomQuestsUsedThisWeek();
+        return Math.max(allowance - used, 0);
+    }
+
+    public boolean createCustomQuest(String title, int target, String unit, int goldPicked, int level) {
+        if (getRemainingCustomQuests(level) <= 0) {
+            return false;
+        }
+
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        int xpReward = computeCustomQuestXp(goldPicked, level);
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, target);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, currentDate);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Custom");
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, goldPicked);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, xpReward);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM, 1);
+
+        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+
+        ContentValues userValues = new ContentValues();
+        userValues.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT, getCustomQuestsUsedThisWeek() + 1);
+        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+
+        return true;
+    }
+
     public Cursor getUserProfile() {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
@@ -973,5 +1090,7 @@ public class TaskManager {
             cursor.close();
         }
         return items;
+
+
     }
 }

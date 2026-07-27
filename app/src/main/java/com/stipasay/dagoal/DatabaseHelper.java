@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 18;
+    private static final int DATABASE_VERSION = 19;
 
     private final Context appContext;
 
@@ -21,7 +21,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "gold INTEGER DEFAULT 0, " +
             "xp INTEGER DEFAULT 0, " +
             "streak INTEGER DEFAULT 0, " +
-            "last_completed_date TEXT DEFAULT '');";
+            "last_completed_date TEXT DEFAULT '', " +
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
 
     private static final String CREATE_TABLE_PREFERENCES = "CREATE TABLE preferences (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -46,7 +48,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP + " INTEGER DEFAULT 0, " +
             DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG + " TEXT DEFAULT '', " +
             DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE + " INTEGER DEFAULT 0, " +
-            DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL + " INTEGER DEFAULT 0);";
+            DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL + " INTEGER DEFAULT 0, " +
+            DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM + " INTEGER DEFAULT 0);";
 
     private static final String CREATE_TABLE_INVENTORY = "CREATE TABLE " +
             DatabaseContract.InventoryEntry.TABLE_NAME + " (" +
@@ -231,6 +234,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
         values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 7);
         values.put(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI, "\uD83D\uDD25");
+        db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
+        values.clear();
+
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TITLE, "Self-Starter");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_DESCRIPTION, "Complete 5 quests you created yourself.");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TYPE, "CUSTOM_QUEST_COUNT");
+        values.put(DatabaseContract.AchievementEntry.COLUMN_CURRENT_PROGRESS, 0);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE, 5);
+        values.put(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI, "\u270D\uFE0F");
         db.insert(DatabaseContract.AchievementEntry.TABLE_NAME, null, values);
     }
 

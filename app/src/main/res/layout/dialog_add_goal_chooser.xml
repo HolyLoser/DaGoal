@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add a goal"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#2D3748"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_chooser_remaining"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 custom quests remaining this week"
+        android:textSize="13sp"
+        android:textColor="#4B5563"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btn_chooser_manual"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Create Manually"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#778A66"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_chooser_describe"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Describe It (AI)"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#A0AEC0" />
+
+</LinearLayout>
