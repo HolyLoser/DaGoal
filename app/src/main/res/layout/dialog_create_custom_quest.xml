@@ -22,31 +22,111 @@
             android:id="@+id/edit_custom_quest_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Quest title (e.g. Read a chapter)"
+            android:hint="Title"
             android:layout_marginBottom="12dp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Unit (optional)"
+            android:textSize="13sp"
+            android:textColor="#4B5563"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spinner_custom_quest_unit_type"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/edit_custom_quest_target"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Target amount"
+            android:inputType="number"
+            android:layout_marginBottom="16dp" />
+
         <LinearLayout
+            android:id="@+id/row_custom_quest_time"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="12dp">
+            android:padding="12dp"
+            android:background="@drawable/bg_task_card"
+            android:layout_marginBottom="8dp">
 
-            <EditText
-                android:id="@+id/edit_custom_quest_target"
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Target (e.g. 20)"
-                android:inputType="number"
-                android:layout_marginEnd="8dp" />
+                android:text="Time"
+                android:textColor="#2D3748" />
 
-            <EditText
-                android:id="@+id/edit_custom_quest_unit"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/tv_custom_quest_time_value"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Unit (e.g. pages)" />
+                android:text="None &gt;"
+                android:textColor="#4B5563" />
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_custom_quest_repeat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="@drawable/bg_task_card"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Repeat"
+                android:textColor="#2D3748" />
+
+            <TextView
+                android:id="@+id/tv_custom_quest_repeat_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="None &gt;"
+                android:textColor="#4B5563" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_custom_quest_repeat_ends"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="@drawable/bg_task_card"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Repeat Ends"
+                android:textColor="#2D3748" />
+
+            <TextView
+                android:id="@+id/tv_custom_quest_repeat_ends_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Doesn't end"
+                android:textColor="#4B5563" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reward"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#2D3748"
+            android:layout_marginBottom="4dp" />
 
         <TextView
             android:id="@+id/tv_custom_quest_reward_preview"
@@ -62,13 +142,13 @@
             android:id="@+id/seekbar_custom_quest_gold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="20dp" />
 
         <Button
             android:id="@+id/btn_create_custom_quest"
             android:layout_width="match_parent"
             android:layout_height="54dp"
-            android:text="Create Quest"
+            android:text="Done"
             android:textColor="#FFFFFF"
             android:textAllCaps="false"
             android:textStyle="bold"

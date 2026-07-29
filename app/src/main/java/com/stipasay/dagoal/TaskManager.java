@@ -912,7 +912,12 @@ public class TaskManager {
 
     public static final int CUSTOM_QUEST_GOLD_MIN = 5;
 
+    private static final boolean DEBUG_UNLOCK_CUSTOM_QUESTS_AT_LEVEL_1 = true;
+
     public static int getCustomQuestAllowance(int level) {
+        if (DEBUG_UNLOCK_CUSTOM_QUESTS_AT_LEVEL_1) {
+            return 5;
+        }
         return Math.min(level / 10, 5);
     }
 
@@ -972,7 +977,7 @@ public class TaskManager {
         return Math.max(allowance - used, 0);
     }
 
-    public boolean createCustomQuest(String title, int target, String unit, int goldPicked, int level) {
+    public boolean createCustomQuest(String title, int target, String unit, int goldPicked, int level, String unitType, int repeatInterval, String repeatUnit, String repeatWeekdays, String repeatEndType, String repeatEndValue) {
         if (getRemainingCustomQuests(level) <= 0) {
             return false;
         }
@@ -981,6 +986,13 @@ public class TaskManager {
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         int xpReward = computeCustomQuestXp(goldPicked, level);
 
+        String questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC;
+        if (DatabaseContract.DailyTaskEntry.UNIT_TYPE_STEPS.equals(unitType)) {
+            questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS;
+        } else if (DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION.equals(unitType)) {
+            questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT;
+        }
+
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
@@ -988,12 +1000,18 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, currentDate);
-        values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Custom");
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, goldPicked);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, xpReward);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM, 1);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT_TYPE, unitType);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL, repeatInterval);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_UNIT, repeatUnit);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_WEEKDAYS, repeatWeekdays);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_TYPE, repeatEndType);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE, repeatEndValue);
 
         db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
 

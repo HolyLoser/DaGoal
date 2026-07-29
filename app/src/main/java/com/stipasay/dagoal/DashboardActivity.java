@@ -275,51 +275,165 @@ public class DashboardActivity extends AppCompatActivity {
         return level;
     }
 
+    private static final boolean DEBUG_UNLOCK_CUSTOM_QUESTS_AT_LEVEL_1 = true;
+
     private void showAddGoalChooserDialog(LinearLayout activeContainer, LinearLayout completedContainer) {
         int level = getCurrentUserLevel();
         TaskManager taskManager = new TaskManager(this);
         int remaining = taskManager.getRemainingCustomQuests(level);
 
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_goal_chooser, null);
-        TextView tvRemaining = dialogView.findViewById(R.id.tv_chooser_remaining);
-        Button btnManual = dialogView.findViewById(R.id.btn_chooser_manual);
-        Button btnDescribe = dialogView.findViewById(R.id.btn_chooser_describe);
-
-        if (level < 10) {
-            tvRemaining.setText("Custom quests unlock at Level 10");
-        } else {
-            tvRemaining.setText(remaining + " custom quest(s) remaining this week");
-        }
-
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setNegativeButton("Cancel", null)
-                .create();
-
-        btnManual.setOnClickListener(v -> {
-            if (remaining <= 0) {
-                Toast.makeText(this, level < 10 ? "Custom quests unlock at Level 10" : "No custom quests remaining this week", Toast.LENGTH_SHORT).show();
+        if (!DEBUG_UNLOCK_CUSTOM_QUESTS_AT_LEVEL_1) {
+            if (level < 10) {
+                Toast.makeText(this, "Custom quests unlock at Level 10", Toast.LENGTH_SHORT).show();
                 return;
             }
-            dialog.dismiss();
-            showManualGoalDialog(level, activeContainer, completedContainer);
-        });
+            if (remaining <= 0) {
+                Toast.makeText(this, "No custom quests remaining this week", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
 
-        btnDescribe.setOnClickListener(v -> {
-            Toast.makeText(this, "AI quest generation coming soon!", Toast.LENGTH_SHORT).show();
-        });
-
-        dialog.show();
+        showManualGoalDialog(level, activeContainer, completedContainer);
     }
 
     private void showManualGoalDialog(int level, LinearLayout activeContainer, LinearLayout completedContainer) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_custom_quest, null);
         android.widget.EditText editTitle = dialogView.findViewById(R.id.edit_custom_quest_title);
         android.widget.EditText editTarget = dialogView.findViewById(R.id.edit_custom_quest_target);
-        android.widget.EditText editUnit = dialogView.findViewById(R.id.edit_custom_quest_unit);
+        android.widget.Spinner spinnerUnitType = dialogView.findViewById(R.id.spinner_custom_quest_unit_type);
+        LinearLayout rowTime = dialogView.findViewById(R.id.row_custom_quest_time);
+        TextView tvTimeValue = dialogView.findViewById(R.id.tv_custom_quest_time_value);
+        LinearLayout rowRepeat = dialogView.findViewById(R.id.row_custom_quest_repeat);
+        TextView tvRepeatValue = dialogView.findViewById(R.id.tv_custom_quest_repeat_value);
+        LinearLayout rowRepeatEnds = dialogView.findViewById(R.id.row_custom_quest_repeat_ends);
+        TextView tvRepeatEndsValue = dialogView.findViewById(R.id.tv_custom_quest_repeat_ends_value);
         TextView tvRewardPreview = dialogView.findViewById(R.id.tv_custom_quest_reward_preview);
         android.widget.SeekBar seekBarGold = dialogView.findViewById(R.id.seekbar_custom_quest_gold);
         Button btnCreate = dialogView.findViewById(R.id.btn_create_custom_quest);
+
+        android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{ "Repetition", "Steps", "Duration (minutes)" });
+        spinnerUnitType.setAdapter(unitAdapter);
+
+        int[] selectedTimeMinutes = { 0 };
+        int[] selectedRepeatInterval = { 0 };
+        String[] selectedRepeatUnit = { "" };
+        boolean[] selectedWeekdays = new boolean[7];
+        String[] selectedRepeatEndType = { "" };
+        String[] selectedRepeatEndValue = { "" };
+
+        rowTime.setOnClickListener(v -> {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+                    this,
+                    (view, hourOfDay, minute) -> {
+                        selectedTimeMinutes[0] = hourOfDay * 60 + minute;
+                        tvTimeValue.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
+                    },
+                    cal.get(java.util.Calendar.HOUR_OF_DAY),
+                    cal.get(java.util.Calendar.MINUTE),
+                    true
+            );
+            timePickerDialog.show();
+        });
+
+        rowRepeat.setOnClickListener(v -> {
+            View repeatDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_picker, null);
+            android.widget.NumberPicker pickerInterval = repeatDialogView.findViewById(R.id.picker_repeat_interval);
+            android.widget.Spinner spinnerRepeatUnit = repeatDialogView.findViewById(R.id.spinner_repeat_unit);
+            LinearLayout containerWeekdays = repeatDialogView.findViewById(R.id.container_repeat_weekdays);
+            Button btnRepeatCancel = repeatDialogView.findViewById(R.id.btn_repeat_cancel);
+            Button btnRepeatOk = repeatDialogView.findViewById(R.id.btn_repeat_ok);
+
+            pickerInterval.setMinValue(1);
+            pickerInterval.setMaxValue(365);
+            pickerInterval.setValue(selectedRepeatInterval[0] > 0 ? selectedRepeatInterval[0] : 1);
+
+            android.widget.ArrayAdapter<String> repeatUnitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                    new String[]{ "Day", "Week", "Month", "Year" });
+            spinnerRepeatUnit.setAdapter(repeatUnitAdapter);
+
+            String[] weekdayLabels = { "S", "M", "T", "W", "T", "F", "S" };
+            TextView[] weekdayViews = new TextView[7];
+            for (int i = 0; i < 7; i++) {
+                TextView chip = new TextView(this);
+                chip.setText(weekdayLabels[i]);
+                chip.setGravity(android.view.Gravity.CENTER);
+                chip.setTextColor(Color.WHITE);
+                chip.setBackgroundResource(R.drawable.bg_weekday_chip);
+                chip.setSelected(selectedWeekdays[i]);
+                LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(0, (int) (36 * getResources().getDisplayMetrics().density));
+                chipParams.width = (int) (36 * getResources().getDisplayMetrics().density);
+                chipParams.setMarginEnd((int) (6 * getResources().getDisplayMetrics().density));
+                chip.setLayoutParams(chipParams);
+                final int index = i;
+                chip.setOnClickListener(cv -> {
+                    selectedWeekdays[index] = !selectedWeekdays[index];
+                    chip.setSelected(selectedWeekdays[index]);
+                });
+                weekdayViews[i] = chip;
+                containerWeekdays.addView(chip);
+            }
+
+            androidx.appcompat.app.AlertDialog repeatDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setView(repeatDialogView)
+                    .create();
+
+            btnRepeatCancel.setOnClickListener(cv -> repeatDialog.dismiss());
+            btnRepeatOk.setOnClickListener(cv -> {
+                selectedRepeatInterval[0] = pickerInterval.getValue();
+                selectedRepeatUnit[0] = (String) spinnerRepeatUnit.getSelectedItem();
+                tvRepeatValue.setText("Every " + selectedRepeatInterval[0] + " " + selectedRepeatUnit[0].toLowerCase() +
+                        (selectedRepeatInterval[0] > 1 ? "s" : ""));
+                repeatDialog.dismiss();
+            });
+
+            repeatDialog.show();
+        });
+
+        rowRepeatEnds.setOnClickListener(v -> {
+            String[] options = { "Doesn't end", "End by date", "End by count" };
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Repeat Ends")
+                    .setItems(options, (dlg, which) -> {
+                        if (which == 0) {
+                            selectedRepeatEndType[0] = "";
+                            selectedRepeatEndValue[0] = "";
+                            tvRepeatEndsValue.setText("Doesn't end");
+                        } else if (which == 1) {
+                            java.util.Calendar cal = java.util.Calendar.getInstance();
+                            android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(
+                                    this,
+                                    (view, year, month, dayOfMonth) -> {
+                                        selectedRepeatEndType[0] = "DATE";
+                                        selectedRepeatEndValue[0] = year + "-" + (month + 1) + "-" + dayOfMonth;
+                                        tvRepeatEndsValue.setText("Ends " + (month + 1) + "/" + dayOfMonth + "/" + year);
+                                    },
+                                    cal.get(java.util.Calendar.YEAR),
+                                    cal.get(java.util.Calendar.MONTH),
+                                    cal.get(java.util.Calendar.DAY_OF_MONTH)
+                            );
+                            datePickerDialog.show();
+                        } else {
+                            View countView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
+                            android.widget.NumberPicker countPicker = new android.widget.NumberPicker(this);
+                            countPicker.setMinValue(1);
+                            countPicker.setMaxValue(365);
+                            countPicker.setValue(1);
+                            new androidx.appcompat.app.AlertDialog.Builder(this)
+                                    .setTitle("End after how many times?")
+                                    .setView(countPicker)
+                                    .setPositiveButton("OK", (d2, w2) -> {
+                                        selectedRepeatEndType[0] = "COUNT";
+                                        selectedRepeatEndValue[0] = String.valueOf(countPicker.getValue());
+                                        tvRepeatEndsValue.setText("Ends after " + countPicker.getValue() + " times");
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                        }
+                    })
+                    .show();
+        });
 
         int goldMax = TaskManager.getCustomQuestGoldMax(level);
         int goldMin = TaskManager.CUSTOM_QUEST_GOLD_MIN;
@@ -347,10 +461,9 @@ public class DashboardActivity extends AppCompatActivity {
         btnCreate.setOnClickListener(v -> {
             String title = editTitle.getText().toString().trim();
             String targetStr = editTarget.getText().toString().trim();
-            String unit = editUnit.getText().toString().trim();
 
-            if (title.isEmpty() || targetStr.isEmpty() || unit.isEmpty()) {
-                Toast.makeText(this, "Please fill in all fields.", Toast.LENGTH_SHORT).show();
+            if (title.isEmpty() || targetStr.isEmpty()) {
+                Toast.makeText(this, "Please fill in a title and target.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -365,10 +478,38 @@ public class DashboardActivity extends AppCompatActivity {
                 return;
             }
 
+            String unitTypeSelection = (String) spinnerUnitType.getSelectedItem();
+            String unitLabel;
+            String unitType;
+            if ("Steps".equals(unitTypeSelection)) {
+                unitLabel = "steps";
+                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_STEPS;
+            } else if ("Repetition".equals(unitTypeSelection)) {
+                unitLabel = "times";
+                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION;
+            } else {
+                unitLabel = "minutes";
+                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION;
+            }
+
+            StringBuilder weekdaysBuilder = new StringBuilder();
+            for (int i = 0; i < selectedWeekdays.length; i++) {
+                if (selectedWeekdays[i]) {
+                    if (weekdaysBuilder.length() > 0) {
+                        weekdaysBuilder.append(",");
+                    }
+                    weekdaysBuilder.append(i);
+                }
+            }
+
             int goldPicked = goldMin + seekBarGold.getProgress();
 
             TaskManager taskManager = new TaskManager(this);
-            boolean success = taskManager.createCustomQuest(title, target, unit, goldPicked, level);
+            boolean success = taskManager.createCustomQuest(
+                    title, target, unitLabel, goldPicked, level,
+                    unitType, selectedRepeatInterval[0], selectedRepeatUnit[0],
+                    weekdaysBuilder.toString(), selectedRepeatEndType[0], selectedRepeatEndValue[0]
+            );
 
             if (success) {
                 Toast.makeText(this, "Custom quest created!", Toast.LENGTH_SHORT).show();

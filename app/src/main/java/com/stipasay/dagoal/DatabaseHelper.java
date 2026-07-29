@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 19;
+    private static final int DATABASE_VERSION = 20;
 
     private final Context appContext;
 
@@ -49,7 +49,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG + " TEXT DEFAULT '', " +
             DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE + " INTEGER DEFAULT 0, " +
             DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL + " INTEGER DEFAULT 0, " +
-            DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM + " INTEGER DEFAULT 0);";
+            DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM + " INTEGER DEFAULT 0, " +
+            DatabaseContract.DailyTaskEntry.COLUMN_UNIT_TYPE + " TEXT DEFAULT '', " +
+            DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL + " INTEGER DEFAULT 0, " +
+            DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_UNIT + " TEXT DEFAULT '', " +
+            DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_WEEKDAYS + " TEXT DEFAULT '', " +
+            DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_TYPE + " TEXT DEFAULT '', " +
+            DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE + " TEXT DEFAULT '');";
 
     private static final String CREATE_TABLE_INVENTORY = "CREATE TABLE " +
             DatabaseContract.InventoryEntry.TABLE_NAME + " (" +

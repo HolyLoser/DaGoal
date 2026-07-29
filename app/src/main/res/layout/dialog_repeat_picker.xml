@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Repeat"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#2D3748"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Every"
+            android:textSize="14sp"
+            android:layout_marginEnd="12dp" />
+
+        <NumberPicker
+            android:id="@+id/picker_repeat_interval"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp" />
+
+        <Spinner
+            android:id="@+id/spinner_repeat_unit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_repeat_weekday_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="On these days"
+        android:textSize="13sp"
+        android:textColor="#4B5563"
+        android:layout_marginBottom="8dp" />
+
+    <LinearLayout
+        android:id="@+id/container_repeat_weekdays"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/btn_repeat_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="#4B5563"
+            android:background="@android:color/transparent"
+            android:layout_marginEnd="16dp" />
+
+        <Button
+            android:id="@+id/btn_repeat_ok"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OK"
+            android:textColor="#556B43"
+            android:textStyle="bold"
+            android:background="@android:color/transparent" />
+    </LinearLayout>
+
+</LinearLayout>

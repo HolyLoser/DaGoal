@@ -57,6 +57,15 @@ public final class DatabaseContract {
         public static final String COLUMN_IGNORE_STAGE = "ignore_stage";
         public static final String COLUMN_SNOOZE_UNTIL = "snooze_until";
         public static final String COLUMN_IS_CUSTOM = "is_custom";
+        public static final String COLUMN_UNIT_TYPE = "unit_type";
+        public static final String COLUMN_REPEAT_INTERVAL = "repeat_interval";
+        public static final String COLUMN_REPEAT_UNIT = "repeat_unit";
+        public static final String COLUMN_REPEAT_WEEKDAYS = "repeat_weekdays";
+        public static final String COLUMN_REPEAT_END_TYPE = "repeat_end_type";
+        public static final String COLUMN_REPEAT_END_VALUE = "repeat_end_value";
+        public static final String UNIT_TYPE_STEPS = "STEPS";
+        public static final String UNIT_TYPE_REPETITION = "REPETITION";
+        public static final String UNIT_TYPE_DURATION = "DURATION";
     }
 
     public static class InventoryEntry implements BaseColumns {
