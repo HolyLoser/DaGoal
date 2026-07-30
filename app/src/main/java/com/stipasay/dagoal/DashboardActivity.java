@@ -191,7 +191,7 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme);
         builder.setTitle("Permissions needed");
         builder.setMessage("To enforce your avoidance quests, DaGoal needs Usage Access and Display Over Other Apps permissions.");
 
@@ -300,7 +300,9 @@ public class DashboardActivity extends AppCompatActivity {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_custom_quest, null);
         android.widget.EditText editTitle = dialogView.findViewById(R.id.edit_custom_quest_title);
         android.widget.EditText editTarget = dialogView.findViewById(R.id.edit_custom_quest_target);
+        android.widget.EditText editUnitLabel = dialogView.findViewById(R.id.edit_custom_quest_unit_label);
         android.widget.Spinner spinnerUnitType = dialogView.findViewById(R.id.spinner_custom_quest_unit_type);
+        android.widget.Spinner spinnerDurationUnit = dialogView.findViewById(R.id.spinner_custom_quest_duration_unit);
         LinearLayout rowTime = dialogView.findViewById(R.id.row_custom_quest_time);
         TextView tvTimeValue = dialogView.findViewById(R.id.tv_custom_quest_time_value);
         LinearLayout rowRepeat = dialogView.findViewById(R.id.row_custom_quest_repeat);
@@ -312,8 +314,43 @@ public class DashboardActivity extends AppCompatActivity {
         Button btnCreate = dialogView.findViewById(R.id.btn_create_custom_quest);
 
         android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{ "Repetition", "Steps", "Duration (minutes)" });
+                new String[]{ "Tap to complete", "Steps", "Repetition", "Duration" });
         spinnerUnitType.setAdapter(unitAdapter);
+
+        android.widget.ArrayAdapter<String> durationUnitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{ "Minutes", "Hours", "Seconds" });
+        spinnerDurationUnit.setAdapter(durationUnitAdapter);
+
+        spinnerUnitType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                String selection = (String) parent.getItemAtPosition(position);
+
+                editTarget.setVisibility(View.VISIBLE);
+                editUnitLabel.setVisibility(View.GONE);
+                spinnerDurationUnit.setVisibility(View.GONE);
+
+                switch (selection) {
+                    case "Tap to complete":
+                        editTarget.setVisibility(View.GONE);
+                        break;
+                    case "Steps":
+                        editTarget.setHint("Number of steps");
+                        break;
+                    case "Repetition":
+                        editTarget.setHint("Number of times");
+                        editUnitLabel.setVisibility(View.VISIBLE);
+                        break;
+                    case "Duration":
+                        editTarget.setHint("Amount of time");
+                        spinnerDurationUnit.setVisibility(View.VISIBLE);
+                        break;
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
 
         int[] selectedTimeMinutes = { 0 };
         int[] selectedRepeatInterval = { 0 };
@@ -340,7 +377,7 @@ public class DashboardActivity extends AppCompatActivity {
         rowRepeat.setOnClickListener(v -> {
             View repeatDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_picker, null);
             android.widget.NumberPicker pickerInterval = repeatDialogView.findViewById(R.id.picker_repeat_interval);
-            android.widget.Spinner spinnerRepeatUnit = repeatDialogView.findViewById(R.id.spinner_repeat_unit);
+            android.widget.NumberPicker pickerRepeatUnit = repeatDialogView.findViewById(R.id.picker_repeat_unit);
             LinearLayout containerWeekdays = repeatDialogView.findViewById(R.id.container_repeat_weekdays);
             Button btnRepeatCancel = repeatDialogView.findViewById(R.id.btn_repeat_cancel);
             Button btnRepeatOk = repeatDialogView.findViewById(R.id.btn_repeat_ok);
@@ -349,9 +386,17 @@ public class DashboardActivity extends AppCompatActivity {
             pickerInterval.setMaxValue(365);
             pickerInterval.setValue(selectedRepeatInterval[0] > 0 ? selectedRepeatInterval[0] : 1);
 
-            android.widget.ArrayAdapter<String> repeatUnitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                    new String[]{ "Day", "Week", "Month", "Year" });
-            spinnerRepeatUnit.setAdapter(repeatUnitAdapter);
+            String[] repeatUnitOptions = { "Day", "Week", "Month", "Year" };
+            int initialUnitIndex = 1;
+            for (int i = 0; i < repeatUnitOptions.length; i++) {
+                if (repeatUnitOptions[i].equals(selectedRepeatUnit[0])) {
+                    initialUnitIndex = i;
+                }
+            }
+            pickerRepeatUnit.setMinValue(0);
+            pickerRepeatUnit.setMaxValue(repeatUnitOptions.length - 1);
+            pickerRepeatUnit.setDisplayedValues(repeatUnitOptions);
+            pickerRepeatUnit.setValue(initialUnitIndex);
 
             String[] weekdayLabels = { "S", "M", "T", "W", "T", "F", "S" };
             TextView[] weekdayViews = new TextView[7];
@@ -375,15 +420,15 @@ public class DashboardActivity extends AppCompatActivity {
                 containerWeekdays.addView(chip);
             }
 
-            androidx.appcompat.app.AlertDialog repeatDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+            androidx.appcompat.app.AlertDialog repeatDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
                     .setView(repeatDialogView)
                     .create();
 
             btnRepeatCancel.setOnClickListener(cv -> repeatDialog.dismiss());
             btnRepeatOk.setOnClickListener(cv -> {
                 selectedRepeatInterval[0] = pickerInterval.getValue();
-                selectedRepeatUnit[0] = (String) spinnerRepeatUnit.getSelectedItem();
-                tvRepeatValue.setText("Every " + selectedRepeatInterval[0] + " " + selectedRepeatUnit[0].toLowerCase() +
+                selectedRepeatUnit[0] = repeatUnitOptions[pickerRepeatUnit.getValue()];
+                tvRepeatValue.setText("Every " + selectedRepeatInterval[0] + " " + selectedRepeatUnit[0].toLowerCase(Locale.getDefault()) +
                         (selectedRepeatInterval[0] > 1 ? "s" : ""));
                 repeatDialog.dismiss();
             });
@@ -392,47 +437,76 @@ public class DashboardActivity extends AppCompatActivity {
         });
 
         rowRepeatEnds.setOnClickListener(v -> {
-            String[] options = { "Doesn't end", "End by date", "End by count" };
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Repeat Ends")
-                    .setItems(options, (dlg, which) -> {
-                        if (which == 0) {
-                            selectedRepeatEndType[0] = "";
-                            selectedRepeatEndValue[0] = "";
-                            tvRepeatEndsValue.setText("Doesn't end");
-                        } else if (which == 1) {
-                            java.util.Calendar cal = java.util.Calendar.getInstance();
-                            android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(
-                                    this,
-                                    (view, year, month, dayOfMonth) -> {
-                                        selectedRepeatEndType[0] = "DATE";
-                                        selectedRepeatEndValue[0] = year + "-" + (month + 1) + "-" + dayOfMonth;
-                                        tvRepeatEndsValue.setText("Ends " + (month + 1) + "/" + dayOfMonth + "/" + year);
-                                    },
-                                    cal.get(java.util.Calendar.YEAR),
-                                    cal.get(java.util.Calendar.MONTH),
-                                    cal.get(java.util.Calendar.DAY_OF_MONTH)
-                            );
-                            datePickerDialog.show();
-                        } else {
-                            View countView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
-                            android.widget.NumberPicker countPicker = new android.widget.NumberPicker(this);
-                            countPicker.setMinValue(1);
-                            countPicker.setMaxValue(365);
-                            countPicker.setValue(1);
-                            new androidx.appcompat.app.AlertDialog.Builder(this)
-                                    .setTitle("End after how many times?")
-                                    .setView(countPicker)
-                                    .setPositiveButton("OK", (d2, w2) -> {
-                                        selectedRepeatEndType[0] = "COUNT";
-                                        selectedRepeatEndValue[0] = String.valueOf(countPicker.getValue());
-                                        tvRepeatEndsValue.setText("Ends after " + countPicker.getValue() + " times");
-                                    })
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
-                        }
-                    })
-                    .show();
+            View endsDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_ends, null);
+            TextView tabDate = endsDialogView.findViewById(R.id.tab_end_by_date);
+            TextView tabCount = endsDialogView.findViewById(R.id.tab_end_by_count);
+            android.widget.CalendarView calendarView = endsDialogView.findViewById(R.id.calendar_repeat_end_date);
+            android.widget.NumberPicker countPicker = endsDialogView.findViewById(R.id.picker_repeat_end_count);
+            Button btnEndsCancel = endsDialogView.findViewById(R.id.btn_repeat_ends_cancel);
+            Button btnEndsOk = endsDialogView.findViewById(R.id.btn_repeat_ends_ok);
+
+            countPicker.setMinValue(1);
+            countPicker.setMaxValue(365);
+            countPicker.setValue(2);
+
+            String[] activeTab = { "DATE" };
+            if ("COUNT".equals(selectedRepeatEndType[0])) {
+                activeTab[0] = "COUNT";
+            }
+
+            Runnable refreshTabs = () -> {
+                boolean isDate = "DATE".equals(activeTab[0]);
+                tabDate.setTextColor(isDate ? Color.parseColor("#556B43") : Color.parseColor("#A0AEC0"));
+                tabCount.setTextColor(isDate ? Color.parseColor("#A0AEC0") : Color.parseColor("#556B43"));
+                calendarView.setVisibility(isDate ? View.VISIBLE : View.GONE);
+                countPicker.setVisibility(isDate ? View.GONE : View.VISIBLE);
+            };
+            refreshTabs.run();
+
+            tabDate.setOnClickListener(tv -> {
+                activeTab[0] = "DATE";
+                refreshTabs.run();
+            });
+
+            tabCount.setOnClickListener(tv -> {
+                activeTab[0] = "COUNT";
+                refreshTabs.run();
+            });
+
+            if ("COUNT".equals(selectedRepeatEndType[0]) && !selectedRepeatEndValue[0].isEmpty()) {
+                try {
+                    countPicker.setValue(Integer.parseInt(selectedRepeatEndValue[0]));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            androidx.appcompat.app.AlertDialog endsDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
+                    .setView(endsDialogView)
+                    .create();
+
+            btnEndsCancel.setOnClickListener(cv -> endsDialog.dismiss());
+
+            btnEndsOk.setOnClickListener(cv -> {
+                if ("DATE".equals(activeTab[0])) {
+                    long selectedMillis = calendarView.getDate();
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.setTimeInMillis(selectedMillis);
+                    int year = cal.get(java.util.Calendar.YEAR);
+                    int month = cal.get(java.util.Calendar.MONTH) + 1;
+                    int day = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+                    selectedRepeatEndType[0] = "DATE";
+                    selectedRepeatEndValue[0] = year + "-" + month + "-" + day;
+                    tvRepeatEndsValue.setText("Ends " + month + "/" + day + "/" + year);
+                } else {
+                    selectedRepeatEndType[0] = "COUNT";
+                    selectedRepeatEndValue[0] = String.valueOf(countPicker.getValue());
+                    tvRepeatEndsValue.setText("Ends after " + countPicker.getValue() + " times");
+                }
+                endsDialog.dismiss();
+            });
+
+            endsDialog.show();
         });
 
         int goldMax = TaskManager.getCustomQuestGoldMax(level);
@@ -453,43 +527,58 @@ public class DashboardActivity extends AppCompatActivity {
             public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
         });
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
                 .setView(dialogView)
                 .setNegativeButton("Cancel", null)
                 .create();
 
         btnCreate.setOnClickListener(v -> {
             String title = editTitle.getText().toString().trim();
-            String targetStr = editTarget.getText().toString().trim();
-
-            if (title.isEmpty() || targetStr.isEmpty()) {
-                Toast.makeText(this, "Please fill in a title and target.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            int target;
-            try {
-                target = Integer.parseInt(targetStr);
-                if (target <= 0) {
-                    throw new NumberFormatException();
-                }
-            } catch (NumberFormatException e) {
-                Toast.makeText(this, "Target must be a positive number.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             String unitTypeSelection = (String) spinnerUnitType.getSelectedItem();
-            String unitLabel;
-            String unitType;
-            if ("Steps".equals(unitTypeSelection)) {
-                unitLabel = "steps";
-                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_STEPS;
-            } else if ("Repetition".equals(unitTypeSelection)) {
-                unitLabel = "times";
-                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION;
+
+            if (title.isEmpty()) {
+                Toast.makeText(this, "Please fill in a title.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int target = 1;
+            String unitLabel = "";
+            String unitType = "";
+
+            if ("Tap to complete".equals(unitTypeSelection)) {
+                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_GENERIC;
+                unitLabel = "";
             } else {
-                unitLabel = "minutes";
-                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION;
+                String targetStr = editTarget.getText().toString().trim();
+                if (targetStr.isEmpty()) {
+                    Toast.makeText(this, "Please fill in a target.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    target = Integer.parseInt(targetStr);
+                    if (target <= 0) {
+                        throw new NumberFormatException();
+                    }
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Target must be a positive number.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if ("Steps".equals(unitTypeSelection)) {
+                    unitLabel = "steps";
+                    unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_STEPS;
+                } else if ("Repetition".equals(unitTypeSelection)) {
+                    String customLabel = editUnitLabel.getText().toString().trim();
+                    if (customLabel.isEmpty()) {
+                        Toast.makeText(this, "Please describe what you're counting.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    unitLabel = customLabel;
+                    unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION;
+                } else {
+                    unitLabel = ((String) spinnerDurationUnit.getSelectedItem()).toLowerCase(Locale.getDefault());
+                    unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION;
+                }
             }
 
             StringBuilder weekdaysBuilder = new StringBuilder();
@@ -954,7 +1043,7 @@ public class DashboardActivity extends AppCompatActivity {
             tvProgressLabel.setText(remaining + " more to reach next rank");
         }
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
                 .setView(dialogView)
                 .setNegativeButton("Close", null)
                 .show();

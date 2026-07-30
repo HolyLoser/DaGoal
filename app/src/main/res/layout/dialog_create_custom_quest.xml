@@ -28,7 +28,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Unit (optional)"
+            android:text="How should this be tracked?"
             android:textSize="13sp"
             android:textColor="#4B5563"
             android:layout_marginBottom="4dp" />
@@ -45,6 +45,21 @@
             android:layout_height="wrap_content"
             android:hint="Target amount"
             android:inputType="number"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/edit_custom_quest_unit_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="What are you counting? (e.g. glasses, pages)"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp" />
+
+        <Spinner
+            android:id="@+id/spinner_custom_quest_duration_unit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
             android:layout_marginBottom="16dp" />
 
         <LinearLayout
@@ -54,7 +69,8 @@
             android:orientation="horizontal"
             android:padding="12dp"
             android:background="@drawable/bg_task_card"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="8dp"
+            android:layout_marginTop="8dp">
 
             <TextView
                 android:layout_width="0dp"

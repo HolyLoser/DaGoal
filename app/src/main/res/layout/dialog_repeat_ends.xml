@@ -5,66 +5,58 @@
     android:orientation="vertical"
     android:padding="24dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Repeat"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#2D3748"
-        android:layout_marginBottom="16dp" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="16dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/tab_end_by_date"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Every"
-            android:textSize="14sp"
-            android:textColor="#2D3748"
-            android:layout_marginEnd="12dp" />
+            android:layout_weight="1"
+            android:text="End by date"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#556B43"
+            android:gravity="center"
+            android:padding="8dp" />
 
-        <NumberPicker
-            android:id="@+id/picker_repeat_interval"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/tab_end_by_count"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp" />
-
-        <NumberPicker
-            android:id="@+id/picker_repeat_unit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_weight="1"
+            android:text="End by count"
+            android:textSize="15sp"
+            android:textColor="#A0AEC0"
+            android:gravity="center"
+            android:padding="8dp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_repeat_weekday_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="On these days"
-        android:textSize="13sp"
-        android:textColor="#4B5563"
-        android:layout_marginBottom="8dp" />
-
-    <LinearLayout
-        android:id="@+id/container_repeat_weekdays"
+    <CalendarView
+        android:id="@+id/calendar_repeat_end_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="20dp" />
+        android:visibility="visible" />
+
+    <NumberPicker
+        android:id="@+id/picker_repeat_end_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end">
+        android:gravity="end"
+        android:layout_marginTop="16dp">
 
         <Button
-            android:id="@+id/btn_repeat_cancel"
+            android:id="@+id/btn_repeat_ends_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
@@ -73,7 +65,7 @@
             android:layout_marginEnd="16dp" />
 
         <Button
-            android:id="@+id/btn_repeat_ok"
+            android:id="@+id/btn_repeat_ends_ok"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="OK"

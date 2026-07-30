@@ -66,6 +66,7 @@ public final class DatabaseContract {
         public static final String UNIT_TYPE_STEPS = "STEPS";
         public static final String UNIT_TYPE_REPETITION = "REPETITION";
         public static final String UNIT_TYPE_DURATION = "DURATION";
+        public static final String UNIT_TYPE_GENERIC = "GENERIC_MANUAL";
     }
 
     public static class InventoryEntry implements BaseColumns {
