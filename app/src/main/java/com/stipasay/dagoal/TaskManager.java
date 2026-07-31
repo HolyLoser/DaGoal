@@ -14,6 +14,9 @@ import java.util.Random;
 
 public class TaskManager {
 
+    private static final boolean DEBUG_FAST_LEVELING = true;
+    private static final int DEBUG_REWARD_MULTIPLIER = 5;
+
     private final DatabaseHelper dbHelper;
     private final Context appContext;
 
@@ -33,7 +36,13 @@ public class TaskManager {
             return;
         }
 
+        java.util.List<ContentValues> dueRecurringQuests = collectDueRecurringCustomQuests(db, currentDate);
+
         db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
+
+        for (ContentValues recurringValues : dueRecurringQuests) {
+            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, recurringValues);
+        }
 
         boolean avoidanceInserted = false;
         java.util.List<String[]> blockedApps = getBlockedApps(db);
@@ -49,6 +58,160 @@ public class TaskManager {
         insertRandomAdditionalTasks(db, currentDate, remainingSlots);
     }
 
+    private java.util.List<ContentValues> collectDueRecurringCustomQuests(SQLiteDatabase db, String currentDate) {
+        java.util.List<ContentValues> result = new java.util.ArrayList<>();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                null,
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM + " = 1 AND " +
+                        DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL + " > 0",
+                null, null, null, null
+        );
+
+        if (cursor == null) {
+            return result;
+        }
+
+        while (cursor.moveToNext()) {
+            String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_TITLE));
+            int target = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE));
+            String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_UNIT));
+            String questType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE));
+            int rewardGold = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD));
+            int rewardXp = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP));
+            String unitType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_UNIT_TYPE));
+            int repeatInterval = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL));
+            String repeatUnit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_UNIT));
+            String repeatWeekdays = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_WEEKDAYS));
+            String repeatEndType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_TYPE));
+            String repeatEndValue = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE));
+            String repeatStartDate = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_START_DATE));
+            int occurrencesDone = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_OCCURRENCES_DONE));
+
+            if (repeatStartDate == null || repeatStartDate.isEmpty()) {
+                continue;
+            }
+
+            if ("COUNT".equals(repeatEndType) && !repeatEndValue.isEmpty()) {
+                try {
+                    int maxOccurrences = Integer.parseInt(repeatEndValue);
+                    if (occurrencesDone >= maxOccurrences) {
+                        continue;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            if ("DATE".equals(repeatEndType) && !repeatEndValue.isEmpty()) {
+                if (currentDate.compareTo(normalizeDateString(repeatEndValue)) > 0) {
+                    continue;
+                }
+            }
+
+            if (!isRecurrenceDueToday(repeatStartDate, currentDate, repeatInterval, repeatUnit, repeatWeekdays)) {
+                continue;
+            }
+
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, target);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, currentDate);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Custom");
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, rewardGold);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, rewardXp);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM, 1);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT_TYPE, unitType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL, repeatInterval);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_UNIT, repeatUnit);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_WEEKDAYS, repeatWeekdays);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_TYPE, repeatEndType);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE, repeatEndValue);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_START_DATE, repeatStartDate);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_OCCURRENCES_DONE, occurrencesDone + 1);
+
+            result.add(values);
+        }
+        cursor.close();
+
+        return result;
+    }
+
+    private String normalizeDateString(String rawDate) {
+        try {
+            String[] parts = rawDate.split("-");
+            int year = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            int day = Integer.parseInt(parts[2]);
+            return String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month, day);
+        } catch (Exception e) {
+            return rawDate;
+        }
+    }
+
+    private boolean isRecurrenceDueToday(String startDateStr, String todayStr, int interval, String unit, String weekdaysCsv) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Calendar startCal = Calendar.getInstance();
+            startCal.setTime(sdf.parse(normalizeDateString(startDateStr)));
+            Calendar todayCal = Calendar.getInstance();
+            todayCal.setTime(sdf.parse(todayStr));
+
+            if (todayCal.before(startCal)) {
+                return false;
+            }
+
+            long dayDiffMillis = todayCal.getTimeInMillis() - startCal.getTimeInMillis();
+            int daysBetween = (int) (dayDiffMillis / (1000L * 60 * 60 * 24));
+
+            if ("Day".equals(unit)) {
+                return daysBetween % interval == 0;
+            } else if ("Week".equals(unit)) {
+                if (weekdaysCsv != null && !weekdaysCsv.isEmpty()) {
+                    int todayWeekdayIndex = todayCal.get(Calendar.DAY_OF_WEEK) - 1;
+                    boolean matchesWeekday = false;
+                    for (String part : weekdaysCsv.split(",")) {
+                        if (String.valueOf(todayWeekdayIndex).equals(part.trim())) {
+                            matchesWeekday = true;
+                            break;
+                        }
+                    }
+                    if (!matchesWeekday) {
+                        return false;
+                    }
+                    int weekIndex = daysBetween / 7;
+                    return weekIndex % interval == 0;
+                } else {
+                    return daysBetween % (7 * interval) == 0;
+                }
+            } else if ("Month".equals(unit)) {
+                if (todayCal.get(Calendar.DAY_OF_MONTH) != startCal.get(Calendar.DAY_OF_MONTH)) {
+                    return false;
+                }
+                int monthsBetween = (todayCal.get(Calendar.YEAR) - startCal.get(Calendar.YEAR)) * 12
+                        + (todayCal.get(Calendar.MONTH) - startCal.get(Calendar.MONTH));
+                return monthsBetween % interval == 0;
+            } else if ("Year".equals(unit)) {
+                if (todayCal.get(Calendar.MONTH) != startCal.get(Calendar.MONTH)
+                        || todayCal.get(Calendar.DAY_OF_MONTH) != startCal.get(Calendar.DAY_OF_MONTH)) {
+                    return false;
+                }
+                int yearsBetween = todayCal.get(Calendar.YEAR) - startCal.get(Calendar.YEAR);
+                return yearsBetween % interval == 0;
+            }
+
+            return false;
+        } catch (Exception e) {
+            Log.e("TaskManager", "Error evaluating recurrence", e);
+            return false;
+        }
+    }
+
     public static String formatDurationMinutes(int totalMinutes) {
         if (totalMinutes < 60) {
             return totalMinutes + " minutes";
@@ -61,9 +224,39 @@ public class TaskManager {
         return hours + "h " + mins + "m";
     }
 
+    private int[] getTierReward(String tier) {
+        int gold;
+        int xp;
+
+        if (DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier)) {
+            gold = 35;
+            xp = 50;
+        } else if (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier)) {
+            gold = 20;
+            xp = 30;
+        } else {
+            gold = 10;
+            xp = 15;
+        }
+
+        if (DEBUG_FAST_LEVELING) {
+            gold *= DEBUG_REWARD_MULTIPLIER;
+            xp *= DEBUG_REWARD_MULTIPLIER;
+        }
+
+        return new int[]{ gold, xp };
+    }
+
+    private void applyTierReward(ContentValues values, String tier) {
+        int[] reward = getTierReward(tier);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, reward[0]);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, reward[1]);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER, tier);
+    }
+
     private void insertRandomAdditionalTasks(SQLiteDatabase db, String dateStr, int count) {
         for (int i = 0; i < count; i++) {
-            String query = "SELECT title, base_value, unit, quest_type, sub_category FROM task_templates WHERE title NOT IN (SELECT title FROM " +
+            String query = "SELECT title, base_value, unit, quest_type, sub_category, difficulty_tier FROM task_templates WHERE title NOT IN (SELECT title FROM " +
                     DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
 
             Cursor cursor = db.rawQuery(query, new String[]{ dateStr });
@@ -74,6 +267,7 @@ public class TaskManager {
                 String unit = cursor.getString(2);
                 String questType = cursor.getString(3);
                 String subCategory = cursor.getString(4);
+                String tier = cursor.getString(5);
                 cursor.close();
 
                 double multiplier = getMultiplier(db, subCategory);
@@ -89,6 +283,7 @@ public class TaskManager {
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
+                applyTierReward(values, tier);
 
                 db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
             } else {
@@ -118,6 +313,7 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Detox Duration Multiplier");
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, 0);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
+        applyTierReward(values, DatabaseContract.DailyTaskEntry.TIER_HARD);
 
         if (useGroupQuest) {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid social media");
@@ -210,7 +406,7 @@ public class TaskManager {
             return true;
         }
 
-        String query = "SELECT title, base_value, unit, quest_type, sub_category FROM task_templates WHERE title NOT IN (SELECT title FROM " +
+        String query = "SELECT title, base_value, unit, quest_type, sub_category, difficulty_tier FROM task_templates WHERE title NOT IN (SELECT title FROM " +
                 DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
 
         Cursor cursor = db.rawQuery(query, new String[]{ currentDate });
@@ -221,6 +417,7 @@ public class TaskManager {
             String unit = cursor.getString(2);
             String newQuestType = cursor.getString(3);
             String subCategory = cursor.getString(4);
+            String tier = cursor.getString(5);
             cursor.close();
 
             double multiplier = getMultiplier(db, subCategory);
@@ -234,6 +431,7 @@ public class TaskManager {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
             values.putNull(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME);
+            applyTierReward(values, tier);
 
             db.update(
                     DatabaseContract.DailyTaskEntry.TABLE_NAME,
@@ -385,8 +583,8 @@ public class TaskManager {
         String selection = DatabaseContract.DailyTaskEntry._ID + " = ?";
         String[] selectionArgs = { String.valueOf(taskId) };
 
-        int rewardGold = 100;
-        int rewardXp = 100;
+        int rewardGold = 10;
+        int rewardXp = 15;
         boolean isCustom = false;
 
         Cursor taskCursor = db.query(
@@ -401,10 +599,8 @@ public class TaskManager {
 
         if (taskCursor != null && taskCursor.moveToFirst()) {
             isCustom = taskCursor.getInt(0) == 1;
-            if (isCustom) {
-                rewardGold = taskCursor.getInt(1);
-                rewardXp = taskCursor.getInt(2);
-            }
+            rewardGold = taskCursor.getInt(1);
+            rewardXp = taskCursor.getInt(2);
             taskCursor.close();
         }
 
@@ -1012,6 +1208,8 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_WEEKDAYS, repeatWeekdays);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_TYPE, repeatEndType);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE, repeatEndValue);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_START_DATE, currentDate);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_OCCURRENCES_DONE, 1);
 
         db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
 

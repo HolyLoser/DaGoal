@@ -33,6 +33,7 @@ public final class DatabaseContract {
         public static final String COLUMN_CATEGORY = "category_tag";
         public static final String COLUMN_SUB_CATEGORY = "sub_category";
         public static final String COLUMN_QUEST_TYPE = "quest_type";
+        public static final String COLUMN_DIFFICULTY_TIER = "difficulty_tier";
     }
 
     public static class DailyTaskEntry implements BaseColumns {
@@ -67,6 +68,12 @@ public final class DatabaseContract {
         public static final String UNIT_TYPE_REPETITION = "REPETITION";
         public static final String UNIT_TYPE_DURATION = "DURATION";
         public static final String UNIT_TYPE_GENERIC = "GENERIC_MANUAL";
+        public static final String COLUMN_REPEAT_START_DATE = "repeat_start_date";
+        public static final String COLUMN_REPEAT_OCCURRENCES_DONE = "repeat_occurrences_done";
+        public static final String COLUMN_DIFFICULTY_TIER = "difficulty_tier";
+        public static final String TIER_EASY = "EASY";
+        public static final String TIER_MEDIUM = "MEDIUM";
+        public static final String TIER_HARD = "HARD";
     }
 
     public static class InventoryEntry implements BaseColumns {
