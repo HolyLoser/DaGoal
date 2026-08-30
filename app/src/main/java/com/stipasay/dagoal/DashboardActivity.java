@@ -10,8 +10,6 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.widget.Button;
-import android.widget.CheckBox;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,19 +18,23 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,7 +51,7 @@ public class DashboardActivity extends AppCompatActivity {
     private DatabaseHelper dbHelper;
 
     private ImageView imgGlobalAvatar;
-    private TextView tvGlobalLevel;
+    private TextView tvGlobalLevel, tvGlobalXp, tvGlobalGold;
     private View panelAvatarHost;
     private View rootLayout;
     private View bottomNavBar;
@@ -81,6 +83,8 @@ public class DashboardActivity extends AppCompatActivity {
 
         imgGlobalAvatar = findViewById(R.id.img_global_dashboard_avatar);
         tvGlobalLevel = findViewById(R.id.tv_global_dashboard_lvl);
+        tvGlobalXp = findViewById(R.id.tv_global_dashboard_xp);
+        tvGlobalGold = findViewById(R.id.tv_global_dashboard_gold);
         panelAvatarHost = findViewById(R.id.panel_avatar_host);
         bottomNavBar = findViewById(R.id.bottom_nav_bar);
 
@@ -139,14 +143,13 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void requestBatteryOptimizationExemption() {
-        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-        if (prefs.getBoolean("batteryOptPromptShown", false)) {
+        if (getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("batteryOptPromptShown", false)) {
             return;
         }
 
         android.os.PowerManager powerManager = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
         if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
-            prefs.edit().putBoolean("batteryOptPromptShown", true).apply();
+            getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).edit().putBoolean("batteryOptPromptShown", true).apply();
             Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(android.net.Uri.parse("package:" + getPackageName()));
             try {
@@ -191,7 +194,7 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme);
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme);
         builder.setTitle("Permissions needed");
         builder.setMessage("To enforce your avoidance quests, DaGoal needs Usage Access and Display Over Other Apps permissions.");
 
@@ -284,11 +287,11 @@ public class DashboardActivity extends AppCompatActivity {
 
         if (!DEBUG_UNLOCK_CUSTOM_QUESTS_AT_LEVEL_1) {
             if (level < 10) {
-                Toast.makeText(this, "Custom quests unlock at Level 10", Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "Custom quests unlock at Level 10");
                 return;
             }
             if (remaining <= 0) {
-                Toast.makeText(this, "No custom quests remaining this week", Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "No custom quests remaining this week");
                 return;
             }
         }
@@ -420,7 +423,7 @@ public class DashboardActivity extends AppCompatActivity {
                 containerWeekdays.addView(chip);
             }
 
-            androidx.appcompat.app.AlertDialog repeatDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
+            androidx.appcompat.app.AlertDialog repeatDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                     .setView(repeatDialogView)
                     .create();
 
@@ -480,7 +483,7 @@ public class DashboardActivity extends AppCompatActivity {
                 }
             }
 
-            androidx.appcompat.app.AlertDialog endsDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
+            androidx.appcompat.app.AlertDialog endsDialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                     .setView(endsDialogView)
                     .create();
 
@@ -527,7 +530,7 @@ public class DashboardActivity extends AppCompatActivity {
             public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
         });
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                 .setView(dialogView)
                 .setNegativeButton("Cancel", null)
                 .create();
@@ -537,7 +540,7 @@ public class DashboardActivity extends AppCompatActivity {
             String unitTypeSelection = (String) spinnerUnitType.getSelectedItem();
 
             if (title.isEmpty()) {
-                Toast.makeText(this, "Please fill in a title.", Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "Please fill in a title.");
                 return;
             }
 
@@ -551,7 +554,7 @@ public class DashboardActivity extends AppCompatActivity {
             } else {
                 String targetStr = editTarget.getText().toString().trim();
                 if (targetStr.isEmpty()) {
-                    Toast.makeText(this, "Please fill in a target.", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showToast(this, "Please fill in a target.");
                     return;
                 }
                 try {
@@ -560,7 +563,7 @@ public class DashboardActivity extends AppCompatActivity {
                         throw new NumberFormatException();
                     }
                 } catch (NumberFormatException e) {
-                    Toast.makeText(this, "Target must be a positive number.", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showToast(this, "Target must be a positive number.");
                     return;
                 }
 
@@ -570,7 +573,7 @@ public class DashboardActivity extends AppCompatActivity {
                 } else if ("Repetition".equals(unitTypeSelection)) {
                     String customLabel = editUnitLabel.getText().toString().trim();
                     if (customLabel.isEmpty()) {
-                        Toast.makeText(this, "Please describe what you're counting.", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showToast(this, "Please describe what you're counting.");
                         return;
                     }
                     unitLabel = customLabel;
@@ -601,11 +604,11 @@ public class DashboardActivity extends AppCompatActivity {
             );
 
             if (success) {
-                Toast.makeText(this, "Custom quest created!", Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "Custom quest created!");
                 populateQuestLists(activeContainer, completedContainer);
                 dialog.dismiss();
             } else {
-                Toast.makeText(this, "No custom quests remaining this week.", Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "No custom quests remaining this week.");
             }
         });
 
@@ -614,7 +617,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void updateRewardPreview(TextView tvRewardPreview, int goldPicked, int level) {
         int xp = TaskManager.computeCustomQuestXp(goldPicked, level);
-        tvRewardPreview.setText("Gold: " + goldPicked + " | XP: " + xp);
+        tvRewardPreview.setText(getString(R.string.reward_preview, goldPicked, xp));
     }
 
     private boolean checkNewDayQuestRouting() {
@@ -643,7 +646,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void animateContentFrameHeight(int targetHeightPx) {
-        CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
+        ConstraintLayout.LayoutParams contentParams = (ConstraintLayout.LayoutParams) contentFrame.getLayoutParams();
         android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(contentFrameHeightPx, targetHeightPx);
         animator.setDuration(220);
         animator.addUpdateListener(animation -> {
@@ -667,7 +670,7 @@ public class DashboardActivity extends AppCompatActivity {
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
+                ConstraintLayout.LayoutParams contentParams = (ConstraintLayout.LayoutParams) contentFrame.getLayoutParams();
                 float density = getResources().getDisplayMetrics().density;
                 int collapsedPx = (int) (COLLAPSED_HEIGHT_DP * density);
                 int expandedPx = (int) (EXPANDED_HEIGHT_DP * density);
@@ -743,12 +746,12 @@ public class DashboardActivity extends AppCompatActivity {
         currentCompletedQuestContainer = null;
         stopAvoidanceTicker();
 
-        CoordinatorLayout.LayoutParams contentParams = (CoordinatorLayout.LayoutParams) contentFrame.getLayoutParams();
+        ConstraintLayout.LayoutParams contentParams = (ConstraintLayout.LayoutParams) contentFrame.getLayoutParams();
         float density = getResources().getDisplayMetrics().density;
 
         if (tabName.equals("ME")) {
             if (panelAvatarHost != null) panelAvatarHost.setVisibility(View.GONE);
-            contentParams.height = CoordinatorLayout.LayoutParams.MATCH_PARENT;
+            contentParams.height = ConstraintLayout.LayoutParams.MATCH_PARENT;
         } else {
             if (panelAvatarHost != null) panelAvatarHost.setVisibility(View.VISIBLE);
             contentFrameHeightPx = (int) (COLLAPSED_HEIGHT_DP * density);
@@ -829,7 +832,7 @@ public class DashboardActivity extends AppCompatActivity {
 
                 btnEquipAction.setOnClickListener(v -> {
                     if (selectedWardrobeItem != null) {
-                        Toast.makeText(this, "Equipped: " + selectedWardrobeItem.getName(), Toast.LENGTH_SHORT).show();
+                        ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
                     }
                 });
                 break;
@@ -895,13 +898,13 @@ public class DashboardActivity extends AppCompatActivity {
                 btnPurchaseAction.setOnClickListener(v -> {
                     if (selectedShopItem != null) {
                         if (shopManager.purchaseShopItem(selectedShopItem)) {
-                            Toast.makeText(this, "Purchased " + selectedShopItem.getName(), Toast.LENGTH_SHORT).show();
+                            ToastUtils.showToast(this, "Purchased " + selectedShopItem.getName());
                             if (tvShopGoldBalance != null) {
                                 tvShopGoldBalance.setText("Gold: " + shopManager.getUserGoldBalance());
                             }
                             btnPurchaseAction.setVisibility(View.GONE);
                         } else {
-                            Toast.makeText(this, "Not enough Gold!", Toast.LENGTH_SHORT).show();
+                            ToastUtils.showToast(this, "Not enough Gold!");
                         }
                     }
                 });
@@ -922,8 +925,17 @@ public class DashboardActivity extends AppCompatActivity {
         Cursor profileCursor = profileManager.getUserProfile();
         if (profileCursor != null && profileCursor.moveToFirst()) {
             int level = profileCursor.getInt(1);
+            int gold = profileCursor.getInt(2);
+            int xp = profileCursor.getInt(3);
+
             if (tvGlobalLevel != null) {
-                tvGlobalLevel.setText("LVL " + String.format(Locale.getDefault(), "%02d", level));
+                tvGlobalLevel.setText(getString(R.string.lvl_placeholder, level));
+            }
+            if (tvGlobalGold != null) {
+                tvGlobalGold.setText(getString(R.string.gold_placeholder, gold));
+            }
+            if (tvGlobalXp != null) {
+                tvGlobalXp.setText(getString(R.string.xp_placeholder, xp, 100));
             }
             profileCursor.close();
         }
@@ -945,8 +957,8 @@ public class DashboardActivity extends AppCompatActivity {
 
             String title = TaskManager.getLevelTitle(level);
 
-            if (tvProfileUsername != null) tvProfileUsername.setText(username + " \u2022 " + title);
-            if (tvProfileLevel != null) tvProfileLevel.setText("Level " + level + " (" + xp + " / 100 XP) | Gold: " + gold);
+            if (tvProfileUsername != null) tvProfileUsername.setText(username + " • " + title);
+            if (tvProfileLevel != null) tvProfileLevel.setText(getString(R.string.level_info, level, xp, 100, gold));
             profileCursor.close();
         }
 
@@ -954,7 +966,7 @@ public class DashboardActivity extends AppCompatActivity {
         Cursor streakCursor = db.rawQuery("SELECT streak FROM user WHERE _id = 1", null);
         if (streakCursor != null && streakCursor.moveToFirst()) {
             int streak = streakCursor.getInt(0);
-            if (tvProfileStreak != null) tvProfileStreak.setText(streak + " Streak Day(s)");
+            if (tvProfileStreak != null) tvProfileStreak.setText(getString(R.string.streak_days, streak));
             streakCursor.close();
         }
     }
@@ -1032,7 +1044,7 @@ public class DashboardActivity extends AppCompatActivity {
         int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
         androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
 
-        tvDesc.setText(title + " \u2014 " + description);
+        tvDesc.setText(title + " — " + description);
         tvRankName.setText(AchievementTierHelper.getRankName(currentProgress, baseTarget));
         pbProgress.setProgress(AchievementTierHelper.getProgressPercentToNextRank(currentProgress, baseTarget));
 
@@ -1043,7 +1055,7 @@ public class DashboardActivity extends AppCompatActivity {
             tvProgressLabel.setText(remaining + " more to reach next rank");
         }
 
-        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomQuestDialogTheme)
+        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                 .setView(dialogView)
                 .setNegativeButton("Close", null)
                 .show();
@@ -1053,6 +1065,19 @@ public class DashboardActivity extends AppCompatActivity {
         activeContainer.removeAllViews();
         completedContainer.removeAllViews();
         SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+        // Find views within the quest layout
+        View parentView = (View) activeContainer.getParent();
+        TextView tvEmpty = null;
+        if (parentView != null) {
+            tvEmpty = parentView.findViewById(R.id.tv_no_quests_available);
+        }
+
+        // tv_quests_remaining_header is usually in the grandparent layout
+        TextView tvHeader = null;
+        if (parentView != null && parentView.getParent() != null) {
+            tvHeader = ((View)parentView.getParent()).findViewById(R.id.tv_quests_remaining_header);
+        }
 
         String[] projection = {
                 DatabaseContract.DailyTaskEntry._ID,
@@ -1073,7 +1098,9 @@ public class DashboardActivity extends AppCompatActivity {
                 null, null, null, null, null
         );
 
+        int totalCount = 0;
         if (cursor != null) {
+            totalCount = cursor.getCount();
             int uncompletedCount = 0;
             while (cursor.moveToNext()) {
                 int taskId = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry._ID));
@@ -1091,25 +1118,42 @@ public class DashboardActivity extends AppCompatActivity {
                 boolean isAvoidanceTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType);
                 boolean isIncrementTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT.equals(questType);
 
-                View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, null, false);
+                View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, (isCompleted == 1) ? completedContainer : activeContainer, false);
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
                 TextView tvTarget = row.findViewById(R.id.tv_task_target);
+                TextView tvTargetPill = row.findViewById(R.id.tv_task_target_pill);
                 CheckBox cbComplete = row.findViewById(R.id.btn_shuffle_item);
                 ImageView ivAutoTrackedIcon = row.findViewById(R.id.iv_auto_tracked_icon);
                 Button btnStartAvoidance = row.findViewById(R.id.btn_start_avoidance);
                 Button btnIncrementProgress = row.findViewById(R.id.btn_increment_progress);
+                android.widget.ProgressBar pbProgress = row.findViewById(R.id.pb_task_progress);
+                Button btnCompletedLabel = row.findViewById(R.id.btn_quest_completed_label);
 
                 tvTitle.setText(title);
                 cbComplete.setVisibility(View.GONE);
                 ivAutoTrackedIcon.setVisibility(View.GONE);
+                tvTargetPill.setVisibility(View.GONE);
                 btnStartAvoidance.setVisibility(View.GONE);
                 btnIncrementProgress.setVisibility(View.GONE);
+                pbProgress.setVisibility(View.GONE);
+                btnCompletedLabel.setVisibility(View.GONE);
 
                 if (isStepTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                     ivAutoTrackedIcon.setVisibility(View.VISIBLE);
+                    pbProgress.setVisibility(View.VISIBLE);
+                    pbProgress.setMax(target);
+                    pbProgress.setProgress(currentValue);
+
+                    // Show distance pill (rough estimation: 1 step = 0.00075 km)
+                    double km = target * 0.00075;
+                    tvTargetPill.setText(String.format(java.util.Locale.getDefault(), "%.1f km", km));
+                    tvTargetPill.setVisibility(View.VISIBLE);
                 } else if (isIncrementTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    pbProgress.setVisibility(View.VISIBLE);
+                    pbProgress.setMax(target);
+                    pbProgress.setProgress(currentValue);
                     if (isCompleted == 0) {
                         btnIncrementProgress.setVisibility(View.VISIBLE);
                         btnIncrementProgress.setOnClickListener(v -> {
@@ -1131,6 +1175,9 @@ public class DashboardActivity extends AppCompatActivity {
                     } else {
                         int remainingMinutes = Math.max(target - currentValue, 0);
                         tvTarget.setText(TaskManager.formatDurationMinutes(remainingMinutes) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
+                        pbProgress.setVisibility(View.VISIBLE);
+                        pbProgress.setMax(target);
+                        pbProgress.setProgress(currentValue);
                     }
                 } else {
                     String targetText = "minutes".equalsIgnoreCase(unit) ? TaskManager.formatDurationMinutes(target) : target + " " + unit;
@@ -1141,11 +1188,11 @@ public class DashboardActivity extends AppCompatActivity {
                 if (isCompleted == 1) {
                     tvTitle.setTextColor(Color.GRAY);
                     tvTarget.setTextColor(Color.GRAY);
-                    row.setBackgroundResource(R.drawable.bg_task_card);
                     row.setAlpha(0.6f);
-                    cbComplete.setChecked(true);
-                    cbComplete.setEnabled(false);
+                    cbComplete.setVisibility(View.GONE);
                     btnStartAvoidance.setVisibility(View.GONE);
+                    btnIncrementProgress.setVisibility(View.GONE);
+                    btnCompletedLabel.setVisibility(View.VISIBLE);
                     completedContainer.addView(row);
                 } else {
                     uncompletedCount++;
@@ -1165,9 +1212,13 @@ public class DashboardActivity extends AppCompatActivity {
             }
             cursor.close();
 
-            TextView tvHeader = findViewById(R.id.tv_quests_remaining_header);
+            // Update Empty State visibility
+            if (tvEmpty != null) {
+                tvEmpty.setVisibility(totalCount == 0 ? View.VISIBLE : View.GONE);
+            }
+
             if (tvHeader != null) {
-                tvHeader.setText(uncompletedCount + " Quest(s) left today");
+                tvHeader.setText(getString(R.string.quests_left_today, uncompletedCount));
             }
         }
     }
@@ -1186,13 +1237,20 @@ public class DashboardActivity extends AppCompatActivity {
     private void setTabStyle(LinearLayout layout, boolean isActive) {
         ImageView icon = (ImageView) layout.getChildAt(0);
         TextView text = (TextView) layout.getChildAt(1);
+
+        int primaryColor = ContextCompat.getColor(this, R.color.dagoal_primary);
+
         if (isActive) {
-            text.setTextColor(Color.WHITE);
+            layout.setBackgroundResource(R.drawable.bg_nav_item_selected);
+            text.setTextColor(primaryColor);
             text.setTypeface(null, Typeface.BOLD);
+            icon.setColorFilter(primaryColor);
             icon.setAlpha(1.0f);
         } else {
-            text.setTextColor(Color.parseColor("#E2E8F0"));
+            layout.setBackgroundResource(R.drawable.bg_nav_item_inactive);
+            text.setTextColor(primaryColor);
             text.setTypeface(null, Typeface.NORMAL);
+            icon.setColorFilter(primaryColor);
             icon.setAlpha(0.6f);
         }
     }

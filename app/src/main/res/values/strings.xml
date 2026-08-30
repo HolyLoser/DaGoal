@@ -1,3 +1,67 @@
 <resources>
     <string name="app_name">DaGoal</string>
+    <string name="loading">Loading</string>
+    <string name="logo_placeholder_desc">DaGoal Logo Placeholder</string>
+    <string name="welcome_to_dagoal">Welcome To DaGOAL</string>
+    <string name="enter_username">Enter Username</string>
+    <string name="username_hint">Username</string>
+    <string name="enter_age">Enter Age</string>
+    <string name="age_hint">Age</string>
+    <string name="select_gender">Select Gender</string>
+    <string name="male_symbol">♂</string>
+    <string name="female_symbol">♀</string>
+    <string name="male_label">Male ♂</string>
+    <string name="female_label">Female ♀</string>
+    <string name="proceed">Proceed</string>
+
+    <!-- Avatar Creation Strings -->
+    <string name="back">Back</string>
+    <string name="hair">Hair</string>
+    <string name="eyes">Eyes</string>
+    <string name="mouth">Mouth</string>
+    <string name="cheeks">Cheeks</string>
+    <string name="nose">Nose</string>
+    <string name="skin_color">Skin Color</string>
+    <string name="create">Create</string>
+
+    <!-- Dashboard Strings -->
+    <string name="nav_quest">Quest</string>
+    <string name="nav_wardrobe">Wardrobe</string>
+    <string name="nav_shop">Shop</string>
+    <string name="nav_me">Me</string>
+    <string name="quests_left_today">%1$d Quest(s) left today</string>
+    <string name="no_quest_available">No Quest Available</string>
+    <string name="quest_completed">Quest Completed</string>
+    <string name="completed_quests">Completed quests</string>
+    <string name="add_a_goal">+ Add a goal</string>
+    <string name="achievements">Achievements</string>
+    <string name="keep_it_up_daily">Keep it up daily!</string>
+    <string name="shops">Shops</string>
+    <string name="my_outfits_bag">My Outfits Bag</string>
+    <string name="purchase_item">Purchase Item</string>
+    <string name="equip_item">Equip Item</string>
+    <string name="streak_days">%1$d Streak Day(s)</string>
+    <string name="level_info">Level %1$d (%2$d / %3$d XP) | Gold: %4$d</string>
+    <string name="create_custom_quest">Create a custom quest</string>
+    <string name="title_hint">Title</string>
+    <string name="how_to_track">How should this be tracked?</string>
+    <string name="target_hint">Target amount</string>
+    <string name="counting_hint">What are you counting? (e.g. glasses, pages)</string>
+    <string name="time">Time</string>
+    <string name="none">None &gt;</string>
+    <string name="repeat">Repeat</string>
+    <string name="repeat_ends">Repeat Ends</string>
+    <string name="does_not_end">Doesn\'t end</string>
+    <string name="reward">Reward</string>
+    <string name="reward_preview">Gold: %1$d | XP: %2$d</string>
+    <string name="done">Done</string>
+    <string name="avoidance_icon_desc">Avoidance Icon</string>
+    <string name="avoidance_title">Avoid %1$s</string>
+    <string name="avoidance_message">You\'re supposed to be avoiding this app right now.</string>
+    <string name="understand">I understand</string>
+    <string name="ignore_5_mins">Ignore for 5 minutes</string>
+    <string name="lvl_placeholder">LVL %1$02d</string>
+    <string name="xp_placeholder">%1$d/%2$d</string>
+    <string name="gold_placeholder">%1$d</string>
+    <string name="avatar_content_description">Avatar</string>
 </resources>

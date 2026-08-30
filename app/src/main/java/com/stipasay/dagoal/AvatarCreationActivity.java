@@ -1,40 +1,46 @@
 package com.stipasay.dagoal;
 
-import android.database.sqlite.SQLiteDatabase;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class AvatarCreationActivity extends AppCompatActivity {
 
     private Button btnSaveAvatar;
-    private Button tabHair, tabEyes, tabNose, tabMouth;
+    private ImageButton tabHair, tabEyes, tabNose, tabMouth, tabCheeks, tabSkin;
     private GridLayout gridAssets;
-    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_avatar_creation);
 
-        dbHelper = new DatabaseHelper(this);
-
         btnSaveAvatar = findViewById(R.id.btn_save_avatar);
         tabHair = findViewById(R.id.tab_hair);
         tabEyes = findViewById(R.id.tab_eyes);
         tabNose = findViewById(R.id.tab_nose);
         tabMouth = findViewById(R.id.tab_mouth);
+        tabCheeks = findViewById(R.id.tab_cheeks);
+        tabSkin = findViewById(R.id.tab_skin);
         gridAssets = findViewById(R.id.grid_assets);
 
+        ImageButton btnBack = findViewById(R.id.btn_back_avatar);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
+        }
+
         View rootLayout = findViewById(android.R.id.content);
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            androidx.core.graphics.Insets systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
             return insets;
         });
@@ -43,7 +49,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
         tabEyes.setOnClickListener(v -> switchTab("Eyes", tabEyes));
         tabNose.setOnClickListener(v -> switchTab("Nose", tabNose));
         tabMouth.setOnClickListener(v -> switchTab("Mouth", tabMouth));
+        if (tabCheeks != null) tabCheeks.setOnClickListener(v -> switchTab("Cheeks", tabCheeks));
+        if (tabSkin != null) tabSkin.setOnClickListener(v -> switchTab("Skin", tabSkin));
 
+        // Initial selection
+        tabHair.setSelected(true);
         switchTab("Hair", tabHair);
 
         btnSaveAvatar.setOnClickListener(v -> {
@@ -54,7 +64,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
             android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             prefs.edit().putBoolean("isFirstRun", false).apply();
 
-            Toast.makeText(AvatarCreationActivity.this, "Character Created! Onboarding Complete.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(AvatarCreationActivity.this, "Character Created! Onboarding Complete.");
 
             Intent intent = new Intent(AvatarCreationActivity.this, DashboardActivity.class);
             startActivity(intent);
@@ -62,12 +72,15 @@ public class AvatarCreationActivity extends AppCompatActivity {
         });
     }
 
-    private void switchTab(String category, Button selectedTab) {
-        tabHair.setBackgroundColor(Color.WHITE);
-        tabEyes.setBackgroundColor(Color.WHITE);
-        tabNose.setBackgroundColor(Color.WHITE);
-        tabMouth.setBackgroundColor(Color.WHITE);
-        selectedTab.setBackgroundColor(Color.parseColor("#A3B19B"));
+    private void switchTab(String category, ImageButton selectedTab) {
+        tabHair.setSelected(false);
+        tabEyes.setSelected(false);
+        tabNose.setSelected(false);
+        tabMouth.setSelected(false);
+        if (tabCheeks != null) tabCheeks.setSelected(false);
+        if (tabSkin != null) tabSkin.setSelected(false);
+        
+        selectedTab.setSelected(true);
 
         gridAssets.removeAllViews();
 
@@ -78,8 +91,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
             params.height = dpToPx(90);
             params.setMargins(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
             itemImage.setLayoutParams(params);
-            itemImage.setBackgroundColor(Color.WHITE);
-            itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+            itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
+            itemImage.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
 
             if (category.equals("Hair")) {
                 itemImage.setImageResource(android.R.drawable.ic_menu_gallery);
@@ -89,7 +102,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
             int finalItemIndex = i;
             itemImage.setOnClickListener(view -> {
-                Toast.makeText(this, "Selected " + category + " Option #" + (finalItemIndex + 1), Toast.LENGTH_SHORT).show();
+                ToastUtils.showToast(this, "Selected " + category + " Option #" + (finalItemIndex + 1));
             });
 
             gridAssets.addView(itemImage);

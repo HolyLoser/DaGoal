@@ -5,7 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
-import android.widget.Toast;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -820,7 +819,7 @@ public class TaskManager {
 
     private void showAchievementUnlockedToast(String title) {
         if (appContext != null) {
-            Toast.makeText(appContext, "Achievement Unlocked: " + title + "!", Toast.LENGTH_LONG).show();
+            ToastUtils.showToast(appContext, "Achievement Unlocked: " + title + "!");
         }
     }
 

@@ -2,15 +2,15 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -91,7 +91,6 @@ public class ProfilingActivity extends AppCompatActivity {
             RadioButton rb = new RadioButton(this);
             rb.setText(optionText);
             rb.setTextSize(16);
-            rb.setTextColor(Color.DKGRAY);
 
             // Fixed the inner dimensions layout configuration types explicitly
             RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
@@ -110,14 +109,14 @@ public class ProfilingActivity extends AppCompatActivity {
         int selectedId = rgOptions.getCheckedRadioButtonId();
 
         if (selectedId == -1) {
-            Toast.makeText(this, "Please select an option to proceed.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "Please select an option to proceed.");
             return;
         }
 
         RadioButton selectedRb = findViewById(selectedId);
 
         if (selectedRb == null) {
-            Toast.makeText(this, "Selection error. Please choose again.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "Selection error. Please choose again.");
             return;
         }
 
@@ -160,13 +159,13 @@ public class ProfilingActivity extends AppCompatActivity {
         saveMetricRow(db, "Creative Activity Multiplier", String.valueOf(creativeMultiplier));
         saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[6]);
 
-        android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
         prefs.edit().putBoolean("isFirstRun", false).apply();
 
         TaskManager taskManager = new TaskManager(ProfilingActivity.this);
         taskManager.generateDailyTasks();
 
-        Toast.makeText(this, "Profile Tier and Tasks Generated!", Toast.LENGTH_LONG).show();
+        ToastUtils.showToast(this, "Profile Tier and Tasks Generated!");
 
         Intent intent = new Intent(ProfilingActivity.this, AppSelectionActivity.class);
         startActivity(intent);

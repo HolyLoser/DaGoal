@@ -1,6 +1,32 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.DaGoal" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/dagoal_primary</item>
+        <item name="colorPrimaryVariant">@color/dagoal_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/dagoal_secondary</item>
+        <item name="colorSecondaryVariant">@color/dagoal_secondary</item>
+        <item name="colorOnSecondary">@color/dagoal_primary</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/dagoal_background_light</item>
+
+        <!-- Dialog and Snackbar themes -->
+        <item name="alertDialogTheme">@style/DaGoalDialogTheme</item>
+        <item name="snackbarStyle">@style/DaGoalSnackbarStyle</item>
     </style>
 
     <style name="Theme.DaGoal" parent="Base.Theme.DaGoal" />
+
+    <!-- Immediate Startup Theme -->
+    <style name="Theme.DaGoal.Starting" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/dagoal_primary</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

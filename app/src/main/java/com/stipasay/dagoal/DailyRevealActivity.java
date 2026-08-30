@@ -11,11 +11,12 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -96,10 +97,18 @@ public class DailyRevealActivity extends AppCompatActivity {
 
                 TextView tvTitle = taskRow.findViewById(R.id.tv_task_title);
                 TextView tvTarget = taskRow.findViewById(R.id.tv_task_target);
+                TextView tvTargetPill = taskRow.findViewById(R.id.tv_task_target_pill);
                 CheckBox btnShuffle = taskRow.findViewById(R.id.btn_shuffle_item);
+                View pbProgress = taskRow.findViewById(R.id.pb_task_progress);
+                View btnCompletedLabel = taskRow.findViewById(R.id.btn_quest_completed_label);
 
                 tvTitle.setText(title);
                 tvTarget.setText(formatTargetText(targetValue, unit));
+                
+                // Ensure other elements are hidden in reveal screen
+                if (tvTargetPill != null) tvTargetPill.setVisibility(View.GONE);
+                if (pbProgress != null) pbProgress.setVisibility(View.GONE);
+                if (btnCompletedLabel != null) btnCompletedLabel.setVisibility(View.GONE);
 
                 btnShuffle.setOnClickListener(v -> {
                     btnShuffle.setChecked(false);
@@ -114,7 +123,7 @@ public class DailyRevealActivity extends AppCompatActivity {
 
     private void handleTaskShuffle(int taskId, TextView tvTitle, TextView tvTarget) {
         if (availableShuffles <= 0) {
-            Toast.makeText(this, "No shuffles remaining for today!", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "No shuffles remaining for today!");
             return;
         }
 
@@ -122,7 +131,7 @@ public class DailyRevealActivity extends AppCompatActivity {
         boolean success = taskManager.shuffleQuest(taskId);
 
         if (!success) {
-            Toast.makeText(this, "No alternative tasks found!", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "No alternative tasks found!");
             return;
         }
 
@@ -151,6 +160,6 @@ public class DailyRevealActivity extends AppCompatActivity {
 
         availableShuffles--;
         tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
-        Toast.makeText(this, "Task shuffled successfully!", Toast.LENGTH_SHORT).show();
+        ToastUtils.showToast(this, "Task shuffled successfully!");
     }
 }

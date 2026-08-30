@@ -18,7 +18,8 @@
         android:layout_width="160dp"
         android:layout_height="160dp"
         android:layout_marginBottom="24dp"
-        android:src="@android:drawable/sym_def_app_icon"
+        android:src="@drawable/sample_avatar"
+        android:scaleType="fitCenter"
         android:contentDescription="Avatar Spotlight" />
 
     <TextView

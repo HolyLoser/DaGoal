@@ -2,4 +2,26 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- DaGOAL Design Tokens (Official Redesign Palette) -->
+    <color name="dagoal_primary">#546B41</color>
+    <color name="dagoal_secondary">#99AD7A</color>
+    <color name="dagoal_surface">#DCCCAC</color>
+    <color name="dagoal_background_light">#FFF8EC</color>
+
+    <!-- Semantic Naming Aliases -->
+    <color name="dagoal_primary_green">@color/dagoal_primary</color>
+    <color name="dagoal_muted_green">@color/dagoal_secondary</color>
+    <color name="dagoal_beige">@color/dagoal_surface</color>
+    <color name="dagoal_off_white">@color/dagoal_background_light</color>
+
+    <!-- UI State Colors -->
+    <color name="dagoal_hint">#80546B41</color>
+
+    <!-- Legacy / Compatibility Colors -->
+    <color name="da_goal_green">@color/dagoal_primary</color>
+    <color name="da_goal_light_green">@color/dagoal_secondary</color>
+    <color name="da_goal_cream">@color/dagoal_surface</color>
+    <color name="da_goal_off_white">@color/dagoal_background_light</color>
+    <color name="dagoal_muted_green_legacy">#8FBC8F</color>
 </resources>

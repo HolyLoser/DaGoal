@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_surface_card"
     android:orientation="vertical"
-    android:background="@drawable/bg_panel_rounded"
     android:paddingLeft="20dp"
     android:paddingRight="20dp">
 
@@ -11,9 +12,9 @@
         android:id="@+id/drag_handle_touch_area"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:gravity="center"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:gravity="center">
 
         <View
             android:layout_width="50dp"
@@ -24,8 +25,8 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="none"
-        android:overScrollMode="never">
+        android:overScrollMode="never"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -33,43 +34,74 @@
             android:orientation="vertical"
             android:paddingBottom="20dp">
 
-            <TextView
-                android:id="@+id/tv_quests_remaining_header"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Quests left today"
-                android:textColor="#2D3748"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <LinearLayout
-                android:id="@+id/container_active_dashboard_quests"
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/quest_icon"
+                    app:tint="@color/dagoal_primary" />
+
+                <TextView
+                    android:id="@+id/tv_quests_remaining_header"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_quest_available"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="16dp" />
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:id="@+id/container_active_dashboard_quests"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tv_no_quests_available"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginVertical="32dp"
+                    android:text="@string/no_quest_available"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <Button
                 android:id="@+id/btn_dashboard_add_goal"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
-                android:text="+ Add a goal"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#778A66"
-                android:textStyle="bold"
+                android:layout_marginBottom="24dp"
+                android:backgroundTint="@color/dagoal_secondary"
+                android:text="@string/add_a_goal"
                 android:textAllCaps="false"
+                android:textColor="@color/white"
                 android:textSize="16sp"
-                android:layout_marginBottom="24dp" />
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Completed quests"
-                android:textColor="#2D3748"
+                android:layout_marginBottom="12dp"
+                android:text="@string/completed_quests"
+                android:textColor="@color/dagoal_primary"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/container_completed_dashboard_quests"

@@ -1,117 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="#D0DCC1">
+    android:background="@color/dagoal_primary">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/tv_welcome"
+        android:layout_width="320dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_marginTop="56dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/bg_title_oval"
+        android:contentDescription="@string/welcome_to_dagoal"
+        android:elevation="8dp"
         android:padding="24dp"
-        android:gravity="center_vertical">
+        android:scaleType="fitCenter"
+        android:src="@drawable/text_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome to DaGoal"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="#2D3748"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/bg_surface_card"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_welcome">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_panel_rounded"
-            android:orientation="vertical"
-            android:padding="24dp"
-            android:layout_marginBottom="32dp">
+            android:padding="32dp">
 
             <TextView
+                android:id="@+id/lbl_username"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Enter Username"
-                android:textColor="#2D3748"
+                android:text="@string/enter_username"
+                android:textColor="@color/dagoal_primary"
                 android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <EditText
                 android:id="@+id/edit_username"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="#FFFFFF"
-                android:hint="Username"
-                android:paddingLeft="12dp"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_input_pill"
+                android:gravity="center"
+                android:hint="@string/username_hint"
                 android:inputType="text"
-                android:textColor="#2D3748"
-                android:layout_marginBottom="24dp" />
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:textColor="@color/dagoal_primary"
+                android:textColorHint="@color/dagoal_hint"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/lbl_username" />
 
             <TextView
+                android:id="@+id/lbl_age"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Enter Age"
-                android:textColor="#2D3748"
+                android:layout_marginTop="24dp"
+                android:text="@string/enter_age"
+                android:textColor="@color/dagoal_primary"
                 android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/edit_username" />
 
             <EditText
                 android:id="@+id/edit_age"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="#FFFFFF"
-                android:hint="Age"
-                android:paddingLeft="12dp"
+                android:layout_width="120dp"
+                android:layout_height="54dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_input_pill"
+                android:gravity="center"
+                android:hint="@string/age_hint"
                 android:inputType="number"
-                android:textColor="#2D3748"
-                android:layout_marginBottom="24dp" />
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/dagoal_primary"
+                android:textColorHint="@color/dagoal_hint"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/lbl_age" />
 
             <TextView
+                android:id="@+id/lbl_gender"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Select Gender"
-                android:textColor="#2D3748"
+                android:layout_marginTop="24dp"
+                android:text="@string/select_gender"
+                android:textColor="@color/dagoal_primary"
                 android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="12dp" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/edit_age" />
 
             <RadioGroup
                 android:id="@+id/rg_gender"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
                 android:orientation="horizontal"
-                android:gravity="center_horizontal">
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/lbl_gender">
 
                 <RadioButton
                     android:id="@+id/rb_male"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Male ♂"
-                    android:textColor="#2D3748"
-                    android:layout_marginRight="32dp"/>
+                    android:layout_marginEnd="20dp"
+                    android:buttonTint="@color/dagoal_primary"
+                    android:text="@string/male_label"
+                    android:textColor="@color/dagoal_primary" />
 
                 <RadioButton
                     android:id="@+id/rb_female"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Female ♀"
-                    android:textColor="#2D3748" />
-            </RadioGroup>
-        </LinearLayout>
+                    android:buttonTint="@color/dagoal_primary"
+                    android:text="@string/female_label"
+                    android:textColor="@color/dagoal_primary" />
 
-        <Button
-            android:id="@+id/btn_proceed"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:text="Proceed"
-            android:backgroundTint="#778A66"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:textAllCaps="false" />
-    </LinearLayout>
-</ScrollView>
+            </RadioGroup>
+
+            <Button
+                android:id="@+id/btn_proceed"
+                android:layout_width="200dp"
+                android:layout_height="56dp"
+                android:layout_marginTop="25dp"
+                android:background="@drawable/bg_button_pill"
+                android:text="@string/proceed"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:backgroundTint="@null"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rg_gender" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

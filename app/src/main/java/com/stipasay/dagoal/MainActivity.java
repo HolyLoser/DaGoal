@@ -2,18 +2,13 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,25 +20,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
-
-        if (!isFirstRun) {
-            String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-            String lastQuestDate = prefs.getString("last_quest_generation_date", "");
-
-            if (!todayDateStr.equals(lastQuestDate)) {
-                Intent intent = new Intent(this, DailyRevealActivity.class);
-                startActivity(intent);
-            } else {
-                Intent intent = new Intent(this, DashboardActivity.class);
-                startActivity(intent);
-            }
-            finish();
-            return;
-        }
-
         setContentView(R.layout.activity_main);
 
         dbHelper = new DatabaseHelper(this);
@@ -69,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (username.isEmpty() || ageStr.isEmpty() || gender.isEmpty()) {
-            Toast.makeText(this, "Please fill in all profile fields.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "Please fill in all profile fields.");
             return;
         }
 
@@ -77,13 +53,13 @@ public class MainActivity extends AppCompatActivity {
         try {
             age = Integer.parseInt(ageStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Please enter a valid age.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "Please enter a valid age.");
             return;
         }
 
         saveUserToLocalDatabase(username, age);
 
-        Toast.makeText(this, "Profile Initialized Offline!", Toast.LENGTH_SHORT).show();
+        ToastUtils.showToast(this, "Profile Initialized Offline!");
 
         Intent intent = new Intent(MainActivity.this, ProfilingActivity.class);
         startActivity(intent);

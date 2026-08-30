@@ -10,14 +10,16 @@
     <ImageView
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:src="@android:drawable/sym_def_app_icon"
+        android:src="@drawable/sample_avatar"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/avoidance_icon_desc"
         android:layout_marginBottom="24dp" />
 
     <TextView
         android:id="@+id/tv_overlay_quest_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Avoid Instagram"
+        android:text="@string/avoidance_title"
         android:textColor="#FFFFFF"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -27,7 +29,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="You're supposed to be avoiding this app right now."
+        android:text="@string/avoidance_message"
         android:textColor="#E2E8F0"
         android:textSize="14sp"
         android:gravity="center"
@@ -37,7 +39,7 @@
         android:id="@+id/btn_overlay_understand"
         android:layout_width="240dp"
         android:layout_height="54dp"
-        android:text="I understand"
+        android:text="@string/understand"
         android:textColor="#FFFFFF"
         android:textAllCaps="false"
         android:textStyle="bold"
@@ -48,7 +50,7 @@
         android:id="@+id/btn_overlay_ignore"
         android:layout_width="240dp"
         android:layout_height="54dp"
-        android:text="Ignore for 5 minutes"
+        android:text="@string/ignore_5_mins"
         android:textColor="#2D3748"
         android:textAllCaps="false"
         android:backgroundTint="#E1C6A7" />

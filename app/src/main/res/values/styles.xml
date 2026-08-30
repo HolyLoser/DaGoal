@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Custom Dialog Theme -->
+    <style name="DaGoalDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:background">@drawable/bg_dialog</item>
+        <item name="colorSurface">@color/dagoal_surface</item>
+        <item name="android:textColorPrimary">@color/dagoal_primary</item>
+        <item name="colorPrimary">@color/dagoal_primary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/DaGoalDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DaGoalDialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/DaGoalDialogButton</item>
+    </style>
+
+    <style name="DaGoalDialogButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/dagoal_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Custom Snackbar Theme -->
+    <style name="DaGoalSnackbarStyle" parent="Widget.MaterialComponents.Snackbar">
+        <item name="backgroundTint">@color/dagoal_primary</item>
+        <item name="android:textColor">@color/dagoal_background_light</item>
+    </style>
+</resources>

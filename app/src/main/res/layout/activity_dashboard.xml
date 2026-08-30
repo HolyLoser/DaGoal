@@ -1,158 +1,297 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_dashboard_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#D0DCC1">
+    android:background="@drawable/quest_sec_bg">
 
-    <RelativeLayout
-        android:id="@+id/panel_avatar_host"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/dashboard_main_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#E1C6A7"
-        android:fitsSystemWindows="true">
+        android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/img_global_dashboard_avatar"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:layout_centerHorizontal="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="435dp"
-            android:contentDescription="Avatar"
-            android:src="@android:drawable/sym_def_app_icon" />
+        <!-- 1. Top Preview Area: Background & Stats -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/panel_avatar_host"
+            android:layout_width="0dp"
+            android:layout_height="440dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/tv_global_dashboard_lvl"
-            android:layout_width="wrap_content"
+            <!-- HUD Stat Badges -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/stats_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:paddingHorizontal="16dp"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <!-- Level Badge (Top Left) -->
+                <TextView
+                    android:id="@+id/tv_global_dashboard_lvl"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stats_badge_primary"
+                    android:paddingHorizontal="18dp"
+                    android:paddingVertical="10dp"
+                    android:text="@string/lvl_placeholder"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <!-- XP Badge (Centered) -->
+                <LinearLayout
+                    android:id="@+id/xp_badge_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stats_badge_light"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="18dp"
+                    android:paddingVertical="10dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/exp_icon" />
+
+                    <TextView
+                        android:id="@+id/tv_global_dashboard_xp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/xp_placeholder"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Gold Badge (Top Right) -->
+                <LinearLayout
+                    android:id="@+id/gold_badge_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stats_badge_light"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="18dp"
+                    android:paddingVertical="10dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/coins_icon" />
+
+                    <TextView
+                        android:id="@+id/tv_global_dashboard_gold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/gold_placeholder"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Avatar Character Canvas (Centered) -->
+            <ImageView
+                android:id="@+id/img_global_dashboard_avatar"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginTop="12dp"
+                android:contentDescription="@string/avatar_content_description"
+                android:scaleType="fitCenter"
+                android:src="@drawable/sample_avatar"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/stats_header"
+                app:layout_constraintVertical_bias="1.0" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- 2. Middle Content Surface (Quest Area) -->
+        <FrameLayout
+            android:id="@+id/dashboard_content_frame"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/bg_surface_card"
+            android:elevation="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/bottom_nav_container"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
+
+        <!-- Static Background Leak Cover Panel -->
+        <View
+            android:id="@+id/view_bottom_cover_panel"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/dagoal_surface"
+            android:elevation="0dp"
+            app:layout_constraintTop_toBottomOf="@+id/dashboard_content_frame"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- 3. Bottom Navigation Bar (Restored & Anchored on Top) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottom_nav_container"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="44dp"
-            android:background="#778A66"
-            android:paddingLeft="12dp"
-            android:paddingTop="4dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="4dp"
-            android:text="LVL 01"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </RelativeLayout>
+            android:paddingBottom="32dp"
+            android:elevation="15dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
-    <FrameLayout
-        android:id="@+id/dashboard_content_frame"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="80dp"
-        android:background="@drawable/bg_panel_rounded" />
-
-    <LinearLayout
-        android:id="@+id/bottom_nav_bar"
-        android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:background="#778A66"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="8dp"
-        android:paddingTop="8dp"
-        android:layout_gravity="bottom"
-        android:elevation="8dp">
-
-        <LinearLayout
-            android:id="@+id/nav_quest"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@android:color/transparent"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@android:drawable/ic_menu_agenda"
-                app:tint="#FFFFFF" />
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/bottom_nav_bar"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Quest"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                android:layout_marginHorizontal="16dp"
+                android:background="@drawable/bg_nav_bar"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                android:baselineAligned="false"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
 
-        <LinearLayout
-            android:id="@+id/nav_wardrobe"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@android:drawable/ic_menu_crop"
-                app:tint="#E2E8F0" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Wardrobe"
-                android:textColor="#E2E8F0"
-                android:textSize="12sp" />
-        </LinearLayout>
+                <!-- Quest Tab -->
+                <LinearLayout
+                    android:id="@+id/nav_quest"
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_nav_item_selected"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-        <LinearLayout
-            android:id="@+id/nav_shop"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@android:drawable/ic_menu_report_image"
-                app:tint="#E2E8F0" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Shop"
-                android:textColor="#E2E8F0"
-                android:textSize="12sp" />
-        </LinearLayout>
+                    <ImageView
+                        android:id="@+id/iv_nav_quest"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/quest_icon"
+                        app:tint="@color/dagoal_primary" />
 
-        <LinearLayout
-            android:id="@+id/nav_me"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@android:drawable/ic_menu_myplaces"
-                app:tint="#E2E8F0" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Me"
-                android:textColor="#E2E8F0"
-                android:textSize="12sp" />
-        </LinearLayout>
-    </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_nav_quest"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_quest"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Wardrobe Tab -->
+                <LinearLayout
+                    android:id="@+id/nav_wardrobe"
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_nav_item_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/iv_nav_wardrobe"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/wardrobe_icon"
+                        app:tint="@color/dagoal_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_nav_wardrobe"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_wardrobe"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Shop Tab -->
+                <LinearLayout
+                    android:id="@+id/nav_shop"
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_nav_item_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/iv_nav_shop"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/shop_icon"
+                        app:tint="@color/dagoal_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_nav_shop"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_shop"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Me Tab -->
+                <LinearLayout
+                    android:id="@+id/nav_me"
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_nav_item_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/iv_nav_me"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/profile_icon"
+                        app:tint="@color/dagoal_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_nav_me"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_me"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

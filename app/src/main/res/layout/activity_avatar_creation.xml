@@ -1,101 +1,218 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#D1D5DB"
-    android:weightSum="10">
+    android:background="@drawable/avatar_creation_bg">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
+    <!-- Back Button -->
+    <FrameLayout
+        android:id="@+id/preview_container"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="4.5"
-        android:background="#D2DDCB"
-        android:padding="16dp">
-
-        <ImageButton
-            android:id="@+id/btn_back_avatar"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@android:color/transparent"
-            android:src="@android:drawable/ic_menu_revert"
-            android:tint="#4B5563" />
+        app:layout_constraintBottom_toTopOf="@+id/bottom_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/iv_avatar_preview"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:layout_centerInParent="true"
-            android:src="@android:drawable/sym_def_app_icon" />
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:src="@drawable/sample_avatar" />
+    </FrameLayout>
 
-        <LinearLayout
-            android:layout_width="60dp"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:background="#E5E7EB"
-            android:orientation="vertical"
-            android:padding="6dp">
+    <ImageButton
+        android:id="@+id/btn_back_avatar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/bg_circle_primary"
+        android:contentDescription="@string/back"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:src="@android:drawable/ic_menu_revert"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/white" />
 
-            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#E0A980" android:layout_gravity="center" android:layout_margin="4dp"/>
-            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#C38E65" android:layout_gravity="center" android:layout_margin="4dp"/>
-            <View android:layout_width="32dp" android:layout_height="32dp" android:background="#8C5B36" android:layout_gravity="center" android:layout_margin="4dp"/>
-        </LinearLayout>
-    </RelativeLayout>
+    <!-- Character Preview Container -->
 
+    <!-- Right Category Sidebar -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="5.5"
-        android:background="#E2DFCD"
+        android:id="@+id/sidebar_categories"
+        android:layout_width="72dp"
+        android:layout_height="268dp"
+        android:layout_marginTop="88dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/bg_avatar_sidebar"
+        android:elevation="4dp"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="12dp">
-
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="none"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button android:id="@+id/tab_hair" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Hair" android:textSize="12sp" android:backgroundTint="#A3B19B" android:textColor="#000000" android:layout_marginEnd="4dp"/>
-                <Button android:id="@+id/tab_eyes" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Eyes" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
-                <Button android:id="@+id/tab_nose" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Nose" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
-                <Button android:id="@+id/tab_mouth" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Mouth" android:textSize="12sp" android:backgroundTint="#FFFFFF" android:textColor="#000000" android:layout_marginEnd="4dp"/>
-            </LinearLayout>
-        </HorizontalScrollView>
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <ScrollView
             android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/tab_hair"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/hair"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/hair_category_icon" />
+
+                <ImageButton
+                    android:id="@+id/tab_eyes"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/eyes"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/eye_category_icon" />
+
+                <ImageButton
+                    android:id="@+id/tab_mouth"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/mouth"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/lips_category_icon" />
+
+                <ImageButton
+                    android:id="@+id/tab_cheeks"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/cheeks"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/blush_category_icon" />
+
+                <ImageButton
+                    android:id="@+id/tab_nose"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/nose"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nose_category_icon" />
+
+                <ImageButton
+                    android:id="@+id/tab_skin"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/skin_color"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/skin_category_icon" />
+
+            </LinearLayout>
+        </ScrollView>
+
+    </LinearLayout>
+
+    <!-- Bottom Selection Panel -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottom_panel"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_surface_card"
+        android:elevation="8dp"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_percent="0.45"
+        app:layout_constraintTop_toBottomOf="@+id/preview_container">
+
+        <ScrollView
+            android:id="@+id/asset_scroll"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toTopOf="@+id/btn_save_avatar"
+            app:layout_constraintTop_toTopOf="parent">
 
             <GridLayout
                 android:id="@+id/grid_assets"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:columnCount="3"
                 android:alignmentMode="alignBounds"
+                android:columnCount="3"
+                android:padding="8dp"
                 android:rowOrderPreserved="false">
 
-                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
-                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
-                <ImageView android:layout_width="90dp" android:layout_height="90dp" android:layout_margin="8dp" android:background="#FFFFFF" android:padding="8dp" android:src="@android:drawable/ic_menu_gallery"/>
+                <!-- Placeholders -->
+                <ImageView
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_avatar_asset_item"
+                    android:padding="12dp"
+                    android:src="@android:drawable/ic_menu_gallery" />
+
+                <ImageView
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_avatar_asset_item"
+                    android:padding="12dp"
+                    android:src="@android:drawable/ic_menu_gallery" />
+
+                <ImageView
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_avatar_asset_item"
+                    android:padding="12dp"
+                    android:src="@android:drawable/ic_menu_gallery" />
+
             </GridLayout>
         </ScrollView>
 
         <Button
             android:id="@+id/btn_save_avatar"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="Create"
-            android:backgroundTint="#819E74"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="8dp"
-            android:textAllCaps="false" />
-    </LinearLayout>
-</LinearLayout>
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_avatar_create_button"
+            android:text="@string/create"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
