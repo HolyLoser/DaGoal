@@ -12,7 +12,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Create a custom quest"
+            android:text="@string/create_custom_quest"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#2D3748"
@@ -22,13 +22,15 @@
             android:id="@+id/edit_custom_quest_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Title"
+            android:hint="@string/title_hint"
+            android:inputType="text"
+            android:autofillHints="name"
             android:layout_marginBottom="12dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="How should this be tracked?"
+            android:text="@string/how_to_track"
             android:textSize="13sp"
             android:textColor="#4B5563"
             android:layout_marginBottom="4dp" />
@@ -43,7 +45,7 @@
             android:id="@+id/edit_custom_quest_target"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Target amount"
+            android:hint="@string/target_hint"
             android:inputType="number"
             android:layout_marginBottom="8dp" />
 
@@ -51,7 +53,7 @@
             android:id="@+id/edit_custom_quest_unit_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="What are you counting? (e.g. glasses, pages)"
+            android:hint="@string/counting_hint"
             android:visibility="gone"
             android:layout_marginBottom="8dp" />
 
@@ -76,14 +78,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Time"
+                android:text="@string/time"
                 android:textColor="#2D3748" />
 
             <TextView
                 android:id="@+id/tv_custom_quest_time_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="None &gt;"
+                android:text="@string/none"
                 android:textColor="#4B5563" />
         </LinearLayout>
 
@@ -100,14 +102,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Repeat"
+                android:text="@string/repeat"
                 android:textColor="#2D3748" />
 
             <TextView
                 android:id="@+id/tv_custom_quest_repeat_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="None &gt;"
+                android:text="@string/none"
                 android:textColor="#4B5563" />
         </LinearLayout>
 
@@ -124,21 +126,21 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Repeat Ends"
+                android:text="@string/repeat_ends"
                 android:textColor="#2D3748" />
 
             <TextView
                 android:id="@+id/tv_custom_quest_repeat_ends_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Doesn't end"
+                android:text="@string/does_not_end"
                 android:textColor="#4B5563" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Reward"
+            android:text="@string/reward"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="#2D3748"
@@ -148,7 +150,7 @@
             android:id="@+id/tv_custom_quest_reward_preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Gold: 5 | XP: 20"
+            android:text="@string/loading"
             android:textSize="14sp"
             android:textStyle="bold"
             android:textColor="#556B43"
@@ -164,7 +166,7 @@
             android:id="@+id/btn_create_custom_quest"
             android:layout_width="match_parent"
             android:layout_height="54dp"
-            android:text="Done"
+            android:text="@string/done"
             android:textColor="#FFFFFF"
             android:textAllCaps="false"
             android:textStyle="bold"

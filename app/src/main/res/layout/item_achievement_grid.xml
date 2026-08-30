@@ -44,7 +44,7 @@
         android:layout_width="88dp"
         android:layout_height="wrap_content"
         android:text="Achievement Title"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/dagoal_primary"
         android:textSize="12sp"
         android:textStyle="bold"
         android:gravity="center"
