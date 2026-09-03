@@ -1241,9 +1241,23 @@ public class TaskManager {
 
     public java.util.List<ShopItem> getShopItems() {
         java.util.List<ShopItem> items = new java.util.ArrayList<>();
-        items.add(new ShopItem(1, "Red Shirt", 50, "shirt", "shirt_red"));
-        items.add(new ShopItem(2, "Blue Shirt", 75, "shirt", "shirt_blue"));
-        items.add(new ShopItem(3, "Spiky Hair", 100, "hair", "hair_spiky"));
+
+        items.add(new ShopItem(1, "Red Shirt", 50, "shirt", "shirt_red", "COMMON", 1, "\uD83D\uDC55"));
+        items.add(new ShopItem(2, "Blue Shirt", 50, "shirt", "shirt_blue", "COMMON", 1, "\uD83D\uDC55"));
+        items.add(new ShopItem(3, "Basic Cap", 40, "hat", "cap_basic", "COMMON", 1, "\uD83E\uDDE2"));
+
+        items.add(new ShopItem(4, "Spiky Hair", 120, "hair", "hair_spiky", "UNCOMMON", 15, "\uD83D\uDC87"));
+        items.add(new ShopItem(5, "Denim Jacket", 130, "jacket", "jacket_denim", "UNCOMMON", 15, "\uD83E\uDDE5"));
+        items.add(new ShopItem(6, "Sneakers", 110, "shoes", "shoes_sneaker", "UNCOMMON", 15, "\uD83D\uDC5F"));
+
+        items.add(new ShopItem(7, "Golden Crown", 300, "hat", "crown_gold", "RARE", 25, "\uD83D\uDC51"));
+        items.add(new ShopItem(8, "Wizard Robe", 320, "outfit", "robe_wizard", "RARE", 25, "\uD83E\uDDD9"));
+        items.add(new ShopItem(9, "Sunglasses", 250, "accessory", "glasses_sun", "RARE", 25, "\uD83D\uDD76"));
+
+        items.add(new ShopItem(10, "Dragon Wings", 600, "accessory", "wings_dragon", "EPIC", 40, "\uD83D\uDC09"));
+        items.add(new ShopItem(11, "Galaxy Cloak", 650, "outfit", "cloak_galaxy", "EPIC", 40, "\uD83C\uDF0C"));
+        items.add(new ShopItem(12, "Phoenix Aura", 700, "accessory", "aura_phoenix", "EPIC", 40, "\uD83D\uDD25"));
+
         return items;
     }
 

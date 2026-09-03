@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="8dp">
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <View
+            android:id="@+id/view_shop_badge_bg"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_achievement_badge" />
+
+        <TextView
+            android:id="@+id/tv_shop_item_emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="\uD83D\uDC55"
+            android:textSize="28sp" />
+
+        <View
+            android:id="@+id/view_shop_lock_overlay"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_achievement_badge"
+            android:backgroundTint="#99000000"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/iv_shop_lock_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@android:drawable/ic_lock_lock"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tv_shop_item_name"
+        android:layout_width="88dp"
+        android:layout_height="wrap_content"
+        android:text="Item Name"
+        android:textColor="#2D3748"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:maxLines="2"
+        android:layout_marginTop="6dp" />
+
+    <TextView
+        android:id="@+id/tv_shop_item_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="50 Gold"
+        android:textColor="#4B5563"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="2dp" />
+
+</LinearLayout>

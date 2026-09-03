@@ -265,6 +265,19 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private int getShopTierColor(String tier) {
+        switch (tier) {
+            case "UNCOMMON":
+                return AchievementTierHelper.RANK_COLORS[1];
+            case "RARE":
+                return AchievementTierHelper.RANK_COLORS[2];
+            case "EPIC":
+                return AchievementTierHelper.RANK_COLORS[3];
+            default:
+                return AchievementTierHelper.RANK_COLORS[0];
+        }
+    }
+
     private int getCurrentUserLevel() {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT level FROM user WHERE _id = 1", null);
@@ -807,13 +820,26 @@ public class DashboardActivity extends AppCompatActivity {
                     @Override
                     public View getView(int position, View convertView, android.view.ViewGroup parent) {
                         if (convertView == null) {
-                            convertView = LayoutInflater.from(DashboardActivity.this).inflate(android.R.layout.simple_list_item_1, parent, false);
+                            convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_shop_grid, parent, false);
                         }
                         ShopItem item = ownedList.get(position);
-                        TextView text1 = convertView.findViewById(android.R.id.text1);
-                        text1.setText(item.getName());
-                        text1.setTextColor(Color.BLACK);
-                        text1.setGravity(android.view.Gravity.CENTER);
+
+                        View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
+                        TextView tvEmoji = convertView.findViewById(R.id.tv_shop_item_emoji);
+                        View lockOverlay = convertView.findViewById(R.id.view_shop_lock_overlay);
+                        ImageView ivLockIcon = convertView.findViewById(R.id.iv_shop_lock_icon);
+                        TextView tvName = convertView.findViewById(R.id.tv_shop_item_name);
+                        TextView tvMeta = convertView.findViewById(R.id.tv_shop_item_meta);
+
+                        int tierColor = getShopTierColor(item.getRarityTier());
+                        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(tierColor));
+
+                        tvEmoji.setText(item.getIconEmoji());
+                        tvName.setText(item.getName());
+                        tvMeta.setText(item.getRarityTier());
+                        tvMeta.setTextColor(tierColor);
+                        lockOverlay.setVisibility(View.GONE);
+                        ivLockIcon.setVisibility(View.GONE);
 
                         convertView.setOnClickListener(v -> {
                             selectedWardrobeItem = item;
@@ -850,6 +876,7 @@ public class DashboardActivity extends AppCompatActivity {
                 btnPurchaseAction.setVisibility(View.GONE);
 
                 TaskManager shopManager = new TaskManager(this);
+                int shopUserLevel = getCurrentUserLevel();
 
                 if (tvShopGoldBalance != null) {
                     tvShopGoldBalance.setText("Gold: " + shopManager.getUserGoldBalance());
@@ -867,20 +894,41 @@ public class DashboardActivity extends AppCompatActivity {
                     @Override
                     public View getView(int position, View convertView, android.view.ViewGroup parent) {
                         if (convertView == null) {
-                            convertView = LayoutInflater.from(DashboardActivity.this).inflate(android.R.layout.simple_list_item_2, parent, false);
+                            convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_shop_grid, parent, false);
                         }
                         ShopItem item = shopList.get(position);
-                        TextView text1 = convertView.findViewById(android.R.id.text1);
-                        TextView text2 = convertView.findViewById(android.R.id.text2);
+                        boolean isLocked = shopUserLevel < item.getRequiredLevel();
 
-                        text1.setText(item.getName());
-                        text1.setTextColor(Color.BLACK);
-                        text1.setTypeface(null, Typeface.BOLD);
+                        View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
+                        TextView tvEmoji = convertView.findViewById(R.id.tv_shop_item_emoji);
+                        View lockOverlay = convertView.findViewById(R.id.view_shop_lock_overlay);
+                        ImageView ivLockIcon = convertView.findViewById(R.id.iv_shop_lock_icon);
+                        TextView tvName = convertView.findViewById(R.id.tv_shop_item_name);
+                        TextView tvMeta = convertView.findViewById(R.id.tv_shop_item_meta);
 
-                        text2.setText(item.getPrice() + " Gold");
-                        text2.setTextColor(Color.parseColor("#778A66"));
+                        int tierColor = getShopTierColor(item.getRarityTier());
+                        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(tierColor));
+
+                        tvEmoji.setText(item.getIconEmoji());
+                        tvName.setText(item.getName());
+
+                        if (isLocked) {
+                            tvMeta.setText("Level " + item.getRequiredLevel());
+                            tvMeta.setTextColor(Color.parseColor("#A0AEC0"));
+                            lockOverlay.setVisibility(View.VISIBLE);
+                            ivLockIcon.setVisibility(View.VISIBLE);
+                        } else {
+                            tvMeta.setText(item.getPrice() + " Gold");
+                            tvMeta.setTextColor(tierColor);
+                            lockOverlay.setVisibility(View.GONE);
+                            ivLockIcon.setVisibility(View.GONE);
+                        }
 
                         convertView.setOnClickListener(v -> {
+                            if (isLocked) {
+                                ToastUtils.showToast(DashboardActivity.this, "Unlocks at Level " + item.getRequiredLevel());
+                                return;
+                            }
                             selectedShopItem = item;
                             btnPurchaseAction.setVisibility(View.VISIBLE);
                             if (imgGlobalAvatar != null) {
