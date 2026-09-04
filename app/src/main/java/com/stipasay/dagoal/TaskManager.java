@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
+import android.widget.Toast;
 
 public class TaskManager {
 
@@ -483,7 +484,8 @@ public class TaskManager {
                 values.put("streak", 1);
                 values.put("last_completed_date", currentDateStr);
                 db.update("user", values, "_id = 1", null);
-                syncStreakAchievements(db, 1);
+                recordStreakHistory(db, currentDateStr, 1);
+                updateLongestStreak(db, 1);
                 return;
             }
 
@@ -510,12 +512,15 @@ public class TaskManager {
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
                     syncStreakAchievements(db, newStreak);
+                    recordStreakHistory(db, currentDateStr, newStreak);
+                    updateLongestStreak(db, newStreak);
                     Log.i("TaskManager", "Streak incremented to " + newStreak + " via daily login.");
                 } else if (todayDate != null && todayDate.after(cal.getTime())) {
                     values.put("streak", 1);
                     values.put("last_completed_date", currentDateStr);
                     db.update("user", values, "_id = 1", null);
                     syncStreakAchievements(db, 1);
+                    recordStreakHistory(db, currentDateStr, 1);
                     Log.i("TaskManager", "Streak reset to 1. Calendar day gap detected.");
                 } else {
                     values.put("last_completed_date", currentDateStr);
@@ -525,6 +530,120 @@ public class TaskManager {
                 Log.e("TaskManager", "Error parsing streak login sequence dates", e);
             }
         }
+    }
+
+    private void recordStreakHistory(SQLiteDatabase db, String dateStr, int streakValue) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.StreakHistoryEntry.COLUMN_DATE, dateStr);
+        values.put(DatabaseContract.StreakHistoryEntry.COLUMN_STREAK_VALUE, streakValue);
+        values.put(DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED, 0);
+        db.insertWithOnConflict(DatabaseContract.StreakHistoryEntry.TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    private void updateLongestStreak(SQLiteDatabase db, int currentStreak) {
+        Cursor cursor = db.rawQuery("SELECT longest_streak FROM user WHERE _id = 1", null);
+        int longest = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                longest = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+        if (currentStreak > longest) {
+            ContentValues values = new ContentValues();
+            values.put("longest_streak", currentStreak);
+            db.update("user", values, "_id = 1", null);
+        }
+    }
+
+    public int getLongestStreak() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT longest_streak FROM user WHERE _id = 1", null);
+        int longest = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                longest = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+        return longest;
+    }
+
+    public java.util.Map<String, int[]> getStreakHistoryForMonth(int year, int month) {
+        java.util.Map<String, int[]> result = new java.util.HashMap<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String monthPrefix = String.format(Locale.getDefault(), "%04d-%02d", year, month + 1);
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + DatabaseContract.StreakHistoryEntry.COLUMN_DATE + ", " +
+                        DatabaseContract.StreakHistoryEntry.COLUMN_STREAK_VALUE + ", " +
+                        DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED +
+                        " FROM " + DatabaseContract.StreakHistoryEntry.TABLE_NAME +
+                        " WHERE " + DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " LIKE ?",
+                new String[]{ monthPrefix + "%" }
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                String date = cursor.getString(0);
+                int streakValue = cursor.getInt(1);
+                int claimed = cursor.getInt(2);
+                result.put(date, new int[]{ streakValue, claimed });
+            }
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    public boolean claimChest(String dateStr) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.StreakHistoryEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.StreakHistoryEntry.COLUMN_STREAK_VALUE, DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED },
+                DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " = ?",
+                new String[]{ dateStr },
+                null, null, null
+        );
+
+        int streakValue = 0;
+        int claimed = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                streakValue = cursor.getInt(0);
+                claimed = cursor.getInt(1);
+            }
+            cursor.close();
+        }
+
+        if (streakValue <= 0 || streakValue % 7 != 0 || claimed == 1) {
+            return false;
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED, 1);
+        db.update(
+                DatabaseContract.StreakHistoryEntry.TABLE_NAME,
+                values,
+                DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " = ?",
+                new String[]{ dateStr }
+        );
+
+        ContentValues userValues = new ContentValues();
+        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
+        int currentGold = 0;
+        int currentXp = 0;
+        if (userCursor != null && userCursor.moveToFirst()) {
+            currentGold = userCursor.getInt(0);
+            currentXp = userCursor.getInt(1);
+            userCursor.close();
+        }
+        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + 50);
+        userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + 40);
+        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+
+        return true;
     }
 
     private boolean areTasksAlreadyGenerated(SQLiteDatabase db, String dateStr) {
@@ -818,8 +937,13 @@ public class TaskManager {
     }
 
     private void showAchievementUnlockedToast(String title) {
-        if (appContext != null) {
-            ToastUtils.showToast(appContext, "Achievement Unlocked: " + title + "!");
+        if (appContext == null) {
+            return;
+        }
+        boolean toastsEnabled = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE)
+                .getBoolean("pref_notif_toasts", true);
+        if (toastsEnabled) {
+            Toast.makeText(appContext, "Achievement Unlocked: " + title + "!", Toast.LENGTH_LONG).show();
         }
     }
 

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import android.database.Cursor;
 
 public class AppSelectionActivity extends AppCompatActivity {
 
@@ -47,6 +48,16 @@ public class AppSelectionActivity extends AppCompatActivity {
 
     private void loadInstalledApps() {
         PackageManager packageManager = getPackageManager();
+        java.util.Set<String> alreadyBlockedPackages = new java.util.HashSet<>();
+        SQLiteDatabase readDb = dbHelper.getReadableDatabase();
+        Cursor blockedCursor = readDb.query(DatabaseContract.BlockedAppEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.BlockedAppEntry.COLUMN_PACKAGE_NAME }, null, null, null, null, null);
+        if (blockedCursor != null) {
+            while (blockedCursor.moveToNext()) {
+                alreadyBlockedPackages.add(blockedCursor.getString(0));
+            }
+            blockedCursor.close();
+        }
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
 
@@ -84,6 +95,7 @@ public class AppSelectionActivity extends AppCompatActivity {
 
             ivIcon.setImageDrawable(icon);
             tvName.setText(appName);
+            cbSelected.setChecked(alreadyBlockedPackages.contains(packageName));
 
             checkboxRefs.add(cbSelected);
             packageNameRefs.add(packageName);
@@ -106,8 +118,13 @@ public class AppSelectionActivity extends AppCompatActivity {
             }
         }
 
-        Intent intent = new Intent(AppSelectionActivity.this, DailyRevealActivity.class);
-        startActivity(intent);
-        finish();
+        boolean fromSettings = getIntent().getBooleanExtra("FROM_SETTINGS", false);
+        if (fromSettings) {
+            finish();
+        } else {
+            Intent intent = new Intent(AppSelectionActivity.this, DailyRevealActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 }

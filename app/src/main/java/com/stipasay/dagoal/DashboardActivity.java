@@ -70,6 +70,7 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_dashboard);
 
         dbHelper = new DatabaseHelper(this);
@@ -215,6 +216,9 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void startAvoidanceServiceIfNeeded() {
+        if (!getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("pref_notif_avoidance", true)) {
+            return;
+        }
         if (!AppMonitorService.hasUsageAccess(this) || !android.provider.Settings.canDrawOverlays(this)) {
             return;
         }
@@ -225,6 +229,9 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
     private void checkAndRequestStepPermissions() {
+        if (!getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("pref_notif_steps", true)) {
+            return;
+        }
         List<String> permissionsNeeded = new ArrayList<>();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
@@ -648,8 +655,12 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void checkDailyStreakPopup() {
-        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        if (!prefs.getBoolean("pref_notif_streak_popup", true)) {
+            return;
+        }
+
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         String lastPopupDate = prefs.getString("last_streak_popup_date", "");
 
         if (!todayDateStr.equals(lastPopupDate)) {
@@ -964,6 +975,7 @@ public class DashboardActivity extends AppCompatActivity {
                 contentFrame.addView(meView);
                 loadMeTabDataData(meView);
                 populateAchievementsList(meView);
+                wireSettingsButton(meView);
                 break;
         }
     }
@@ -989,6 +1001,13 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private void wireSettingsButton(View meView) {
+        android.widget.ImageButton btnSettings = meView.findViewById(R.id.btn_open_settings);
+        if (btnSettings != null) {
+            btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        }
+    }
+
     private void loadMeTabDataData(View meView) {
         TextView tvProfileUsername = meView.findViewById(R.id.tv_profile_username);
         TextView tvProfileLevel = meView.findViewById(R.id.tv_profile_level);
@@ -1008,6 +1027,11 @@ public class DashboardActivity extends AppCompatActivity {
             if (tvProfileUsername != null) tvProfileUsername.setText(username + " • " + title);
             if (tvProfileLevel != null) tvProfileLevel.setText(getString(R.string.level_info, level, xp, 100, gold));
             profileCursor.close();
+        }
+
+        View cardStreak = meView.findViewById(R.id.card_streak);
+        if (cardStreak != null) {
+            cardStreak.setOnClickListener(v -> startActivity(new Intent(this, StreakInfoActivity.class)));
         }
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();

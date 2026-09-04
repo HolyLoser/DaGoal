@@ -62,6 +62,12 @@
         <activity
             android:name=".StreakActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity
+            android:name=".SettingsActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+        <activity
+            android:name=".StreakInfoActivity"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
 
         <service
             android:name=".StepTrackingService"

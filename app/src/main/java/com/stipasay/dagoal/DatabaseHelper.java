@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 22;
+    private static final int DATABASE_VERSION = 23;
 
     private final Context appContext;
 
@@ -22,6 +22,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "xp INTEGER DEFAULT 0, " +
             "streak INTEGER DEFAULT 0, " +
             "last_completed_date TEXT DEFAULT '', " +
+            "longest_streak INTEGER DEFAULT 0, " +
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
 
@@ -89,6 +90,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE + " TEXT, " +
             DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY + " INTEGER DEFAULT 0);";
 
+    private static final String CREATE_TABLE_STREAK_HISTORY = "CREATE TABLE " +
+            DatabaseContract.StreakHistoryEntry.TABLE_NAME + " (" +
+            DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " TEXT PRIMARY KEY, " +
+            DatabaseContract.StreakHistoryEntry.COLUMN_STREAK_VALUE + " INTEGER DEFAULT 0, " +
+            DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED + " INTEGER DEFAULT 0);";
+
     private static final String CREATE_TABLE_ACHIEVEMENTS = "CREATE TABLE " +
             DatabaseContract.AchievementEntry.TABLE_NAME + " (" +
             DatabaseContract.AchievementEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -114,6 +121,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_TABLE_TASK_TEMPLATES);
         db.execSQL(CREATE_TABLE_ACHIEVEMENTS);
         db.execSQL(CREATE_TABLE_BLOCKED_APPS);
+        db.execSQL(CREATE_TABLE_STREAK_HISTORY);
         seedTaskTemplates(db);
         seedAchievements(db);
     }
@@ -278,6 +286,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS task_templates");
         db.execSQL("DROP TABLE IF EXISTS achievements");
         db.execSQL("DROP TABLE IF EXISTS blocked_apps");
+        db.execSQL("DROP TABLE IF EXISTS streak_history");
         onCreate(db);
 
         if (appContext != null) {

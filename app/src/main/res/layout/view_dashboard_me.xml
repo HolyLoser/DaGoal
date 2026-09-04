@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dagoal_background_light"
@@ -21,8 +23,9 @@
             android:background="@drawable/bg_circle_primary" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:orientation="vertical">
 
             <TextView
@@ -43,15 +46,27 @@
                 android:textSize="14sp"
                 android:alpha="0.7" />
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_open_settings"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_manage"
+            app:tint="@color/dagoal_primary"
+            android:contentDescription="Settings" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/card_streak"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         android:background="@drawable/bg_task_card"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true">
 
         <TextView
             android:id="@+id/tv_profile_streak"

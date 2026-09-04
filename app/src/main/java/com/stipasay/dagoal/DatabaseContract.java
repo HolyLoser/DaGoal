@@ -16,6 +16,7 @@ public final class DatabaseContract {
         public static final String COLUMN_LAST_LOGIN_DATE = "last_login_date";
         public static final String COLUMN_CUSTOM_QUEST_COUNT = "custom_quest_count";
         public static final String COLUMN_CUSTOM_QUEST_WEEK_START = "custom_quest_week_start";
+        public static final String COLUMN_LONGEST_STREAK = "longest_streak";
     }
 
     public static class PreferenceEntry implements BaseColumns {
@@ -107,5 +108,12 @@ public final class DatabaseContract {
         public static final String TYPE_STREAK_PROTECTOR = "STREAK_PROTECTOR";
         public static final String TYPE_XP_BOOST = "XP_BOOST";
         public static final String TYPE_GOLD_BOOST = "GOLD_BOOST";
+    }
+
+    public static class StreakHistoryEntry {
+        public static final String TABLE_NAME = "streak_history";
+        public static final String COLUMN_DATE = "history_date";
+        public static final String COLUMN_STREAK_VALUE = "streak_value";
+        public static final String COLUMN_CHEST_CLAIMED = "chest_claimed";
     }
 }
