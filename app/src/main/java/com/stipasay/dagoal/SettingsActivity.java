@@ -153,7 +153,7 @@ public class SettingsActivity extends AppCompatActivity {
             cursor.close();
         }
 
-        addInfoRow(container, "Username", username, null);
+        addInfoRow(container, "Username", username, () -> showEditUsernameDialog());
         addInfoRow(container, "Level", String.valueOf(level), null);
 
         addInfoRow(container, "Reset Progress", "Tap to reset", () -> {
@@ -179,6 +179,47 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         contentFrame.addView(container);
+    }
+
+    private void showEditUsernameDialog() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT username FROM user WHERE _id = 1", null);
+        String currentUsername = "Adventurer";
+        if (cursor != null && cursor.moveToFirst()) {
+            currentUsername = cursor.getString(0);
+            cursor.close();
+        }
+
+        android.widget.EditText editUsername = new android.widget.EditText(this);
+        editUsername.setText(currentUsername);
+        editUsername.setSelection(currentUsername.length());
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        editUsername.setPadding(padding, padding, padding, padding);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Edit Username")
+                .setView(editUsername)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newUsername = editUsername.getText().toString().trim();
+                    if (newUsername.isEmpty()) {
+                        ToastUtils.showToast(this, "Username cannot be empty.");
+                        return;
+                    }
+                    if (newUsername.length() > 20) {
+                        ToastUtils.showToast(this, "Username must be 20 characters or fewer.");
+                        return;
+                    }
+
+                    android.content.ContentValues values = new android.content.ContentValues();
+                    values.put("username", newUsername);
+                    SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
+                    writableDb.update("user", values, "_id = 1", null);
+
+                    ToastUtils.showToast(this, "Username updated.");
+                    showScreen("ACCOUNT");
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void buildNotificationsScreen() {

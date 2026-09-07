@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import android.content.pm.PackageManager;
 
 public class StepTrackingService extends Service implements SensorEventListener {
 
@@ -181,6 +182,14 @@ public class StepTrackingService extends Service implements SensorEventListener 
     }
 
     public static void start(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.ACTIVITY_RECOGNITION
+                ) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
         Intent intent = new Intent(context, StepTrackingService.class);
         ContextCompat.startForegroundService(context, intent);
     }

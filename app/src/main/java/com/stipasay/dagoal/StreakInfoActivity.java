@@ -114,12 +114,18 @@ public class StreakInfoActivity extends AppCompatActivity {
                     androidx.core.view.ViewCompat.setBackgroundTintList(bgView, null);
                 }
 
+                boolean isStreakStartDay = entry != null && entry[0] == 1;
                 boolean isChestDay = entry != null && entry[0] > 0 && entry[0] % 7 == 0;
                 boolean isClaimed = entry != null && entry[1] == 1;
 
                 if (isChestDay) {
+                    tvChest.setText("\uD83C\uDF81");
                     tvChest.setVisibility(View.VISIBLE);
                     tvChest.setAlpha(isClaimed ? 0.4f : 1f);
+                } else if (isStreakStartDay) {
+                    tvChest.setText("\uD83D\uDD11");
+                    tvChest.setVisibility(View.VISIBLE);
+                    tvChest.setAlpha(0.8f);
                 } else {
                     tvChest.setVisibility(View.GONE);
                 }
@@ -136,6 +142,8 @@ public class StreakInfoActivity extends AppCompatActivity {
                     });
                 } else if (isChestDay) {
                     convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Already claimed."));
+                } else if (isStreakStartDay) {
+                    convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "A new streak began here \u2014 reach day 7 for a chest!"));
                 } else {
                     convertView.setOnClickListener(null);
                 }

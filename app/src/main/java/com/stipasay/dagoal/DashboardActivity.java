@@ -98,7 +98,18 @@ public class DashboardActivity extends AppCompatActivity {
 
         stepPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> checkAndRequestStepPermissions()
+                result -> {
+                    boolean allGranted = true;
+                    for (Boolean granted : result.values()) {
+                        if (!granted) {
+                            allGranted = false;
+                            break;
+                        }
+                    }
+                    if (allGranted) {
+                        startStepTrackingIfNeeded();
+                    }
+                }
         );
 
         taskProgressReceiver = new BroadcastReceiver() {
@@ -232,6 +243,7 @@ public class DashboardActivity extends AppCompatActivity {
         if (!getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("pref_notif_steps", true)) {
             return;
         }
+
         List<String> permissionsNeeded = new ArrayList<>();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
@@ -246,6 +258,14 @@ public class DashboardActivity extends AppCompatActivity {
 
         if (!permissionsNeeded.isEmpty()) {
             stepPermissionLauncher.launch(permissionsNeeded.toArray(new String[0]));
+            return;
+        }
+
+        startStepTrackingIfNeeded();
+    }
+
+    private void startStepTrackingIfNeeded() {
+        if (!getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("pref_notif_steps", true)) {
             return;
         }
 
