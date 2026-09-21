@@ -21,6 +21,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -838,6 +839,8 @@ public class DashboardActivity extends AppCompatActivity {
                 btnEquipAction.setText("Equip Item");
                 btnEquipAction.setVisibility(View.GONE);
 
+                refreshWardrobeAvatarPreview(wardrobeView, btnEquipAction);
+
                 TaskManager wardrobeManager = new TaskManager(this);
                 java.util.List<ShopItem> ownedList = wardrobeManager.getOwnedItems();
 
@@ -867,20 +870,29 @@ public class DashboardActivity extends AppCompatActivity {
 
                         tvEmoji.setText(item.getIconEmoji());
                         tvName.setText(item.getName());
-                        tvMeta.setText(item.getRarityTier());
-                        tvMeta.setTextColor(tierColor);
+
+                        ShopItem currentlyEquipped = TaskManager.getEquippedItem(DashboardActivity.this);
+                        boolean isEquipped = (currentlyEquipped != null && currentlyEquipped.getId() == item.getId());
+
+                        if (isEquipped) {
+                            tvMeta.setText("EQUIPPED");
+                            tvMeta.setTextColor(android.graphics.Color.parseColor("#546B41"));
+                        } else {
+                            tvMeta.setText(item.getRarityTier());
+                            tvMeta.setTextColor(tierColor);
+                        }
+
                         lockOverlay.setVisibility(View.GONE);
                         ivLockIcon.setVisibility(View.GONE);
 
                         convertView.setOnClickListener(v -> {
                             selectedWardrobeItem = item;
                             btnEquipAction.setVisibility(View.VISIBLE);
-                            if (imgGlobalAvatar != null) {
-                                if (item.getResName().contains("red")) {
-                                    imgGlobalAvatar.setBackgroundColor(Color.RED);
-                                } else if (item.getResName().contains("blue")) {
-                                    imgGlobalAvatar.setBackgroundColor(Color.BLUE);
-                                }
+                            ShopItem eq = TaskManager.getEquippedItem(DashboardActivity.this);
+                            if (eq != null && eq.getId() == item.getId()) {
+                                btnEquipAction.setText("Unequip " + item.getName());
+                            } else {
+                                btnEquipAction.setText("Equip " + item.getName());
                             }
                         });
                         return convertView;
@@ -889,7 +901,19 @@ public class DashboardActivity extends AppCompatActivity {
 
                 btnEquipAction.setOnClickListener(v -> {
                     if (selectedWardrobeItem != null) {
-                        ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
+                        ShopItem currentlyEquipped = TaskManager.getEquippedItem(this);
+                        if (currentlyEquipped != null && currentlyEquipped.getId() == selectedWardrobeItem.getId()) {
+                            TaskManager.setEquippedItem(this, null);
+                            ToastUtils.showToast(this, "Unequipped: " + selectedWardrobeItem.getName());
+                        } else {
+                            TaskManager.setEquippedItem(this, selectedWardrobeItem);
+                            ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
+                        }
+                        refreshWardrobeAvatarPreview(wardrobeView, btnEquipAction);
+                        updateGlobalAvatarHeader();
+                        if (gridWardrobeItems.getAdapter() != null) {
+                            ((android.widget.BaseAdapter) gridWardrobeItems.getAdapter()).notifyDataSetChanged();
+                        }
                     }
                 });
                 break;
@@ -1028,10 +1052,40 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private void refreshWardrobeAvatarPreview(View wardrobeView, Button btnEquipAction) {
+        if (wardrobeView == null) return;
+        TextView tvEmoji = wardrobeView.findViewById(R.id.tv_wardrobe_avatar_emoji);
+        TextView tvName = wardrobeView.findViewById(R.id.tv_equipped_item_name);
+        TextView tvStatus = wardrobeView.findViewById(R.id.tv_equipped_item_status);
+
+        ShopItem equipped = TaskManager.getEquippedItem(this);
+        if (equipped != null) {
+            if (tvEmoji != null) tvEmoji.setText(equipped.getIconEmoji());
+            if (tvName != null) tvName.setText("Equipped: " + equipped.getName());
+            if (tvStatus != null) tvStatus.setText(equipped.getRarityTier() + " • Tap an item below to change");
+            if (btnEquipAction != null && selectedWardrobeItem != null && selectedWardrobeItem.getId() == equipped.getId()) {
+                btnEquipAction.setText("Unequip " + equipped.getName());
+            }
+        } else {
+            if (tvEmoji != null) tvEmoji.setText("👤");
+            if (tvName != null) tvName.setText("Equipped: None");
+            if (tvStatus != null) tvStatus.setText("Select an item below to equip");
+            if (btnEquipAction != null && selectedWardrobeItem != null) {
+                btnEquipAction.setText("Equip " + selectedWardrobeItem.getName());
+            }
+        }
+    }
+
     private void loadMeTabDataData(View meView) {
         TextView tvProfileUsername = meView.findViewById(R.id.tv_profile_username);
         TextView tvProfileLevel = meView.findViewById(R.id.tv_profile_level);
         TextView tvProfileStreak = meView.findViewById(R.id.tv_profile_streak);
+
+        TextView tvAvatarEmoji = meView.findViewById(R.id.tv_profile_avatar_emoji);
+        ShopItem equippedItem = TaskManager.getEquippedItem(this);
+        if (tvAvatarEmoji != null) {
+            tvAvatarEmoji.setText(equippedItem != null ? equippedItem.getIconEmoji() : "👤");
+        }
 
         TaskManager profileManager = new TaskManager(this);
         Cursor profileCursor = profileManager.getUserProfile();
@@ -1061,6 +1115,124 @@ public class DashboardActivity extends AppCompatActivity {
             if (tvProfileStreak != null) tvProfileStreak.setText(getString(R.string.streak_days, streak));
             streakCursor.close();
         }
+
+        View cardConsumables = meView.findViewById(R.id.card_consumables);
+        if (cardConsumables != null) {
+            cardConsumables.setOnClickListener(v -> showConsumablesDialog(meView));
+        }
+        updateConsumablesCardSummary(meView);
+    }
+
+    private void updateConsumablesCardSummary(View meView) {
+        if (meView == null) return;
+        TextView tvConsumablesSummary = meView.findViewById(R.id.tv_consumables_summary);
+        if (tvConsumablesSummary == null) return;
+
+        TaskManager taskManager = new TaskManager(this);
+        int streakProtectors = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_STREAK_PROTECTOR);
+        int xpBoosts = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST);
+        int goldBoosts = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST);
+
+        String currentDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        boolean xpActive = TaskManager.isXpBoostActive(this, currentDateStr);
+        boolean goldActive = TaskManager.isGoldBoostActive(this, currentDateStr);
+
+        StringBuilder sb = new StringBuilder();
+        if (xpActive || goldActive) {
+            sb.append("Active today: ");
+            if (xpActive) sb.append("⚡ 2x XP ");
+            if (goldActive) sb.append("🪙 2x Gold");
+            sb.append(" • ");
+        }
+        int totalQty = streakProtectors + xpBoosts + goldBoosts;
+        sb.append(totalQty).append(" item(s) in bag");
+
+        tvConsumablesSummary.setText(sb.toString());
+    }
+
+    private void showConsumablesDialog(View meView) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_consumables, null);
+        builder.setView(dialogView);
+
+        android.app.AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TaskManager taskManager = new TaskManager(this);
+        String currentDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        TextView tvQtyStreak = dialogView.findViewById(R.id.tv_qty_streak_protector);
+        TextView tvQtyXp = dialogView.findViewById(R.id.tv_qty_xp_boost);
+        TextView tvQtyGold = dialogView.findViewById(R.id.tv_qty_gold_boost);
+        Button btnActivateXp = dialogView.findViewById(R.id.btn_activate_xp_boost);
+        Button btnActivateGold = dialogView.findViewById(R.id.btn_activate_gold_boost);
+        Button btnClose = dialogView.findViewById(R.id.btn_close_consumables);
+
+        Runnable refreshDialogUI = new Runnable() {
+            @Override
+            public void run() {
+                int qtyStreak = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_STREAK_PROTECTOR);
+                int qtyXp = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST);
+                int qtyGold = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST);
+
+                boolean xpActive = TaskManager.isXpBoostActive(DashboardActivity.this, currentDateStr);
+                boolean goldActive = TaskManager.isGoldBoostActive(DashboardActivity.this, currentDateStr);
+
+                if (tvQtyStreak != null) tvQtyStreak.setText("x" + qtyStreak);
+                if (tvQtyXp != null) tvQtyXp.setText("Available: x" + qtyXp);
+                if (tvQtyGold != null) tvQtyGold.setText("Available: x" + qtyGold);
+
+                if (btnActivateXp != null) {
+                    if (xpActive) {
+                        btnActivateXp.setText("Active Today");
+                        btnActivateXp.setEnabled(false);
+                    } else {
+                        btnActivateXp.setText("Activate");
+                        btnActivateXp.setEnabled(qtyXp > 0);
+                    }
+                }
+
+                if (btnActivateGold != null) {
+                    if (goldActive) {
+                        btnActivateGold.setText("Active Today");
+                        btnActivateGold.setEnabled(false);
+                    } else {
+                        btnActivateGold.setText("Activate");
+                        btnActivateGold.setEnabled(qtyGold > 0);
+                    }
+                }
+
+                updateConsumablesCardSummary(meView);
+            }
+        };
+
+        refreshDialogUI.run();
+
+        if (btnActivateXp != null) {
+            btnActivateXp.setOnClickListener(v -> {
+                if (taskManager.activateXpBoost(this)) {
+                    ToastUtils.showToast(this, "⚡ 2x XP Boost Activated for Today!");
+                    refreshDialogUI.run();
+                }
+            });
+        }
+
+        if (btnActivateGold != null) {
+            btnActivateGold.setOnClickListener(v -> {
+                if (taskManager.activateGoldBoost(this)) {
+                    ToastUtils.showToast(this, "🪙 2x Gold Boost Activated for Today!");
+                    refreshDialogUI.run();
+                }
+            });
+        }
+
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
     }
 
     private void populateAchievementsList(View meView) {
@@ -1124,6 +1296,84 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private String getQuestTypeEmoji(String questType) {
+        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
+            return "\uD83D\uDC63";
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT.equals(questType)) {
+            return "\u2795";
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+            return "\u23F1\uFE0F";
+        } else {
+            return "\uD83D\uDCCB";
+        }
+    }
+
+    private void showQuestDetailDialog(int taskId, String title, int target, String unit, String questType,
+                                       String difficultyTier, int currentValue, int rewardGold, int rewardXp,
+                                       boolean isCustom, boolean isCompleted,
+                                       LinearLayout activeContainer, LinearLayout completedContainer) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_quest_detail, null);
+
+        TextView tvEmoji = dialogView.findViewById(R.id.tv_quest_detail_emoji);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_quest_detail_title);
+        TextView tvDescription = dialogView.findViewById(R.id.tv_quest_detail_description);
+        ImageButton btnAction = dialogView.findViewById(R.id.btn_quest_detail_action);
+        TextView tvDifficulty = dialogView.findViewById(R.id.tv_quest_detail_difficulty);
+        TextView tvReward = dialogView.findViewById(R.id.tv_quest_detail_reward);
+        android.widget.ProgressBar pbProgress = dialogView.findViewById(R.id.pb_quest_detail_progress);
+        TextView tvProgressText = dialogView.findViewById(R.id.tv_quest_detail_progress_text);
+        Button btnClose = dialogView.findViewById(R.id.btn_quest_detail_close);
+
+        tvEmoji.setText(getQuestTypeEmoji(questType));
+        tvTitle.setText(title);
+
+        String unitText = "minutes".equalsIgnoreCase(unit) ? TaskManager.formatDurationMinutes(target) : target + " " + unit;
+        tvDescription.setText("Goal: " + unitText);
+
+        String tierLabel = difficultyTier == null || difficultyTier.isEmpty() ? "Custom" :
+                (difficultyTier.substring(0, 1).toUpperCase(Locale.getDefault()) + difficultyTier.substring(1).toLowerCase(Locale.getDefault()));
+        tvDifficulty.setText("Quest Difficulty: " + tierLabel);
+        tvReward.setText("Reward: " + rewardGold + " Gold / " + rewardXp + " XP");
+
+        int safeTarget = Math.max(target, 1);
+        int percent = (int) (((double) currentValue / safeTarget) * 100);
+        pbProgress.setMax(100);
+        pbProgress.setProgress(Math.min(percent, 100));
+        tvProgressText.setText(currentValue + "/" + target);
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                .setView(dialogView)
+                .create();
+
+        if (isCompleted) {
+            btnAction.setVisibility(View.GONE);
+        } else {
+            btnAction.setImageResource(isCustom ? android.R.drawable.ic_menu_delete : android.R.drawable.ic_menu_close_clear_cancel);
+
+            btnAction.setOnClickListener(v -> {
+                String confirmTitle = isCustom ? "Delete this quest?" : "Forfeit this quest?";
+                String confirmMessage = isCustom
+                        ? "This will remove the quest. Deleting a custom quest still uses up this week's custom quest slot."
+                        : "This quest will be removed and the slot will stay empty for the rest of today.";
+
+                new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                        .setTitle(confirmTitle)
+                        .setMessage(confirmMessage)
+                        .setPositiveButton(isCustom ? "Delete" : "Forfeit", (d, w) -> {
+                            TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                            taskManager.removeQuest(taskId);
+                            populateQuestLists(activeContainer, completedContainer);
+                            dialog.dismiss();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            });
+        }
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
     private void showAchievementDetailDialog(String title, String description, int currentProgress, int baseTarget) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_achievement_detail, null);
 
@@ -1181,7 +1431,9 @@ public class DashboardActivity extends AppCompatActivity {
                 DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP,
                 DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE,
                 DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE,
-                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM,
+                DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER
         };
 
         Cursor cursor = db.query(
@@ -1210,7 +1462,16 @@ public class DashboardActivity extends AppCompatActivity {
                 boolean isAvoidanceTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType);
                 boolean isIncrementTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT.equals(questType);
 
+                int isCustomFlag = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM));
+                boolean isCustomQuest = isCustomFlag == 1;
+                String difficultyTier = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER));
+                boolean rowCompleted = isCompleted == 1;
+
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, (isCompleted == 1) ? completedContainer : activeContainer, false);
+                row.setOnClickListener(v -> showQuestDetailDialog(
+                        taskId, title, target, unit, questType, difficultyTier, currentValue,
+                        rewardGold, rewardXp, isCustomQuest, rowCompleted, activeContainer, completedContainer
+                ));
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
                 TextView tvTarget = row.findViewById(R.id.tv_task_target);
                 TextView tvTargetPill = row.findViewById(R.id.tv_task_target_pill);

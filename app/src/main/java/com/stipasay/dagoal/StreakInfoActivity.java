@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
@@ -58,6 +59,29 @@ public class StreakInfoActivity extends AppCompatActivity {
 
         Map<String, int[]> historyMap = taskManager.getStreakHistoryForMonth(year, month);
 
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        android.database.Cursor userCursor = db.rawQuery("SELECT streak FROM user WHERE _id = 1", null);
+        int currentStreak = 0;
+        if (userCursor != null) {
+            if (userCursor.moveToFirst()) {
+                currentStreak = userCursor.getInt(0);
+            }
+            userCursor.close();
+        }
+
+        String activeStartDateStr = taskManager.getActiveStreakStartDate();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Date activeStartDate = null;
+        if (activeStartDateStr != null) {
+            try {
+                activeStartDate = sdf.parse(activeStartDateStr);
+            } catch (Exception ignored) {}
+        }
+
+        final Date finalActiveStartDate = activeStartDate;
+        final int finalCurrentStreak = currentStreak;
+
         Calendar firstDayCal = Calendar.getInstance();
         firstDayCal.set(year, month, 1);
         int startOffset = firstDayCal.get(Calendar.DAY_OF_WEEK) - 1;
@@ -70,8 +94,6 @@ public class StreakInfoActivity extends AppCompatActivity {
         for (int day = 1; day <= daysInMonth; day++) {
             cells.add(day);
         }
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
         gridCalendar.setAdapter(new android.widget.BaseAdapter() {
             @Override
@@ -103,7 +125,8 @@ public class StreakInfoActivity extends AppCompatActivity {
                 tvDay.setText(String.valueOf(dayNumber));
 
                 Calendar cellCal = Calendar.getInstance();
-                cellCal.set(year, month, dayNumber);
+                cellCal.set(year, month, dayNumber, 0, 0, 0);
+                cellCal.set(Calendar.MILLISECOND, 0);
                 String cellDateStr = sdf.format(cellCal.getTime());
 
                 int[] entry = historyMap.get(cellDateStr);
@@ -114,38 +137,80 @@ public class StreakInfoActivity extends AppCompatActivity {
                     androidx.core.view.ViewCompat.setBackgroundTintList(bgView, null);
                 }
 
-                boolean isStreakStartDay = entry != null && entry[0] == 1;
-                boolean isChestDay = entry != null && entry[0] > 0 && entry[0] % 7 == 0;
-                boolean isClaimed = entry != null && entry[1] == 1;
+                long activeDayDiff = -1;
+                if (finalActiveStartDate != null) {
+                    Calendar activeStartCal = Calendar.getInstance();
+                    activeStartCal.setTime(finalActiveStartDate);
+                    activeStartCal.set(Calendar.HOUR_OF_DAY, 0);
+                    activeStartCal.set(Calendar.MINUTE, 0);
+                    activeStartCal.set(Calendar.SECOND, 0);
+                    activeStartCal.set(Calendar.MILLISECOND, 0);
 
-                if (isChestDay) {
-                    tvChest.setText("\uD83C\uDF81");
-                    tvChest.setVisibility(View.VISIBLE);
-                    tvChest.setAlpha(isClaimed ? 0.4f : 1f);
-                } else if (isStreakStartDay) {
-                    tvChest.setText("\uD83D\uDD11");
-                    tvChest.setVisibility(View.VISIBLE);
-                    tvChest.setAlpha(0.8f);
-                } else {
-                    tvChest.setVisibility(View.GONE);
+                    long diffMs = cellCal.getTimeInMillis() - activeStartCal.getTimeInMillis();
+                    activeDayDiff = Math.round((double) diffMs / (1000 * 60 * 60 * 24));
                 }
 
-                if (isChestDay && !isClaimed) {
-                    convertView.setOnClickListener(v -> {
-                        boolean success = taskManager.claimChest(cellDateStr);
-                        if (success) {
-                            ToastUtils.showToast(StreakInfoActivity.this, "Chest opened! +50 Gold, +40 XP");
-                            buildCalendar();
+                if (activeDayDiff >= 0) {
+                    int streakDayNum = (int) activeDayDiff + 1;
+                    boolean isChestMilestone = (streakDayNum % 3 == 0);
+                    boolean isStreakStartDay = (streakDayNum == 1);
+                    boolean isReached = (streakDayNum <= finalCurrentStreak);
+                    boolean isClaimed = (entry != null && entry[1] == 1);
+
+                    if (isChestMilestone) {
+                        tvChest.setText("🎁");
+                        tvChest.setVisibility(View.VISIBLE);
+
+                        if (isReached) {
+                            tvChest.setAlpha(isClaimed ? 0.4f : 1.0f);
+                            if (!isClaimed) {
+                                convertView.setOnClickListener(v -> {
+                                    boolean success = taskManager.claimChest(cellDateStr);
+                                    if (success) {
+                                        ToastUtils.showToast(StreakInfoActivity.this, "Chest opened! +50 Gold, +40 XP");
+                                        buildCalendar();
+                                    } else {
+                                        ToastUtils.showToast(StreakInfoActivity.this, "This chest is already claimed.");
+                                    }
+                                });
+                            } else {
+                                convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Already claimed."));
+                            }
                         } else {
-                            ToastUtils.showToast(StreakInfoActivity.this, "This chest is already claimed.");
+                            // Future projected chest
+                            tvChest.setAlpha(0.35f);
+                            final int reqDay = streakDayNum;
+                            convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Reach day " + reqDay + " of your streak to unlock this chest!"));
                         }
-                    });
-                } else if (isChestDay) {
-                    convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Already claimed."));
-                } else if (isStreakStartDay) {
-                    convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "A new streak began here \u2014 reach day 7 for a chest!"));
+                    } else if (isStreakStartDay) {
+                        tvChest.setText("🔑");
+                        tvChest.setVisibility(View.VISIBLE);
+                        tvChest.setAlpha(0.8f);
+                        convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "A new streak began here — reach day 3 for a chest!"));
+                    } else {
+                        tvChest.setVisibility(View.GONE);
+                        convertView.setOnClickListener(null);
+                    }
                 } else {
-                    convertView.setOnClickListener(null);
+                    // Past date before current active streak start
+                    boolean isClaimedPastChest = (entry != null && entry[0] % 3 == 0 && entry[1] == 1);
+                    boolean isPastStreakStart = (entry != null && entry[0] == 1);
+
+                    if (isClaimedPastChest) {
+                        tvChest.setText("🎁");
+                        tvChest.setVisibility(View.VISIBLE);
+                        tvChest.setAlpha(0.4f);
+                        convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Already claimed."));
+                    } else if (isPastStreakStart) {
+                        tvChest.setText("🔑");
+                        tvChest.setVisibility(View.VISIBLE);
+                        tvChest.setAlpha(0.4f);
+                        convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Past streak start."));
+                    } else {
+                        // Broken/unclaimed past chests are hidden completely
+                        tvChest.setVisibility(View.GONE);
+                        convertView.setOnClickListener(null);
+                    }
                 }
 
                 return convertView;
