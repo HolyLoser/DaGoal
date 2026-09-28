@@ -7,12 +7,10 @@
     android:background="#CC000000"
     android:padding="32dp">
 
-    <ImageView
+    <FrameLayout
+        android:id="@+id/avatar_host_container"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:src="@drawable/sample_avatar"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/avoidance_icon_desc"
         android:layout_marginBottom="24dp" />
 
     <TextView

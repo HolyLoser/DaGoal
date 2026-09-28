@@ -2,76 +2,91 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private EditText editUsername, editAge;
-    private RadioGroup rgGender;
-    private Button btnProceed;
-    private DatabaseHelper dbHelper;
+    private Button btnStartSignUp, btnStartLogin;
+    private TextView tvTermsFooter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
+        boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
+
+        if ((isLoggedIn || isGuestUser) && isOnboardingComplete) {
+            Intent intent = new Intent(this, DashboardActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
-        dbHelper = new DatabaseHelper(this);
+        btnStartSignUp = findViewById(R.id.btn_start_signup);
+        btnStartLogin = findViewById(R.id.btn_start_login);
+        tvTermsFooter = findViewById(R.id.tv_terms_footer);
 
-        editUsername = findViewById(R.id.edit_username);
-        editAge = findViewById(R.id.edit_age);
-        rgGender = findViewById(R.id.rg_gender);
-        btnProceed = findViewById(R.id.btn_proceed);
+        boolean isOnline = OnlineShopManager.isNetworkAvailable(this);
+        if (!isOnline && btnStartSignUp != null) {
+            btnStartSignUp.setText("Create an Avatar");
+            btnStartSignUp.setOnClickListener(v -> processCreateAvatarGuest());
+        } else if (btnStartSignUp != null) {
+            btnStartSignUp.setText("Sign Up");
+            btnStartSignUp.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, SignUpActivity.class);
+                startActivity(intent);
+            });
+        }
 
-        btnProceed.setOnClickListener(v -> processUserProfiling());
+        if (btnStartLogin != null) {
+            btnStartLogin.setText("Login");
+            btnStartLogin.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, AuthOptionsActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        if (tvTermsFooter != null) {
+            tvTermsFooter.setOnClickListener(v ->
+                    ToastUtils.showToast(this, "DaGoal Terms of Service & Privacy Policy")
+            );
+        }
     }
 
-    private void processUserProfiling() {
-        String username = editUsername.getText().toString().trim();
-        String ageStr = editAge.getText().toString().trim();
+    private void processCreateAvatarGuest() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        prefs.edit()
+                .putBoolean("isGuestUser", true)
+                .putBoolean("isLoggedIn", false)
+                .apply();
 
-        int selectedGenderId = rgGender.getCheckedRadioButtonId();
-        String gender = "";
+        ensureGuestUserInDatabase();
 
-        if (selectedGenderId != -1) {
-            RadioButton rbSelected = findViewById(selectedGenderId);
-            gender = rbSelected.getText().toString();
-        }
+        ToastUtils.showToast(this, "Starting Guest Avatar Creation...");
 
-        if (username.isEmpty() || ageStr.isEmpty() || gender.isEmpty()) {
-            ToastUtils.showToast(this, "Please fill in all profile fields.");
-            return;
-        }
-
-        int age;
-        try {
-            age = Integer.parseInt(ageStr);
-        } catch (NumberFormatException e) {
-            ToastUtils.showToast(this, "Please enter a valid age.");
-            return;
-        }
-
-        saveUserToLocalDatabase(username, age);
-
-        ToastUtils.showToast(this, "Profile Initialized Offline!");
-
-        Intent intent = new Intent(MainActivity.this, ProfilingActivity.class);
+        Intent intent = new Intent(MainActivity.this, AvatarCreationActivity.class);
         startActivity(intent);
-        finish();
     }
 
-    private void saveUserToLocalDatabase(String name, int age) {
+    private void ensureGuestUserInDatabase() {
+        DatabaseHelper dbHelper = new DatabaseHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+        DatabaseHelper.ensureUserTableExists(db);
         ContentValues values = new ContentValues();
 
-        values.put(DatabaseContract.UserEntry.COLUMN_NAME, name);
-        values.put(DatabaseContract.UserEntry.COLUMN_AGE, age);
+        values.put(DatabaseContract.UserEntry.COLUMN_NAME, "Adventurer");
+        values.put("username", "Adventurer");
+        values.put(DatabaseContract.UserEntry.COLUMN_AGE, 20);
         values.put(DatabaseContract.UserEntry.COLUMN_XP, 0);
         values.put(DatabaseContract.UserEntry.COLUMN_GOLD, 0);
         values.put(DatabaseContract.UserEntry.COLUMN_STREAK, 0);

@@ -23,7 +23,6 @@ public class LoadingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading);
 
-        // Start initialization sequence
         runStartupSequence();
     }
 
@@ -33,25 +32,18 @@ public class LoadingActivity extends AppCompatActivity {
         Handler mainHandler = new Handler(Looper.getMainLooper());
 
         executor.execute(() -> {
-            // --- Realistic Async Initialization Tasks ---
-            
-            // 1. Priming the Database (triggers onCreate/onUpgrade in background)
             try (DatabaseHelper dbHelper = new DatabaseHelper(LoadingActivity.this)) {
                 dbHelper.getReadableDatabase();
             }
 
-            // 2. Load and validate basic session/preference state
             SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
 
-            // 3. Determine next destination
             Intent nextIntent = determineNextDestination(prefs, isFirstRun);
 
-            // Calculate remaining time to satisfy the minimum baseline
             long elapsedTime = System.currentTimeMillis() - startTime;
             long delay = Math.max(0, MIN_LOADING_TIME - elapsedTime);
 
-            // Return to main thread for navigation after the delay
             mainHandler.postDelayed(() -> {
                 startActivity(nextIntent);
                 overridePendingTransition(R.anim.slide_in_bottom, R.anim.slide_out_top);
@@ -62,9 +54,12 @@ public class LoadingActivity extends AppCompatActivity {
     }
 
     private Intent determineNextDestination(SharedPreferences prefs, boolean isFirstRun) {
-        if (isFirstRun) {
-            return new Intent(this, MainActivity.class);
-        } else {
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
+        boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
+
+        // ALWAYS route to MainActivity (Sign Up / Login page) unless the user is actively logged in AND onboarding is 100% complete
+        if ((isLoggedIn || isGuestUser) && isOnboardingComplete) {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             String lastQuestDate = prefs.getString("last_quest_generation_date", "");
 
@@ -74,5 +69,8 @@ public class LoadingActivity extends AppCompatActivity {
                 return new Intent(this, DashboardActivity.class);
             }
         }
+
+        // Default: ALWAYS launch MainActivity (Login / Sign Up landing page)
+        return new Intent(this, MainActivity.class);
     }
 }

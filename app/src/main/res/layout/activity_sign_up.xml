@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2B2B2B"
+    android:padding="24dp">
+
+    <!-- Top Left Back Button -->
+    <ImageButton
+        android:id="@+id/btn_back_signup"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_auth_pill"
+        android:contentDescription="Back"
+        android:src="@android:drawable/ic_menu_revert"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="#1E1E1E" />
+
+    <!-- DaGoal Logo Centered -->
+    <ImageView
+        android:id="@+id/img_signup_logo"
+        android:layout_width="200dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="DaGoal Logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/logo_nobg"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_back_signup" />
+
+    <!-- Email Input Box -->
+    <LinearLayout
+        android:id="@+id/layout_signup_email_input"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/img_signup_logo">
+
+        <EditText
+            android:id="@+id/edit_signup_email"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:hint="Email"
+            android:inputType="textEmailAddress"
+            android:textColor="#1E1E1E"
+            android:textColorHint="#4A5D52"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Password Input Box with Visibility Toggle -->
+    <LinearLayout
+        android:id="@+id/layout_signup_password_input"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_signup_email_input">
+
+        <EditText
+            android:id="@+id/edit_signup_password"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Password"
+            android:inputType="textPassword"
+            android:textColor="#1E1E1E"
+            android:textColorHint="#4A5D52"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btn_toggle_signup_password"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:clickable="true"
+            android:contentDescription="Toggle Visibility"
+            android:focusable="true"
+            android:padding="2dp"
+            android:src="@android:drawable/ic_menu_view"
+            app:tint="#1E1E1E" />
+    </LinearLayout>
+
+    <!-- Password Helper Text -->
+    <TextView
+        android:id="@+id/tv_signup_password_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Password must be at least 6 characters"
+        android:textColor="#A0A0A0"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="@id/layout_signup_password_input"
+        app:layout_constraintTop_toBottomOf="@id/layout_signup_password_input" />
+
+    <!-- Create Account Button -->
+    <Button
+        android:id="@+id/btn_create_account"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/bg_auth_pill_disabled"
+        android:enabled="false"
+        android:text="Create Account"
+        android:textAllCaps="false"
+        android:textColor="#1E1E1E"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:backgroundTint="@null"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_signup_password_hint" />
+
+    <!-- Link to Login -->
+    <TextView
+        android:id="@+id/tv_go_to_login"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="8dp"
+        android:text="Already have an account? Login"
+        android:textColor="#99AD7A"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_create_account" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

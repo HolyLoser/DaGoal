@@ -17,18 +17,18 @@
         android:orientation="horizontal">
 
         <FrameLayout
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:id="@+id/layout_profile_avatar_host"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
             android:layout_marginEnd="16dp"
-            android:background="@drawable/bg_circle_primary">
+            android:background="@drawable/bg_circle_primary"
+            android:clickable="true"
+            android:focusable="true">
 
-            <TextView
-                android:id="@+id/tv_profile_avatar_emoji"
+            <FrameLayout
+                android:id="@+id/avatar_me_host"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="👤"
-                android:textSize="32sp" />
+                android:layout_height="match_parent" />
         </FrameLayout>
 
         <LinearLayout

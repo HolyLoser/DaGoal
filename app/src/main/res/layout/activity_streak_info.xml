@@ -90,12 +90,71 @@
         </LinearLayout>
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/card_streak_prediction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_task_card"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp">
+
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:text="🎯"
+            android:textSize="22sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_prediction_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Streak Goal Prediction"
+                android:textColor="@color/dagoal_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_prediction_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Predict how long your streak will last for bonus rewards!"
+                android:textColor="@color/dagoal_primary"
+                android:textSize="11sp"
+                android:alpha="0.7" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_set_prediction"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:backgroundTint="@color/dagoal_primary"
+            android:paddingHorizontal="12dp"
+            android:text="Set Goal"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="8dp"
-        android:text="Every 7-day unbroken streak unlocks a chest \uD83C\uDF81"
+        android:layout_marginTop="4dp"
+        android:text="Every 3-day unbroken streak unlocks a chest 🎁"
         android:textColor="@color/dagoal_primary"
         android:textSize="12sp"
         android:alpha="0.7" />

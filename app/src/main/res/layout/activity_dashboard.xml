@@ -106,20 +106,68 @@
                 </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Avatar Character Canvas (Centered) -->
-            <ImageView
-                android:id="@+id/img_global_dashboard_avatar"
+            <!-- Vertical Chest Progress Bar (Anchored to Left side of Avatar Host) -->
+            <LinearLayout
+                android:id="@+id/card_chest_bar"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:background="@drawable/bg_task_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/stats_header">
+
+                <TextView
+                    android:id="@+id/tv_chest_bar_icon"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="🎁"
+                    android:textSize="22sp" />
+
+                <!-- Vertical Progress Bar Track -->
+                <FrameLayout
+                    android:id="@+id/view_chest_bar_track"
+                    android:layout_width="16dp"
+                    android:layout_height="140dp"
+                    android:layout_marginVertical="8dp"
+                    android:background="#30546B41">
+
+                    <View
+                        android:id="@+id/view_chest_bar_fill"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_gravity="bottom"
+                        android:background="#8A2BE2" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/tv_chest_bar_points"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/3"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Avatar Character Canvas (Constrained Beside Chest Bar) -->
+            <FrameLayout
+                android:id="@+id/avatar_host_container"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
+                android:layout_marginStart="8dp"
                 android:layout_marginTop="12dp"
-                android:contentDescription="@string/avatar_content_description"
-                android:scaleType="fitCenter"
-                android:src="@drawable/sample_avatar"
+                android:layout_marginEnd="16dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/stats_header"
-                app:layout_constraintVertical_bias="1.0" />
+                app:layout_constraintStart_toEndOf="@id/card_chest_bar"
+                app:layout_constraintTop_toBottomOf="@id/stats_header" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

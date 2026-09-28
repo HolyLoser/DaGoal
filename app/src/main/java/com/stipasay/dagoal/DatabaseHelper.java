@@ -26,6 +26,26 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
 
+    private static final String CREATE_TABLE_USER_IF_NOT_EXISTS = "CREATE TABLE IF NOT EXISTS user (" +
+            "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "username TEXT DEFAULT 'Adventurer', " +
+            "name TEXT, " +
+            "age INTEGER, " +
+            "level INTEGER DEFAULT 1, " +
+            "gold INTEGER DEFAULT 0, " +
+            "xp INTEGER DEFAULT 0, " +
+            "streak INTEGER DEFAULT 0, " +
+            "last_completed_date TEXT DEFAULT '', " +
+            "longest_streak INTEGER DEFAULT 0, " +
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
+
+    public static void ensureUserTableExists(SQLiteDatabase db) {
+        if (db != null) {
+            db.execSQL(CREATE_TABLE_USER_IF_NOT_EXISTS);
+        }
+    }
+
     private static final String CREATE_TABLE_PREFERENCES = "CREATE TABLE preferences (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "user_id INTEGER, " +

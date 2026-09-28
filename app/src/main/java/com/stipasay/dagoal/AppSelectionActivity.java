@@ -2,10 +2,9 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -20,13 +19,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import android.database.Cursor;
+import java.util.Locale;
+import java.util.Set;
 
 public class AppSelectionActivity extends AppCompatActivity {
 
     private LinearLayout containerAppChecklist;
     private Button btnContinue;
+    private View btnBack;
     private DatabaseHelper dbHelper;
     private final List<CheckBox> checkboxRefs = new ArrayList<>();
     private final List<String> packageNameRefs = new ArrayList<>();
@@ -35,11 +37,22 @@ public class AppSelectionActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_app_selection);
 
         dbHelper = new DatabaseHelper(this);
         containerAppChecklist = findViewById(R.id.container_app_checklist);
         btnContinue = findViewById(R.id.btn_app_selection_continue);
+        btnBack = findViewById(R.id.btn_app_selection_back);
+
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
+        }
+
+        android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
+        if (avatarContainer != null) {
+            AvatarHelper.renderUserAvatar(this, avatarContainer);
+        }
 
         loadInstalledApps();
 
@@ -48,7 +61,7 @@ public class AppSelectionActivity extends AppCompatActivity {
 
     private void loadInstalledApps() {
         PackageManager packageManager = getPackageManager();
-        java.util.Set<String> alreadyBlockedPackages = new java.util.HashSet<>();
+        Set<String> alreadyBlockedPackages = new HashSet<>();
         SQLiteDatabase readDb = dbHelper.getReadableDatabase();
         Cursor blockedCursor = readDb.query(DatabaseContract.BlockedAppEntry.TABLE_NAME,
                 new String[]{ DatabaseContract.BlockedAppEntry.COLUMN_PACKAGE_NAME }, null, null, null, null, null);
@@ -58,6 +71,7 @@ public class AppSelectionActivity extends AppCompatActivity {
             }
             blockedCursor.close();
         }
+
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
 
@@ -95,7 +109,9 @@ public class AppSelectionActivity extends AppCompatActivity {
 
             ivIcon.setImageDrawable(icon);
             tvName.setText(appName);
-            cbSelected.setChecked(alreadyBlockedPackages.contains(packageName));
+
+            boolean isPreselected = alreadyBlockedPackages.contains(packageName) || isPopularTimeConsumingApp(packageName);
+            cbSelected.setChecked(isPreselected);
 
             checkboxRefs.add(cbSelected);
             packageNameRefs.add(packageName);
@@ -103,6 +119,20 @@ public class AppSelectionActivity extends AppCompatActivity {
 
             containerAppChecklist.addView(row);
         }
+    }
+
+    private boolean isPopularTimeConsumingApp(String packageName) {
+        if (packageName == null) return false;
+        String pkg = packageName.toLowerCase(Locale.ROOT);
+        return pkg.contains("facebook") || pkg.contains("instagram") || pkg.contains("tiktok")
+                || pkg.contains("youtube") || pkg.contains("twitter") || pkg.contains("x.android")
+                || pkg.contains("snapchat") || pkg.contains("reddit") || pkg.contains("pinterest")
+                || pkg.contains("netflix") || pkg.contains("roblox") || pkg.contains("mobile.legends")
+                || pkg.contains("genshin") || pkg.contains("twitch") || pkg.contains("discord")
+                || pkg.contains("telegram") || pkg.contains("bilibili") || pkg.contains("wattpad")
+                || pkg.contains("threads") || pkg.contains("shopee") || pkg.contains("lazada")
+                || pkg.contains("hbo") || pkg.contains("disney") || pkg.contains("primevideo")
+                || pkg.contains("hulu") || pkg.contains("webtoon") || pkg.contains("iqiyi");
     }
 
     private void saveSelectedAppsAndProceed() {
@@ -122,6 +152,11 @@ public class AppSelectionActivity extends AppCompatActivity {
         if (fromSettings) {
             finish();
         } else {
+            getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).edit()
+                    .putBoolean("isOnboardingComplete", true)
+                    .putBoolean("isFirstRun", false)
+                    .apply();
+
             Intent intent = new Intent(AppSelectionActivity.this, DailyRevealActivity.class);
             startActivity(intent);
             finish();

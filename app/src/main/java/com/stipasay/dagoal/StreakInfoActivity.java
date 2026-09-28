@@ -31,7 +31,10 @@ public class StreakInfoActivity extends AppCompatActivity {
         tvCurrent = findViewById(R.id.tv_streak_info_current);
         tvLongest = findViewById(R.id.tv_streak_info_longest);
 
-        findViewById(R.id.btn_streak_info_back).setOnClickListener(v -> finish());
+        findViewById(R.id.btn_streak_info_back).setOnClickListener(v -> {
+            SoundEffectsHelper.playMenuClose(this);
+            finish();
+        });
 
         loadStreakData();
         buildCalendar();
@@ -50,6 +53,62 @@ public class StreakInfoActivity extends AppCompatActivity {
         }
         tvCurrent.setText(String.valueOf(currentStreak));
         tvLongest.setText(String.valueOf(taskManager.getLongestStreak()));
+
+        TaskManager.checkAndClaimStreakPredictionReward(this, currentStreak);
+        updatePredictionCardUI(currentStreak);
+    }
+
+    private void updatePredictionCardUI(int currentStreak) {
+        TextView tvTitle = findViewById(R.id.tv_prediction_title);
+        TextView tvStatus = findViewById(R.id.tv_prediction_status);
+        android.widget.Button btnSet = findViewById(R.id.btn_set_prediction);
+        View card = findViewById(R.id.card_streak_prediction);
+
+        if (card == null) return;
+
+        int target = TaskManager.getStreakPredictionTarget(this);
+        boolean claimed = TaskManager.isStreakPredictionClaimed(this);
+
+        if (target <= 0) {
+            if (tvTitle != null) tvTitle.setText("Streak Goal Prediction");
+            if (tvStatus != null) tvStatus.setText("Set a target streak to earn bonus rewards!");
+            if (btnSet != null) {
+                btnSet.setText("Set Goal");
+                btnSet.setEnabled(true);
+                btnSet.setOnClickListener(v -> showSetPredictionDialog());
+            }
+            card.setOnClickListener(v -> showSetPredictionDialog());
+        } else {
+            if (tvTitle != null) tvTitle.setText("Goal: " + target + "-Day Streak");
+            if (claimed || currentStreak >= target) {
+                if (tvStatus != null) tvStatus.setText("🎉 Target Reached! Rewards Granted!");
+                if (btnSet != null) {
+                    btnSet.setText("New Goal");
+                    btnSet.setEnabled(true);
+                    btnSet.setOnClickListener(v -> showSetPredictionDialog());
+                }
+            } else {
+                int progress = Math.min(currentStreak, target);
+                if (tvStatus != null) tvStatus.setText("Progress: " + progress + "/" + target + " Days");
+                if (btnSet != null) {
+                    btnSet.setText("Change");
+                    btnSet.setEnabled(true);
+                    btnSet.setOnClickListener(v -> showSetPredictionDialog());
+                }
+            }
+            card.setOnClickListener(v -> showSetPredictionDialog());
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadStreakData();
+        buildCalendar();
+    }
+
+    private void showSetPredictionDialog() {
+        startActivity(new android.content.Intent(this, StreakActivity.class));
     }
 
     private void buildCalendar() {
@@ -180,7 +239,10 @@ public class StreakInfoActivity extends AppCompatActivity {
                             // Future projected chest
                             tvChest.setAlpha(0.35f);
                             final int reqDay = streakDayNum;
-                            convertView.setOnClickListener(v -> ToastUtils.showToast(StreakInfoActivity.this, "Reach day " + reqDay + " of your streak to unlock this chest!"));
+                            convertView.setOnClickListener(v -> {
+                                SoundEffectsHelper.playHighlight(StreakInfoActivity.this);
+                                ToastUtils.showToast(StreakInfoActivity.this, "Reach day " + reqDay + " of your streak to unlock this chest!");
+                            });
                         }
                     } else if (isStreakStartDay) {
                         tvChest.setText("🔑");

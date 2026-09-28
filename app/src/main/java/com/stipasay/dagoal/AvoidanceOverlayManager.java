@@ -44,6 +44,11 @@ public class AvoidanceOverlayManager {
         Button btnIgnore = overlayView.findViewById(R.id.btn_overlay_ignore);
         Button btnUnderstand = overlayView.findViewById(R.id.btn_overlay_understand);
 
+        android.widget.FrameLayout avatarContainer = overlayView.findViewById(R.id.avatar_host_container);
+        if (avatarContainer != null) {
+            AvatarHelper.renderUserAvatar(context, avatarContainer);
+        }
+
         tvQuestTitle.setText(quest.title);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -60,6 +65,7 @@ public class AvoidanceOverlayManager {
         params.gravity = Gravity.CENTER;
 
         windowManager.addView(overlayView, params);
+        SoundEffectsHelper.playWarning(context);
 
         TaskManager taskManager = new TaskManager(context);
         updateIgnoreButtonLabel(btnIgnore, taskManager, quest.taskId);

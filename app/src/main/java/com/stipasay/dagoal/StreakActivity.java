@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.text.SimpleDateFormat;
@@ -16,16 +17,32 @@ public class StreakActivity extends AppCompatActivity {
 
     private TextView tvDialogStreakCount;
     private Button btnStreakDialogDismiss;
+    private View layoutStep1, layoutStep2;
+    private LinearLayout option3, option5, option7, option14;
+    private Button btnCommitGoal;
     private DatabaseHelper dbHelper;
+    private int selectedTarget = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dialog_daily_streak);
 
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        prefs.edit().putString("last_streak_popup_date", todayDateStr).commit();
+
         dbHelper = new DatabaseHelper(this);
         tvDialogStreakCount = findViewById(R.id.tv_dialog_streak_count);
         btnStreakDialogDismiss = findViewById(R.id.btn_streak_dialog_dismiss);
+        layoutStep1 = findViewById(R.id.layout_step1_streak);
+        layoutStep2 = findViewById(R.id.layout_step2_prediction);
+
+        option3 = findViewById(R.id.option_3_days);
+        option5 = findViewById(R.id.option_5_days);
+        option7 = findViewById(R.id.option_7_days);
+        option14 = findViewById(R.id.option_14_days);
+        btnCommitGoal = findViewById(R.id.btn_commit_goal);
 
         View rootLayout = findViewById(R.id.root_streak_dialog_layout);
         if (rootLayout != null) {
@@ -37,14 +54,64 @@ public class StreakActivity extends AppCompatActivity {
         }
 
         int streakVal = getStreakCount();
-        tvDialogStreakCount.setText(String.valueOf(streakVal));
+        if (tvDialogStreakCount != null) {
+            tvDialogStreakCount.setText(String.valueOf(streakVal));
+        }
+
+        android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
+        if (avatarContainer != null) {
+            AvatarHelper.renderUserAvatar(this, avatarContainer);
+        }
 
         btnStreakDialogDismiss.setOnClickListener(v -> {
-            String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-            SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-            prefs.edit().putString("last_streak_popup_date", todayDateStr).apply();
-            finish();
+            int currentTarget = TaskManager.getStreakPredictionTarget(this);
+            if (currentTarget > 0) {
+                finish();
+            } else {
+                showStep2PredictionGoal();
+            }
         });
+
+        if (option3 != null) option3.setOnClickListener(v -> selectOption(3));
+        if (option5 != null) option5.setOnClickListener(v -> selectOption(5));
+        if (option7 != null) option7.setOnClickListener(v -> selectOption(7));
+        if (option14 != null) option14.setOnClickListener(v -> selectOption(14));
+
+        if (btnCommitGoal != null) {
+            btnCommitGoal.setOnClickListener(v -> {
+                TaskManager.setStreakPredictionTarget(this, selectedTarget);
+                ToastUtils.showToast(this, "Committed to a " + selectedTarget + "-Day Streak Goal! 🎯");
+
+                int currentStreak = getStreakCount();
+                TaskManager.checkAndClaimStreakPredictionReward(this, currentStreak);
+                finish();
+            });
+        }
+    }
+
+    private void showStep2PredictionGoal() {
+        if (layoutStep1 != null) layoutStep1.setVisibility(View.GONE);
+        if (layoutStep2 != null) layoutStep2.setVisibility(View.VISIBLE);
+        selectOption(3);
+    }
+
+    private void selectOption(int days) {
+        this.selectedTarget = days;
+        updateOptionStyle(option3, days == 3);
+        updateOptionStyle(option5, days == 5);
+        updateOptionStyle(option7, days == 7);
+        updateOptionStyle(option14, days == 14);
+    }
+
+    private void updateOptionStyle(LinearLayout optionView, boolean isSelected) {
+        if (optionView == null) return;
+        if (isSelected) {
+            optionView.setAlpha(1.0f);
+            optionView.setElevation(8f);
+        } else {
+            optionView.setAlpha(0.6f);
+            optionView.setElevation(0f);
+        }
     }
 
     private int getStreakCount() {

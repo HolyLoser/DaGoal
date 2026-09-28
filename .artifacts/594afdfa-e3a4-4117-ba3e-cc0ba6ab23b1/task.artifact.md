@@ -1,0 +1,4 @@
+- `[x]` 1. Harden AuthEmailActivity (whitespace trimming, IME action done, button loading state)
+- `[x]` 2. Harden AuthPasswordActivity (button disabling during auth request, user-friendly error mapping, IME action done)
+- `[x]` 3. SignUpActivity verification & button hardening
+- `[x]` 4. Build and verify app compilation and navigation flows

@@ -35,8 +35,10 @@ public class SettingsActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_settings_back).setOnClickListener(v -> {
             if (!"MAIN".equals(currentScreen)) {
+                SoundEffectsHelper.playMenuClose(this);
                 showMainMenu();
             } else {
+                SoundEffectsHelper.playMenuClose(this);
                 finish();
             }
         });
@@ -153,22 +155,97 @@ public class SettingsActivity extends AppCompatActivity {
             cursor.close();
         }
 
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        String savedEmail = prefs.getString("user_email", "Guest Mode (Offline)");
+        com.google.firebase.auth.FirebaseUser firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+        addInfoRow(container, "Account", isLoggedIn ? savedEmail : "Guest Mode", null);
+        if (firebaseUser != null) {
+            addInfoRow(container, "Firebase Auth", "Authenticated (" + firebaseUser.getEmail() + ")", null);
+        } else {
+            addInfoRow(container, "Link Account to Cloud", "Sync guest profile to Email", () -> showLinkAccountDialog());
+        }
+
         addInfoRow(container, "Username", username, () -> showEditUsernameDialog());
         addInfoRow(container, "Level", String.valueOf(level), null);
 
-        addInfoRow(container, "Reset Progress", "Tap to reset", () -> {
+        boolean isOnline = OnlineShopManager.isNetworkAvailable(this);
+        addInfoRow(container, "Cloud Sync Status", isOnline ? "🌐 Online (Connected)" : "📱 Offline Mode", null);
+        addSwitchRow(container, "Show Network Badge on Shop", "Display online tag in Shop header",
+                prefs.getBoolean("pref_show_network_badge", false),
+                isChecked -> prefs.edit().putBoolean("pref_show_network_badge", isChecked).apply());
+
+        if (isLoggedIn || firebaseUser != null) {
+            addInfoRow(container, "Log Out", "Tap to Log Out", () -> {
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Log Out?")
+                        .setMessage("Are you sure you want to log out of your account?")
+                        .setPositiveButton("Log Out", (d, w) -> {
+                            try {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                            } catch (Exception ignored) {}
+
+                            prefs.edit()
+                                    .putBoolean("isLoggedIn", false)
+                                    .putBoolean("isGuestUser", false)
+                                    .remove("user_email")
+                                    .remove("user_uid")
+                                    .apply();
+
+                            AvatarCompositor.clearCache();
+
+                            ToastUtils.showToast(this, "Logged out successfully.");
+                            Intent intent = new Intent(this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            });
+        }
+
+        addInfoRow(container, "Reset Progress & Account", "Tap to reset", () -> {
             new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Reset Progress?")
-                    .setMessage("This will erase all quests, achievements, gold, XP, and levels. This cannot be undone.")
-                    .setPositiveButton("Reset", (d, w) -> {
+                    .setTitle("Reset Progress & Delete Account?")
+                    .setMessage("This will delete your account and erase all quests, achievements, gold, XP, and levels. This cannot be undone.")
+                    .setPositiveButton("Reset & Delete", (d, w) -> {
+                        String uid = prefs.getString("user_uid", null);
+                        com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+                        if (uid != null && !uid.isEmpty()) {
+                            try {
+                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                        .collection("users").document(uid).delete();
+                            } catch (Exception ignored) {}
+                        }
+
+                        if (fUser != null) {
+                            try {
+                                fUser.delete();
+                            } catch (Exception ignored) {}
+                        }
+
+                        try {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                        } catch (Exception ignored) {}
+
                         SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
                         writableDb.execSQL("DROP TABLE IF EXISTS user");
                         writableDb.execSQL("DROP TABLE IF EXISTS daily_tasks");
                         writableDb.execSQL("DROP TABLE IF EXISTS achievements");
                         writableDb.execSQL("DROP TABLE IF EXISTS inventory");
+                        writableDb.execSQL("DROP TABLE IF EXISTS inventory_consumables");
+                        writableDb.execSQL("DROP TABLE IF EXISTS preferences");
+                        writableDb.execSQL("DROP TABLE IF EXISTS task_templates");
                         writableDb.execSQL("DROP TABLE IF EXISTS blocked_apps");
-                        prefs.edit().clear().apply();
-                        ToastUtils.showToast(this, "Progress reset. Restarting app.");
+                        writableDb.execSQL("DROP TABLE IF EXISTS streak_history");
+                        dbHelper.onCreate(writableDb);
+
+                        prefs.edit().clear().putBoolean("isFirstRun", true).apply();
+                        AvatarCompositor.clearCache();
+
+                        ToastUtils.showToast(this, "Account and progress reset.");
                         Intent intent = new Intent(this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
@@ -212,11 +289,105 @@ public class SettingsActivity extends AppCompatActivity {
 
                     android.content.ContentValues values = new android.content.ContentValues();
                     values.put("username", newUsername);
+                    values.put(DatabaseContract.UserEntry.COLUMN_NAME, newUsername);
                     SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
+                    DatabaseHelper.ensureUserTableExists(writableDb);
                     writableDb.update("user", values, "_id = 1", null);
+
+                    prefs.edit().putString("user_nickname", newUsername).apply();
+
+                    String uid = prefs.getString("user_uid", null);
+                    if (uid != null && !uid.isEmpty()) {
+                        try {
+                            com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                            java.util.Map<String, Object> map = new java.util.HashMap<>();
+                            map.put("username", newUsername);
+                            firestore.collection("users").document(uid).set(map, com.google.firebase.firestore.SetOptions.merge());
+                        } catch (Exception ignored) {}
+                    }
 
                     ToastUtils.showToast(this, "Username updated.");
                     showScreen("ACCOUNT");
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showLinkAccountDialog() {
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        dialogLayout.setPadding(padding, padding, padding, padding);
+
+        android.widget.EditText editEmail = new android.widget.EditText(this);
+        editEmail.setHint("Email Address");
+        editEmail.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        dialogLayout.addView(editEmail);
+
+        android.widget.EditText editPassword = new android.widget.EditText(this);
+        editPassword.setHint("Create Password");
+        editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        dialogLayout.addView(editPassword);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Link Account to Email")
+                .setMessage("Convert your offline guest profile into a cloud-synced account.")
+                .setView(dialogLayout)
+                .setPositiveButton("Link & Sync", (dialog, which) -> {
+                    String email = editEmail.getText().toString().trim();
+                    String password = editPassword.getText().toString().trim();
+
+                    if (email.isEmpty() || password.isEmpty() || password.length() < 4) {
+                        ToastUtils.showToast(this, "Please enter a valid email and 4+ char password.");
+                        return;
+                    }
+
+                    com.google.firebase.auth.FirebaseAuth mAuth = com.google.firebase.auth.FirebaseAuth.getInstance();
+                    mAuth.createUserWithEmailAndPassword(email, password)
+                            .addOnCompleteListener(this, task -> {
+                                if (task.isSuccessful()) {
+                                    com.google.firebase.auth.FirebaseUser fUser = mAuth.getCurrentUser();
+                                    String uid = fUser != null ? fUser.getUid() : "";
+
+                                    SQLiteDatabase db = dbHelper.getReadableDatabase();
+                                    Cursor cursor = db.rawQuery("SELECT username, level, gold, xp, streak FROM user WHERE _id = 1", null);
+                                    String username = "Adventurer";
+                                    int level = 1, gold = 0, xp = 0, streak = 0;
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        username = cursor.getString(0);
+                                        level = cursor.getInt(1);
+                                        gold = cursor.getInt(2);
+                                        xp = cursor.getInt(3);
+                                        streak = cursor.getInt(4);
+                                        cursor.close();
+                                    }
+
+                                    com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                                    java.util.Map<String, Object> userMap = new java.util.HashMap<>();
+                                    userMap.put("email", email);
+                                    userMap.put("username", username);
+                                    userMap.put("level", level);
+                                    userMap.put("gold", gold);
+                                    userMap.put("xp", xp);
+                                    userMap.put("streak", streak);
+
+                                    firestore.collection("users").document(uid).set(userMap);
+
+                                    prefs.edit()
+                                            .putBoolean("isLoggedIn", true)
+                                            .putBoolean("isGuestUser", false)
+                                            .putString("user_email", email)
+                                            .putString("user_uid", uid)
+                                            .putString("user_nickname", username)
+                                            .apply();
+
+                                    ToastUtils.showToast(this, "Account linked and synced to cloud!");
+                                    showScreen("ACCOUNT");
+                                } else {
+                                    String errorMsg = task.getException() != null ? task.getException().getMessage() : "Linking failed";
+                                    ToastUtils.showToast(this, "Notice: " + errorMsg);
+                                }
+                            });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

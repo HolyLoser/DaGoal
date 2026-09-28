@@ -1,84 +1,398 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_profiling_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F4EB"
+    android:background="@color/dagoal_background_light"
+    android:orientation="vertical"
+    android:padding="20dp"
     android:fitsSystemWindows="true">
 
-    <LinearLayout
+    <!-- Top Navigation Bar (Back Button + Step Indicator) -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
 
-        <RelativeLayout
+        <ImageButton
+            android:id="@+id/btn_questionnaire_back"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_primary"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="Back" />
+
+        <LinearLayout
+            android:id="@+id/layout_step_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_step_node_1"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="2dp"
+                android:background="@drawable/bg_circle_primary"
+                android:gravity="center"
+                android:text="1"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="12dp"
+                android:layout_height="2dp"
+                android:background="@color/dagoal_primary" />
+
+            <TextView
+                android:id="@+id/tv_step_node_2"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="2dp"
+                android:background="@drawable/bg_circle_primary"
+                android:gravity="center"
+                android:text="2"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="12dp"
+                android:layout_height="2dp"
+                android:background="@color/dagoal_primary" />
+
+            <TextView
+                android:id="@+id/tv_step_node_3"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="2dp"
+                android:background="@drawable/bg_circle_primary"
+                android:gravity="center"
+                android:text="3"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="12dp"
+                android:layout_height="2dp"
+                android:background="@color/dagoal_primary" />
+
+            <TextView
+                android:id="@+id/tv_step_node_4"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="2dp"
+                android:background="@drawable/bg_circle_primary"
+                android:gravity="center"
+                android:text="4"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Question Content Frame (Slide Animated) -->
+    <FrameLayout
+        android:id="@+id/frame_question_anim_host"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/card_question_container"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1.2"
-            android:background="#E1C6A7">
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tv_category_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CATEGORY"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="24dp" />
-
-            <ImageView
-                android:layout_width="140dp"
-                android:layout_height="140dp"
-                android:layout_centerInParent="true"
-                android:scaleType="fitCenter"
-                android:src="@drawable/sample_avatar" />
-        </RelativeLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1.5"
-            android:background="#FFFFFF"
-            android:elevation="8dp"
-            android:orientation="vertical"
-            android:padding="24dp">
+                android:layout_marginBottom="4dp"
+                android:gravity="center"
+                android:text="Sample Question"
+                android:textColor="@color/dagoal_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_question_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                android:text="Sample question description text"
+                android:textColor="@color/dagoal_primary"
+                android:textSize="14sp"
+                android:alpha="0.8" />
+
+            <!-- Username / Nickname Input Box (Displayed for Question 0) -->
+            <LinearLayout
+                android:id="@+id/layout_nickname_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Question Text Placeholder"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#2D3748"
-                android:gravity="center"
-                android:layout_marginBottom="20dp" />
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
 
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_marginBottom="16dp">
-
-                <RadioGroup
-                    android:id="@+id/rg_options"
+                <EditText
+                    android:id="@+id/edit_nickname_input"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/bg_button_pill"
+                    android:gravity="center"
+                    android:hint="Type your adventurer nickname..."
+                    android:inputType="textPersonName"
+                    android:paddingHorizontal="20dp"
+                    android:textColor="@color/dagoal_primary"
+                    android:textColorHint="@color/dagoal_hint"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btn_next_question"
+                <Button
+                    android:id="@+id/btn_nickname_next"
+                    android:layout_width="180dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/bg_auth_pill_green"
+                    android:text="Next"
+                    android:textAllCaps="false"
+                    android:textColor="#1E1E1E"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+
+            <!-- 4 Option Pill Cards -->
+            <LinearLayout
+                android:id="@+id/option_card_1"
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="Next"
-                android:backgroundTint="#FF9F43"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textAllCaps="false" />
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:id="@+id/tv_option_text_1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 1"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_1"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/option_card_2"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:id="@+id/tv_option_text_2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 2"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_2"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/option_card_3"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:id="@+id/tv_option_text_3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 3"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_3"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/option_card_4"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:id="@+id/tv_option_text_4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 4"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_4"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/option_card_5"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_option_text_5"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 5"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_5"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/option_card_6"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_option_text_6"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="sample answer 6"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_option_check_6"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:text="✔"
+                    android:textColor="#546B41"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
         </LinearLayout>
-    </LinearLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </FrameLayout>
+
+    <!-- Bottom Character Display Canvas (Fixed Height Custom Avatar) -->
+    <FrameLayout
+        android:id="@+id/avatar_host_container"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_gravity="bottom|center_horizontal" />
+
+</LinearLayout>

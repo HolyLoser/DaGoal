@@ -5,24 +5,141 @@
     android:layout_height="match_parent"
     android:background="@drawable/avatar_creation_bg">
 
-    <!-- Back Button -->
+    <!-- Character Preview Container (Modular Layer Stack) -->
     <FrameLayout
         android:id="@+id/preview_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toTopOf="@+id/bottom_panel"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:id="@+id/iv_avatar_preview"
-            android:layout_width="240dp"
-            android:layout_height="240dp"
-            android:layout_gravity="center"
-            android:scaleType="fitCenter"
-            android:src="@drawable/sample_avatar" />
+        <FrameLayout
+            android:id="@+id/avatar_square_canvas"
+            android:layout_width="320dp"
+            android:layout_height="320dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="-10dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Layer 0: Back Hair (Renders Behind Head / Face) -->
+            <ImageView
+                android:id="@+id/iv_layer_hair_back"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="-39dp"
+                android:layout_marginStart="-1dp"
+                android:scaleType="fitCenter" />
+
+            <!-- Layer 1: Base Body / Skin (Defaults to skin_tone1) -->
+            <ImageView
+                android:id="@+id/iv_layer_body"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@drawable/skin_tone1" />
+
+            <!-- Layer 1.5: Clothes / Tank Top -->
+            <ImageView
+                android:id="@+id/iv_layer_clothes"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tank_top" />
+
+            <!-- Layer 2: Eyes Container (Paired Left '_a' & Right '_b' Eyes) -->
+            <FrameLayout
+                android:id="@+id/layout_eyes_container"
+                android:layout_width="132dp"
+                android:layout_height="65dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="65dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/iv_layer_eye_left"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:id="@+id/iv_layer_eye_right"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:scaleType="fitCenter" />
+            </FrameLayout>
+
+            <!-- Layer 3: Nose (Scaled & Positioned High on Face) -->
+            <ImageView
+                android:id="@+id/iv_layer_nose"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="48dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <!-- Layer 4: Mouth (Scaled & Positioned below Nose) -->
+            <ImageView
+                android:id="@+id/iv_layer_mouth"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="24dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <!-- Layer 5: Cheeks / Blush Container (Left & Right Mirrored) -->
+            <FrameLayout
+                android:id="@+id/layout_cheeks_container"
+                android:layout_width="176dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="35dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/iv_layer_cheek_left"
+                    android:layout_width="50dp"
+                    android:layout_height="35dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:id="@+id/iv_layer_cheek_right"
+                    android:layout_width="50dp"
+                    android:layout_height="35dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:scaleType="fitCenter" />
+            </FrameLayout>
+
+            <!-- Layer 6: Front Hair / Bangs (Renders in Front of Forehead/Head) -->
+            <ImageView
+                android:id="@+id/iv_layer_hair_front"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="-39dp"
+                android:layout_marginStart="-1dp"
+                android:scaleType="fitCenter" />
+
+            <!-- Layer 7: Hair Accessory / Highlights -->
+            <ImageView
+                android:id="@+id/iv_layer_hair_acc"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="-39dp"
+                android:layout_marginStart="-1dp"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
     </FrameLayout>
 
     <ImageButton
@@ -36,13 +153,115 @@
         android:padding="12dp"
         android:scaleType="centerInside"
         android:src="@android:drawable/ic_menu_revert"
+        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:tint="@color/white" />
 
-    <!-- Character Preview Container -->
+    <!-- Left Color Palette Sidebar Bar -->
+    <LinearLayout
+        android:id="@+id/sidebar_colors"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="88dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/bg_avatar_sidebar"
+        android:elevation="4dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- Right Category Sidebar -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="COLOR"
+            android:textColor="@color/dagoal_primary"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/color_swatch_eye_picker"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="🎨"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/color_swatch_hair_picker"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="💇"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/color_swatch_black"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#000000"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_brown"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#5C3A21"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_darkred"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#8B0000"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_orange"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#FF8C00"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_peach"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#FFDAB9"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- Right Category Sidebar (Order: Skin -> Hair -> Eyes -> Mouth -> Nose -> Cheeks) -->
     <LinearLayout
         android:id="@+id/sidebar_categories"
         android:layout_width="72dp"
@@ -70,6 +289,17 @@
                 android:orientation="vertical">
 
                 <ImageButton
+                    android:id="@+id/tab_skin"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/skin_color"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/skin_category_icon" />
+
+                <ImageButton
                     android:id="@+id/tab_hair"
                     android:layout_width="52dp"
                     android:layout_height="52dp"
@@ -92,6 +322,17 @@
                     android:src="@drawable/eye_category_icon" />
 
                 <ImageButton
+                    android:id="@+id/tab_nose"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_marginVertical="4dp"
+                    android:background="@drawable/bg_avatar_category_item"
+                    android:contentDescription="@string/nose"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/nose_category_icon" />
+
+                <ImageButton
                     android:id="@+id/tab_mouth"
                     android:layout_width="52dp"
                     android:layout_height="52dp"
@@ -112,28 +353,6 @@
                     android:padding="8dp"
                     android:scaleType="centerInside"
                     android:src="@drawable/blush_category_icon" />
-
-                <ImageButton
-                    android:id="@+id/tab_nose"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
-                    android:background="@drawable/bg_avatar_category_item"
-                    android:contentDescription="@string/nose"
-                    android:padding="8dp"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/nose_category_icon" />
-
-                <ImageButton
-                    android:id="@+id/tab_skin"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
-                    android:background="@drawable/bg_avatar_category_item"
-                    android:contentDescription="@string/skin_color"
-                    android:padding="8dp"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/skin_category_icon" />
 
             </LinearLayout>
         </ScrollView>
@@ -162,39 +381,13 @@
 
             <GridLayout
                 android:id="@+id/grid_assets"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:alignmentMode="alignBounds"
                 android:columnCount="3"
                 android:padding="8dp"
-                android:rowOrderPreserved="false">
-
-                <!-- Placeholders -->
-                <ImageView
-                    android:layout_width="90dp"
-                    android:layout_height="90dp"
-                    android:layout_margin="8dp"
-                    android:background="@drawable/bg_avatar_asset_item"
-                    android:padding="12dp"
-                    android:src="@android:drawable/ic_menu_gallery" />
-
-                <ImageView
-                    android:layout_width="90dp"
-                    android:layout_height="90dp"
-                    android:layout_margin="8dp"
-                    android:background="@drawable/bg_avatar_asset_item"
-                    android:padding="12dp"
-                    android:src="@android:drawable/ic_menu_gallery" />
-
-                <ImageView
-                    android:layout_width="90dp"
-                    android:layout_height="90dp"
-                    android:layout_margin="8dp"
-                    android:background="@drawable/bg_avatar_asset_item"
-                    android:padding="12dp"
-                    android:src="@android:drawable/ic_menu_gallery" />
-
-            </GridLayout>
+                android:rowOrderPreserved="false" />
         </ScrollView>
 
         <Button
