@@ -54,12 +54,14 @@ public class DashboardActivity extends AppCompatActivity {
     private ImageView imgGlobalAvatar;
     private TextView tvGlobalLevel, tvGlobalXp, tvGlobalGold;
     private View panelAvatarHost;
+    private FrameLayout avatarHostContainer;
     private View rootLayout;
     private View bottomNavBar;
     private int contentFrameHeightPx;
 
     private ActivityResultLauncher<String[]> stepPermissionLauncher;
     private BroadcastReceiver taskProgressReceiver;
+    private SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener;
     private LinearLayout currentActiveQuestContainer;
     private LinearLayout currentCompletedQuestContainer;
     private Handler avoidanceTickHandler = new Handler(Looper.getMainLooper());
@@ -91,6 +93,7 @@ public class DashboardActivity extends AppCompatActivity {
         tvGlobalXp = findViewById(R.id.tv_global_dashboard_xp);
         tvGlobalGold = findViewById(R.id.tv_global_dashboard_gold);
         panelAvatarHost = findViewById(R.id.panel_avatar_host);
+        avatarHostContainer = findViewById(R.id.avatar_host_container);
         bottomNavBar = findViewById(R.id.bottom_nav_bar);
 
         rootLayout = findViewById(R.id.root_dashboard_layout);
@@ -148,6 +151,21 @@ public class DashboardActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter("com.stipasay.dagoal.TASK_PROGRESS_UPDATED");
         ContextCompat.registerReceiver(this, taskProgressReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
+        if (prefChangeListener == null) {
+            prefChangeListener = (sharedPreferences, key) -> {
+                if ("pref_equipped_item_id".equals(key)) {
+                    AvatarCompositor.clearCache();
+                    updateGlobalAvatarHeader();
+                    FrameLayout avatarMeHost = findViewById(R.id.avatar_me_host);
+                    if (avatarMeHost != null) {
+                        AvatarHelper.renderUserAvatarFaceOnly(this, avatarMeHost);
+                    }
+                }
+            };
+        }
+        getSharedPreferences("DaGoalPrefs", MODE_PRIVATE)
+                .registerOnSharedPreferenceChangeListener(prefChangeListener);
+
         FrameLayout avatarHostContainer = findViewById(R.id.avatar_host_container);
         if (avatarHostContainer != null) {
             AvatarHelper.renderUserAvatar(this, avatarHostContainer);
@@ -188,6 +206,10 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(taskProgressReceiver);
+        if (prefChangeListener != null) {
+            getSharedPreferences("DaGoalPrefs", MODE_PRIVATE)
+                    .unregisterOnSharedPreferenceChangeListener(prefChangeListener);
+        }
         stopAvoidanceTicker();
     }
     private void checkAndRequestAvoidancePermissions() {
@@ -925,6 +947,7 @@ public class DashboardActivity extends AppCompatActivity {
                             TaskManager.setEquippedItem(this, selectedWardrobeItem);
                             ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
                         }
+                        AvatarCompositor.clearCache();
                         refreshWardrobeAvatarPreview(wardrobeView, btnEquipAction);
                         updateGlobalAvatarHeader();
                         if (gridWardrobeItems.getAdapter() != null) {
@@ -997,6 +1020,7 @@ public class DashboardActivity extends AppCompatActivity {
                             convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_shop_grid, parent, false);
                         }
                         ShopItem item = shopList.get(position);
+                        boolean isOwned = shopManager.isItemOwned(item.getId());
                         boolean isLocked = shopUserLevel < item.getRequiredLevel();
 
                         View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
@@ -1012,7 +1036,12 @@ public class DashboardActivity extends AppCompatActivity {
                         tvEmoji.setText(item.getIconEmoji());
                         tvName.setText(item.getName());
 
-                        if (isLocked) {
+                        if (isOwned) {
+                            tvMeta.setText("OWNED");
+                            tvMeta.setTextColor(Color.parseColor("#546B41"));
+                            lockOverlay.setVisibility(View.VISIBLE);
+                            ivLockIcon.setVisibility(View.GONE);
+                        } else if (isLocked) {
                             tvMeta.setText("Level " + item.getRequiredLevel());
                             tvMeta.setTextColor(Color.parseColor("#A0AEC0"));
                             lockOverlay.setVisibility(View.VISIBLE);
@@ -1025,12 +1054,19 @@ public class DashboardActivity extends AppCompatActivity {
                         }
 
                         convertView.setOnClickListener(v -> {
+                            if (isOwned) {
+                                ToastUtils.showToast(DashboardActivity.this, "You already own " + item.getName() + "!");
+                                btnPurchaseAction.setVisibility(View.GONE);
+                                return;
+                            }
                             if (isLocked) {
                                 ToastUtils.showToast(DashboardActivity.this, "Unlocks at Level " + item.getRequiredLevel());
+                                btnPurchaseAction.setVisibility(View.GONE);
                                 return;
                             }
                             selectedShopItem = item;
                             btnPurchaseAction.setVisibility(View.VISIBLE);
+                            btnPurchaseAction.setText("Purchase " + item.getName() + " (" + item.getPrice() + "g)");
                         });
                         return convertView;
                     }
@@ -1052,10 +1088,18 @@ public class DashboardActivity extends AppCompatActivity {
 
                 btnPurchaseAction.setOnClickListener(v -> {
                     if (selectedShopItem != null) {
+                        if (shopManager.isItemOwned(selectedShopItem.getId())) {
+                            ToastUtils.showToast(this, "You already own " + selectedShopItem.getName() + "!");
+                            btnPurchaseAction.setVisibility(View.GONE);
+                            return;
+                        }
                         if (shopManager.purchaseShopItem(selectedShopItem)) {
                             ToastUtils.showToast(this, "Purchased " + selectedShopItem.getName());
                             updateGlobalAvatarHeader();
                             btnPurchaseAction.setVisibility(View.GONE);
+                            if (gridShopItems.getAdapter() != null) {
+                                ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
+                            }
                         } else {
                             ToastUtils.showToast(this, "Not enough Gold!");
                         }
@@ -1075,6 +1119,16 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void updateGlobalAvatarHeader() {
+        if (avatarHostContainer != null) {
+            AvatarCompositor.clearCache();
+            AvatarHelper.renderUserAvatar(this, avatarHostContainer);
+        } else {
+            FrameLayout host = findViewById(R.id.avatar_host_container);
+            if (host != null) {
+                AvatarCompositor.clearCache();
+                AvatarHelper.renderUserAvatar(this, host);
+            }
+        }
         TaskManager profileManager = new TaskManager(this);
         Cursor profileCursor = profileManager.getUserProfile();
         if (profileCursor != null && profileCursor.moveToFirst()) {
@@ -1107,20 +1161,23 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void refreshWardrobeAvatarPreview(View wardrobeView, Button btnEquipAction) {
         if (wardrobeView == null) return;
-        TextView tvEmoji = wardrobeView.findViewById(R.id.tv_wardrobe_avatar_emoji);
+        AvatarCompositor.clearCache();
+        FrameLayout avatarHost = wardrobeView.findViewById(R.id.avatar_me_host);
+        if (avatarHost != null) {
+            AvatarHelper.renderUserAvatarFaceOnly(this, avatarHost);
+        }
+
         TextView tvName = wardrobeView.findViewById(R.id.tv_equipped_item_name);
         TextView tvStatus = wardrobeView.findViewById(R.id.tv_equipped_item_status);
 
         ShopItem equipped = TaskManager.getEquippedItem(this);
         if (equipped != null) {
-            if (tvEmoji != null) tvEmoji.setText(equipped.getIconEmoji());
             if (tvName != null) tvName.setText("Equipped: " + equipped.getName());
             if (tvStatus != null) tvStatus.setText(equipped.getRarityTier() + " • Tap an item below to change");
             if (btnEquipAction != null && selectedWardrobeItem != null && selectedWardrobeItem.getId() == equipped.getId()) {
                 btnEquipAction.setText("Unequip " + equipped.getName());
             }
         } else {
-            if (tvEmoji != null) tvEmoji.setText("👤");
             if (tvName != null) tvName.setText("Equipped: None");
             if (tvStatus != null) tvStatus.setText("Select an item below to equip");
             if (btnEquipAction != null && selectedWardrobeItem != null) {

@@ -213,6 +213,33 @@ public class SettingsActivity extends AppCompatActivity {
                         String uid = prefs.getString("user_uid", null);
                         com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
 
+                        Runnable performLocalReset = () -> {
+                            try {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                            } catch (Exception ignored) {}
+
+                            SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
+                            writableDb.execSQL("DROP TABLE IF EXISTS user");
+                            writableDb.execSQL("DROP TABLE IF EXISTS daily_tasks");
+                            writableDb.execSQL("DROP TABLE IF EXISTS achievements");
+                            writableDb.execSQL("DROP TABLE IF EXISTS inventory");
+                            writableDb.execSQL("DROP TABLE IF EXISTS inventory_consumables");
+                            writableDb.execSQL("DROP TABLE IF EXISTS preferences");
+                            writableDb.execSQL("DROP TABLE IF EXISTS task_templates");
+                            writableDb.execSQL("DROP TABLE IF EXISTS blocked_apps");
+                            writableDb.execSQL("DROP TABLE IF EXISTS streak_history");
+                            dbHelper.onCreate(writableDb);
+
+                            prefs.edit().clear().putBoolean("isFirstRun", true).apply();
+                            AvatarCompositor.clearCache();
+
+                            ToastUtils.showToast(this, "Account and progress reset.");
+                            Intent intent = new Intent(this, MainActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                        };
+
                         if (uid != null && !uid.isEmpty()) {
                             try {
                                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -221,35 +248,10 @@ public class SettingsActivity extends AppCompatActivity {
                         }
 
                         if (fUser != null) {
-                            try {
-                                fUser.delete();
-                            } catch (Exception ignored) {}
+                            fUser.delete().addOnCompleteListener(task -> performLocalReset.run());
+                        } else {
+                            performLocalReset.run();
                         }
-
-                        try {
-                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
-                        } catch (Exception ignored) {}
-
-                        SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
-                        writableDb.execSQL("DROP TABLE IF EXISTS user");
-                        writableDb.execSQL("DROP TABLE IF EXISTS daily_tasks");
-                        writableDb.execSQL("DROP TABLE IF EXISTS achievements");
-                        writableDb.execSQL("DROP TABLE IF EXISTS inventory");
-                        writableDb.execSQL("DROP TABLE IF EXISTS inventory_consumables");
-                        writableDb.execSQL("DROP TABLE IF EXISTS preferences");
-                        writableDb.execSQL("DROP TABLE IF EXISTS task_templates");
-                        writableDb.execSQL("DROP TABLE IF EXISTS blocked_apps");
-                        writableDb.execSQL("DROP TABLE IF EXISTS streak_history");
-                        dbHelper.onCreate(writableDb);
-
-                        prefs.edit().clear().putBoolean("isFirstRun", true).apply();
-                        AvatarCompositor.clearCache();
-
-                        ToastUtils.showToast(this, "Account and progress reset.");
-                        Intent intent = new Intent(this, MainActivity.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
                     })
                     .setNegativeButton("Cancel", null)
                     .show();

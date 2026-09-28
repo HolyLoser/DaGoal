@@ -16,6 +16,8 @@ public class AvatarConfig {
     public int selectedHairColor;
     public String selectedHairBase;
     public String clothesAssetId;
+    public String accessoryAssetId;
+    public int accessoryColor;
 
     public AvatarConfig() {
         this.skinIndex = 0;
@@ -29,12 +31,14 @@ public class AvatarConfig {
         this.selectedHairColor = Color.parseColor("#3B2219");
         this.selectedHairBase = "01";
         this.clothesAssetId = "tank_top";
+        this.accessoryAssetId = "";
+        this.accessoryColor = Color.parseColor("#1E1E1E");
     }
 
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
-                        String clothesAssetId) {
+                        String clothesAssetId, String accessoryAssetId, int accessoryColor) {
         this.skinIndex = skinIndex;
         this.selectedColorName = selectedColorName != null ? selectedColorName : "peach";
         this.selectedNoseShape = selectedNoseShape != null ? selectedNoseShape : "triangle_nose";
@@ -46,13 +50,23 @@ public class AvatarConfig {
         this.selectedHairColor = selectedHairColor;
         this.selectedHairBase = selectedHairBase != null ? selectedHairBase : "01";
         this.clothesAssetId = clothesAssetId != null ? clothesAssetId : "tank_top";
+        this.accessoryAssetId = accessoryAssetId != null ? accessoryAssetId : "";
+        this.accessoryColor = accessoryColor;
+    }
+
+    public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
+                        String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
+                        int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
+                        String clothesAssetId) {
+        this(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape, selectedEyeColor,
+                selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, "", Color.parseColor("#1E1E1E"));
     }
 
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase) {
         this(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape, selectedEyeColor,
-                selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, "tank_top");
+                selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, "tank_top", "", Color.parseColor("#1E1E1E"));
     }
 
     public static AvatarConfig loadFromPreferences(Context context) {
@@ -71,8 +85,21 @@ public class AvatarConfig {
         String selectedHairBase = prefs.getString("pref_avatar_hair_base", "01");
         String clothesAssetId = prefs.getString("pref_avatar_clothes", "tank_top");
 
+        // Read equipped accessory directly from single source of truth (TaskManager.getEquippedItem)
+        String accessoryAssetId = "";
+        int accessoryColor = Color.parseColor("#1E1E1E");
+
+        ShopItem equippedItem = TaskManager.getEquippedItem(context);
+        if (equippedItem != null && "accessory".equalsIgnoreCase(equippedItem.getCategory())) {
+            if (equippedItem.getResName() != null) {
+                accessoryAssetId = equippedItem.getResName();
+            }
+        }
+
+        android.util.Log.d("AvatarDebug", "loadFromPreferences: accessoryAssetId=" + accessoryAssetId + " accessoryColor=" + accessoryColor);
+
         return new AvatarConfig(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape,
-                selectedEyeColor, selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId);
+                selectedEyeColor, selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, accessoryAssetId, accessoryColor);
     }
 
     public void saveToPreferences(Context context) {
@@ -90,6 +117,8 @@ public class AvatarConfig {
                 .putInt("pref_avatar_hair_color", selectedHairColor)
                 .putString("pref_avatar_hair_base", selectedHairBase)
                 .putString("pref_avatar_clothes", clothesAssetId)
+                .remove("pref_avatar_accessory")
+                .remove("pref_avatar_accessory_color")
                 .apply();
     }
 
@@ -97,6 +126,6 @@ public class AvatarConfig {
         return skinIndex + "_" + selectedColorName + "_" + selectedNoseShape + "_"
                 + selectedMouthShape + "_" + selectedEyeColor + "_" + selectedEyeBase + "_"
                 + cheeksIndex + "_" + hairIndex + "_" + selectedHairColor + "_" + selectedHairBase + "_"
-                + clothesAssetId + "_" + outputSizePx;
+                + clothesAssetId + "_" + accessoryAssetId + "_" + accessoryColor + "_" + outputSizePx;
     }
 }

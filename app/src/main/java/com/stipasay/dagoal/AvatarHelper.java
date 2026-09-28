@@ -7,11 +7,14 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.util.Log;
 import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 public class AvatarHelper {
+
+    private static final int TAG_GENERATION_KEY = 1073741824;
 
     public static class HairConfig {
         public float offsetY;
@@ -38,20 +41,32 @@ public class AvatarHelper {
 
     public static void renderUserAvatar(Context context, FrameLayout container) {
         if (container == null || context == null) return;
-        container.removeAllViews();
-        container.setClipChildren(false);
-        container.setClipToPadding(false);
 
-        container.post(() -> renderUserAvatarInternal(context, container));
+        int currentGen = getNextGeneration(container);
+
+        container.post(() -> {
+            if (!isLatestGeneration(container, currentGen)) {
+                Log.d("AvatarDebug", "renderUserAvatar: STALE generation " + currentGen + " discarded.");
+                return;
+            }
+            renderUserAvatarInternal(context, container, currentGen);
+        });
     }
 
     public static void renderUserAvatarFaceOnly(Context context, FrameLayout container) {
         if (container == null || context == null) return;
-        container.removeAllViews();
-        container.setClipChildren(true);
-        container.setClipToPadding(true);
+
+        int currentGen = getNextGeneration(container);
 
         container.post(() -> {
+            if (!isLatestGeneration(container, currentGen)) {
+                Log.d("AvatarDebug", "renderUserAvatarFaceOnly: STALE generation " + currentGen + " discarded.");
+                return;
+            }
+
+            container.setClipChildren(true);
+            container.setClipToPadding(true);
+
             int w = container.getWidth();
             int h = container.getHeight();
             if (w <= 0 || h <= 0) {
@@ -107,14 +122,25 @@ public class AvatarHelper {
                 ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 ivAvatar.setImageBitmap(circleBitmap);
 
+                // Atomic clear and add inside runnable scope
+                container.removeAllViews();
                 container.addView(ivAvatar);
+
+                String resourceName = "unknown";
+                try {
+                    resourceName = context.getResources().getResourceEntryName(container.getId());
+                } catch (Exception ignored) {}
+                Log.d("AvatarDebug", "renderUserAvatarFaceOnly: ATOMIC ADD view=" + resourceName + " childCount=" + container.getChildCount() + " gen=" + currentGen);
             }
         });
     }
 
-    private static void renderUserAvatarInternal(Context context, FrameLayout container) {
+    private static void renderUserAvatarInternal(Context context, FrameLayout container, int generation) {
         if (container == null || context == null) return;
-        container.removeAllViews();
+        if (!isLatestGeneration(container, generation)) return;
+
+        container.setClipChildren(false);
+        container.setClipToPadding(false);
 
         int w = container.getWidth();
         int h = container.getHeight();
@@ -141,8 +167,33 @@ public class AvatarHelper {
             ivAvatar.setLayoutParams(params);
             ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
             ivAvatar.setImageBitmap(compositedBitmap);
+
+            // Atomic clear and add inside runnable scope
+            container.removeAllViews();
             container.addView(ivAvatar);
+
+            String resourceName = "unknown";
+            try {
+                resourceName = context.getResources().getResourceEntryName(container.getId());
+            } catch (Exception ignored) {}
+            Log.d("AvatarDebug", "renderUserAvatarInternal: ATOMIC ADD view=" + resourceName + " childCount=" + container.getChildCount() + " gen=" + generation);
         }
+    }
+
+    private static int getNextGeneration(FrameLayout container) {
+        Object tag = container.getTag(TAG_GENERATION_KEY);
+        int currentGen = (tag instanceof Integer) ? (Integer) tag : 0;
+        int nextGen = currentGen + 1;
+        container.setTag(TAG_GENERATION_KEY, nextGen);
+        return nextGen;
+    }
+
+    private static boolean isLatestGeneration(FrameLayout container, int generation) {
+        Object tag = container.getTag(TAG_GENERATION_KEY);
+        if (tag instanceof Integer) {
+            return ((Integer) tag) == generation;
+        }
+        return true;
     }
 
     private static float dpToPx(Context context, float dp) {

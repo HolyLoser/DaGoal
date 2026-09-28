@@ -11,6 +11,7 @@ import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.LruCache;
+import android.util.Log;
 import androidx.core.content.ContextCompat;
 
 public class AvatarCompositor {
@@ -118,8 +119,11 @@ public class AvatarCompositor {
         String cacheKey = config.getCacheKey(outputSizePx);
         Bitmap cached = sBitmapCache.get(cacheKey);
         if (cached != null && !cached.isRecycled()) {
+            Log.d("AvatarDebug", "renderAvatarBitmap HIT cacheKey=" + cacheKey + " hash=" + System.identityHashCode(cached));
             return cached;
         }
+
+        Log.d("AvatarDebug", "renderAvatarBitmap MISS cacheKey=" + cacheKey + " accessoryAssetId=" + config.accessoryAssetId);
 
         float density = context.getResources().getDisplayMetrics().density;
         float outputSizeDp = outputSizePx / density;
@@ -145,7 +149,7 @@ public class AvatarCompositor {
             }
         }
 
-        // 1. Layer 1: Body Skin Tone (Dynamic Tinting of base_skin.png using sampled colors)
+        // 1. Layer 1: Body Skin Tone (Dynamic Tinting of base_skin.png)
         Bitmap skinBitmap = generateSkinToneBitmap(context, config.skinIndex);
         if (skinBitmap != null) {
             drawLayerFittingCanvas(canvas, skinBitmap, R.drawable.base_skin, context, paint, outputSizePx, 0, topPaddingPx);
@@ -254,6 +258,20 @@ public class AvatarCompositor {
         if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
         else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
 
+        // 5.5 Layer 5.5: Accessories (Glasses, etc. - Scale down to 76%)
+        if (config.accessoryAssetId != null && !config.accessoryAssetId.isEmpty()) {
+            int accessoryRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
+            if (accessoryRes != 0) {
+                float accessoryScale = 0.76f;
+                float scaledSize = outputSizePx * accessoryScale;
+                float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
+                float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
+                RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
+
+                drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
+            }
+        }
+
         // 6. Layer 6: Front Hair / Bangs (_a)
         if (config.hairIndex > 0) {
             int frontRes = context.getResources().getIdentifier("hairstyle_" + config.selectedHairBase + "a", "drawable", context.getPackageName());
@@ -319,6 +337,24 @@ public class AvatarCompositor {
         }
 
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+        return bitmap;
+    }
+
+    public static Bitmap generateAccessoryBitmap(Context context, int drawableRes, int targetColor) {
+        Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
+        if (drawable == null) return null;
+
+        Drawable mutated = drawable.mutate();
+        mutated.setColorFilter(new android.graphics.PorterDuffColorFilter(targetColor, android.graphics.PorterDuff.Mode.SRC_IN));
+
+        int w = mutated.getIntrinsicWidth() > 0 ? mutated.getIntrinsicWidth() : 320;
+        int h = mutated.getIntrinsicHeight() > 0 ? mutated.getIntrinsicHeight() : 320;
+
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        mutated.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        mutated.draw(canvas);
+
         return bitmap;
     }
 

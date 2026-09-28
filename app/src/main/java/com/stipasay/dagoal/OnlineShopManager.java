@@ -151,10 +151,12 @@ public class OnlineShopManager {
         Collections.shuffle(epics, rnd);
 
         List<ShopItem> catalog = new ArrayList<>();
-        catalog.addAll(commons);
-        catalog.addAll(uncommons);
-        catalog.addAll(rares);
-        catalog.addAll(epics);
+        int maxPerTier = 3;
+
+        for (int c = 0; c < Math.min(maxPerTier, commons.size()); c++) catalog.add(commons.get(c));
+        for (int u = 0; u < Math.min(maxPerTier, uncommons.size()); u++) catalog.add(uncommons.get(u));
+        for (int r = 0; r < Math.min(maxPerTier, rares.size()); r++) catalog.add(rares.get(r));
+        for (int e = 0; e < Math.min(maxPerTier, epics.size()); e++) catalog.add(epics.get(e));
 
         return catalog;
     }

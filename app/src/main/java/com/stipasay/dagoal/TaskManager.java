@@ -1707,21 +1707,9 @@ public class TaskManager {
     public java.util.List<ShopItem> getShopItems() {
         java.util.List<ShopItem> items = new java.util.ArrayList<>();
 
-        items.add(new ShopItem(1, "Red Shirt", 50, "shirt", "shirt_red", "COMMON", 1, "\uD83D\uDC55"));
-        items.add(new ShopItem(2, "Blue Shirt", 50, "shirt", "shirt_blue", "COMMON", 1, "\uD83D\uDC55"));
-        items.add(new ShopItem(3, "Basic Cap", 40, "hat", "cap_basic", "COMMON", 1, "\uD83E\uDDE2"));
-
-        items.add(new ShopItem(4, "Spiky Hair", 120, "hair", "hair_spiky", "UNCOMMON", 15, "\uD83D\uDC87"));
-        items.add(new ShopItem(5, "Denim Jacket", 130, "jacket", "jacket_denim", "UNCOMMON", 15, "\uD83E\uDDE5"));
-        items.add(new ShopItem(6, "Sneakers", 110, "shoes", "shoes_sneaker", "UNCOMMON", 15, "\uD83D\uDC5F"));
-
-        items.add(new ShopItem(7, "Golden Crown", 300, "hat", "crown_gold", "RARE", 25, "\uD83D\uDC51"));
-        items.add(new ShopItem(8, "Wizard Robe", 320, "outfit", "robe_wizard", "RARE", 25, "\uD83E\uDDD9"));
-        items.add(new ShopItem(9, "Sunglasses", 250, "accessory", "glasses_sun", "RARE", 25, "\uD83D\uDD76"));
-
-        items.add(new ShopItem(10, "Dragon Wings", 600, "accessory", "wings_dragon", "EPIC", 40, "\uD83D\uDC09"));
-        items.add(new ShopItem(11, "Galaxy Cloak", 650, "outfit", "cloak_galaxy", "EPIC", 40, "\uD83C\uDF0C"));
-        items.add(new ShopItem(12, "Phoenix Aura", 700, "accessory", "aura_phoenix", "EPIC", 40, "\uD83D\uDD25"));
+        items.add(new ShopItem(101, "Classic Glasses", 50, "accessory", "accessory_glasses", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(102, "Reading Glasses", 50, "accessory", "accessory_reading_glasses", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(103, "Sunglasses", 50, "accessory", "accessory_sunglasses", "COMMON", 1, "\uD83D\uDD76"));
 
         return items;
     }
@@ -1844,6 +1832,15 @@ public class TaskManager {
         return ownedList;
     }
 
+    public boolean isItemOwned(int itemId) {
+        for (ShopItem owned : getOwnedItems()) {
+            if (owned.getId() == itemId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static ShopItem getEquippedItem(Context context) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         int equippedId = prefs.getInt("pref_equipped_item_id", -1);
@@ -1851,6 +1848,11 @@ public class TaskManager {
             return null;
         }
         TaskManager tm = new TaskManager(context);
+        for (ShopItem item : tm.getOwnedItems()) {
+            if (item.getId() == equippedId) {
+                return item;
+            }
+        }
         for (ShopItem item : tm.getShopItems()) {
             if (item.getId() == equippedId) {
                 return item;
@@ -1862,9 +1864,20 @@ public class TaskManager {
     public static void setEquippedItem(Context context, ShopItem item) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         if (item == null) {
-            prefs.edit().remove("pref_equipped_item_id").apply();
+            prefs.edit()
+                    .remove("pref_equipped_item_id")
+                    .remove("pref_avatar_accessory")
+                    .remove("pref_avatar_accessory_color")
+                    .apply();
+            Log.d("AvatarDebug", "setEquippedItem: NULL (unequipped)");
         } else {
-            prefs.edit().putInt("pref_equipped_item_id", item.getId()).apply();
+            prefs.edit()
+                    .putInt("pref_equipped_item_id", item.getId())
+                    .remove("pref_avatar_accessory")
+                    .remove("pref_avatar_accessory_color")
+                    .apply();
+            Log.d("AvatarDebug", "setEquippedItem: itemId=" + item.getId() + " resName=" + item.getResName());
         }
+        AvatarCompositor.clearCache();
     }
 }
