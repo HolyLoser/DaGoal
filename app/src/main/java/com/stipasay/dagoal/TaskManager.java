@@ -681,6 +681,7 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + 50);
         userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + 40);
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        syncUserProfileToFirestore(appContext);
 
         SoundEffectsHelper.playChestClaim(appContext);
 
@@ -772,6 +773,7 @@ public class TaskManager {
             userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + bonusGold);
             userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + bonusXp);
             db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+            tm.syncUserProfileToFirestore(context);
 
             if (consumableType != null) {
                 tm.grantConsumable(db, consumableType, 1);
@@ -856,6 +858,7 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + bonusGold);
         userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + bonusXp);
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        tm.syncUserProfileToFirestore(context);
 
         if (consumableType != null) {
             tm.grantConsumable(db, consumableType, 1);
@@ -994,6 +997,7 @@ public class TaskManager {
         userValues.put("level", currentLevel);
 
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        syncUserProfileToFirestore(appContext);
 
         if (currentLevel > levelBeforeThisCompletion) {
             grantLevelUpRewards(db, currentLevel);
@@ -1690,7 +1694,7 @@ public class TaskManager {
 
         checkAndUpdateStreak(db, todayDateStr);
 
-        return db.rawQuery("SELECT username, level, gold, xp FROM user WHERE _id = 1", null);
+        return db.rawQuery("SELECT username, level, gold, xp, streak FROM user WHERE _id = 1", null);
     }
 
     public int getUserGoldBalance() {
@@ -1707,9 +1711,41 @@ public class TaskManager {
     public java.util.List<ShopItem> getShopItems() {
         java.util.List<ShopItem> items = new java.util.ArrayList<>();
 
-        items.add(new ShopItem(101, "Classic Glasses", 50, "accessory", "accessory_glasses", "COMMON", 1, "\uD83D\uDC53"));
-        items.add(new ShopItem(102, "Reading Glasses", 50, "accessory", "accessory_reading_glasses", "COMMON", 1, "\uD83D\uDC53"));
-        items.add(new ShopItem(103, "Sunglasses", 50, "accessory", "accessory_sunglasses", "COMMON", 1, "\uD83D\uDD76"));
+        // Classic Glasses Variants (IDs 101 - 105)
+        items.add(new ShopItem(101, "Purple Classic Glasses", 50, "accessory", "accessory_glasses_purple", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(102, "Yellow Classic Glasses", 50, "accessory", "accessory_glasses_yellow", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(103, "Black Classic Glasses", 50, "accessory", "accessory_glasses_black", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(104, "Red Classic Glasses", 50, "accessory", "accessory_glasses_red", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(105, "Blue Classic Glasses", 50, "accessory", "accessory_glasses_blue", "COMMON", 1, "\uD83D\uDC53"));
+
+        // Reading Glasses Variants (IDs 106 - 110)
+        items.add(new ShopItem(106, "Purple Reading Glasses", 50, "accessory", "accessory_reading_glasses_purple", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(107, "Yellow Reading Glasses", 50, "accessory", "accessory_reading_glasses_yellow", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(108, "Black Reading Glasses", 50, "accessory", "accessory_reading_glasses_black", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(109, "Red Reading Glasses", 50, "accessory", "accessory_reading_glasses_red", "COMMON", 1, "\uD83D\uDC53"));
+        items.add(new ShopItem(110, "Blue Reading Glasses", 50, "accessory", "accessory_reading_glasses_blue", "COMMON", 1, "\uD83D\uDC53"));
+
+        // Sunglasses Variants (IDs 111 - 115)
+        items.add(new ShopItem(111, "Purple Sunglasses", 50, "accessory", "accessory_sunglasses_purple", "COMMON", 1, "\uD83D\uDD76"));
+        items.add(new ShopItem(112, "Yellow Sunglasses", 50, "accessory", "accessory_sunglasses_yellow", "COMMON", 1, "\uD83D\uDD76"));
+        items.add(new ShopItem(113, "Black Sunglasses", 50, "accessory", "accessory_sunglasses_black", "COMMON", 1, "\uD83D\uDD76"));
+        items.add(new ShopItem(114, "Red Sunglasses", 50, "accessory", "accessory_sunglasses_red", "COMMON", 1, "\uD83D\uDD76"));
+        items.add(new ShopItem(115, "Blue Sunglasses", 50, "accessory", "accessory_sunglasses_blue", "COMMON", 1, "\uD83D\uDD76"));
+
+        // Tulip Hat Variants (IDs 116 - 118)
+        items.add(new ShopItem(116, "Orange Tulip Hat", 60, "accessory", "accessory_tulip_hat_orange", "UNCOMMON", 1, "\uD83C\uDF37"));
+        items.add(new ShopItem(117, "Purple Tulip Hat", 60, "accessory", "accessory_tulip_hat_purple", "UNCOMMON", 1, "\uD83C\uDF37"));
+        items.add(new ShopItem(118, "Pink Tulip Hat", 60, "accessory", "accessory_tulip_hat_pink", "UNCOMMON", 1, "\uD83C\uDF37"));
+
+        // Flower Hat Variants (IDs 119 - 121)
+        items.add(new ShopItem(119, "Purple Flower Hat", 60, "accessory", "accessory_flower_hat_purple", "UNCOMMON", 1, "\uD83C\uDF38"));
+        items.add(new ShopItem(120, "Pink Flower Hat", 60, "accessory", "accessory_flower_hat_pink", "UNCOMMON", 1, "\uD83C\uDF38"));
+        items.add(new ShopItem(121, "Straw Flower Hat", 60, "accessory", "accessory_flower_hat_straw", "UNCOMMON", 1, "\uD83C\uDF38"));
+
+        // Knit Hat Variants (IDs 122 - 124)
+        items.add(new ShopItem(122, "Red Knit Hat", 60, "accessory", "accessory_knit_hat_red", "UNCOMMON", 1, "\uD83E\uDDE2"));
+        items.add(new ShopItem(123, "Yellow Knit Hat", 60, "accessory", "accessory_knit_hat_yellow", "UNCOMMON", 1, "\uD83E\uDDE2"));
+        items.add(new ShopItem(124, "Blue Knit Hat", 60, "accessory", "accessory_knit_hat_blue", "UNCOMMON", 1, "\uD83E\uDDE2"));
 
         return items;
     }
@@ -1761,6 +1797,7 @@ public class TaskManager {
         ContentValues userValues = new ContentValues();
         userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold - cost);
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        syncUserProfileToFirestore(context);
 
         prefs.edit().putInt("pref_daily_shop_refresh_count", count + 1).apply();
 
@@ -1781,6 +1818,7 @@ public class TaskManager {
         ContentValues userValues = new ContentValues();
         userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        syncUserProfileToFirestore(appContext);
 
         ContentValues invValues = new ContentValues();
         invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_ID, item.getId());
@@ -1839,6 +1877,50 @@ public class TaskManager {
             }
         }
         return false;
+    }
+
+    public void syncUserProfileToFirestore(Context context) {
+        if (context == null) return;
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            String uid = prefs.getString("user_uid", null);
+            if (uid == null || uid.isEmpty()) {
+                com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+                if (fUser != null) {
+                    uid = fUser.getUid();
+                    prefs.edit().putString("user_uid", uid).apply();
+                }
+            }
+            if (uid == null || uid.isEmpty()) return;
+
+            if (!OnlineShopManager.isNetworkAvailable(context)) return;
+
+            Cursor cursor = getUserProfile();
+            if (cursor != null && cursor.moveToFirst()) {
+                String username = cursor.getString(0);
+                int level = cursor.getInt(1);
+                int gold = cursor.getInt(2);
+                int xp = cursor.getInt(3);
+                int streak = cursor.getInt(4);
+                cursor.close();
+
+                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("username", username);
+                map.put("level", level);
+                map.put("gold", gold);
+                map.put("xp", xp);
+                map.put("streak", streak);
+                map.put("last_synced", new java.util.Date());
+
+                firestore.collection("users").document(uid)
+                        .set(map, com.google.firebase.firestore.SetOptions.merge())
+                        .addOnSuccessListener(aVoid -> Log.i("TaskManager", "User profile synced to Firestore: Lvl " + level + " Gold " + gold))
+                        .addOnFailureListener(e -> Log.e("TaskManager", "Failed to sync user profile to Firestore", e));
+            }
+        } catch (Exception e) {
+            Log.e("TaskManager", "Firestore sync exception", e);
+        }
     }
 
     public static ShopItem getEquippedItem(Context context) {

@@ -2,6 +2,7 @@ package com.stipasay.dagoal;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -62,6 +63,7 @@ public class DashboardActivity extends AppCompatActivity {
     private ActivityResultLauncher<String[]> stepPermissionLauncher;
     private BroadcastReceiver taskProgressReceiver;
     private SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener;
+    private com.google.firebase.firestore.ListenerRegistration firestoreUserListener;
     private LinearLayout currentActiveQuestContainer;
     private LinearLayout currentCompletedQuestContainer;
     private Handler avoidanceTickHandler = new Handler(Looper.getMainLooper());
@@ -122,6 +124,7 @@ public class DashboardActivity extends AppCompatActivity {
         taskProgressReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                updateGlobalAvatarHeader();
                 if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
                     populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
                 }
@@ -183,6 +186,54 @@ public class DashboardActivity extends AppCompatActivity {
 
         startAvoidanceServiceIfNeeded();
         requestBatteryOptimizationExemption();
+        startFirestoreUserProfileListener();
+    }
+
+    private void startFirestoreUserProfileListener() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        String uid = prefs.getString("user_uid", null);
+        if (uid == null || uid.isEmpty()) {
+            com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (fUser != null) {
+                uid = fUser.getUid();
+                prefs.edit().putString("user_uid", uid).apply();
+            }
+        }
+        if (uid == null || uid.isEmpty()) return;
+
+        try {
+            com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+            firestoreUserListener = firestore.collection("users").document(uid)
+                    .addSnapshotListener((snapshot, e) -> {
+                        if (e != null || snapshot == null || !snapshot.exists()) return;
+
+                        Long cloudGold = snapshot.getLong("gold");
+                        Long cloudLevel = snapshot.getLong("level");
+                        Long cloudXp = snapshot.getLong("xp");
+                        Long cloudStreak = snapshot.getLong("streak");
+                        String cloudUsername = snapshot.getString("username");
+
+                        if (cloudGold != null || cloudLevel != null || cloudXp != null) {
+                            SQLiteDatabase db = dbHelper.getWritableDatabase();
+                            ContentValues userValues = new ContentValues();
+                            if (cloudGold != null) userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, cloudGold.intValue());
+                            if (cloudLevel != null) userValues.put("level", cloudLevel.intValue());
+                            if (cloudXp != null) userValues.put(DatabaseContract.UserEntry.COLUMN_XP, cloudXp.intValue());
+                            if (cloudStreak != null) userValues.put(DatabaseContract.UserEntry.COLUMN_STREAK, cloudStreak.intValue());
+                            if (cloudUsername != null && !cloudUsername.isEmpty()) userValues.put("username", cloudUsername);
+
+                            db.update("user", userValues, "_id = 1", null);
+                            updateGlobalAvatarHeader();
+                        }
+                    });
+        } catch (Exception ignored) {}
+    }
+
+    private void stopFirestoreUserProfileListener() {
+        if (firestoreUserListener != null) {
+            firestoreUserListener.remove();
+            firestoreUserListener = null;
+        }
     }
 
     private void requestBatteryOptimizationExemption() {
@@ -210,6 +261,7 @@ public class DashboardActivity extends AppCompatActivity {
             getSharedPreferences("DaGoalPrefs", MODE_PRIVATE)
                     .unregisterOnSharedPreferenceChangeListener(prefChangeListener);
         }
+        stopFirestoreUserProfileListener();
         stopAvoidanceTicker();
     }
     private void checkAndRequestAvoidancePermissions() {

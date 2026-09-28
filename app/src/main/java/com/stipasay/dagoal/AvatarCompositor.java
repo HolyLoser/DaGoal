@@ -258,17 +258,26 @@ public class AvatarCompositor {
         if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
         else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
 
-        // 5.5 Layer 5.5: Accessories (Glasses, etc. - Scale down to 76%)
+        // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
         if (config.accessoryAssetId != null && !config.accessoryAssetId.isEmpty()) {
-            int accessoryRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
-            if (accessoryRes != 0) {
-                float accessoryScale = 0.76f;
-                float scaledSize = outputSizePx * accessoryScale;
-                float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
-                float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
-                RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
+            boolean isHat = config.accessoryAssetId.contains("hat");
+            if (!isHat) {
+                int accessoryRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
+                if (accessoryRes != 0) {
+                    Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, config.accessoryColor);
 
-                drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
+                    float accessoryScale = 0.76f;
+                    float scaledSize = outputSizePx * accessoryScale;
+                    float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
+                    float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
+                    RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
+
+                    if (accessoryBitmap != null) {
+                        canvas.drawBitmap(accessoryBitmap, null, accessoryRect, paint);
+                    } else {
+                        drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
+                    }
+                }
             }
         }
 
@@ -278,6 +287,26 @@ public class AvatarCompositor {
             if (frontRes != 0) {
                 Bitmap frontBitmap = generateTintedBitmap(context, frontRes, config.selectedHairColor);
                 drawLayerFittingCanvas(canvas, frontBitmap, frontRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+            }
+        }
+
+        // 7. Layer 7: Hat Accessories (On Top of Head/Hair at 1.15f scale, higher elevation)
+        if (config.accessoryAssetId != null && config.accessoryAssetId.contains("hat")) {
+            int hatRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
+            if (hatRes != 0) {
+                Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, config.accessoryColor);
+
+                float hatScale = 1.40f;
+                float scaledHatSize = outputSizePx * hatScale;
+                float hatOffsetX = (outputSizePx - scaledHatSize) / 2.0f + hairTranslationX;
+                float hatOffsetY = hairTranslationY - dpToPx(155.0f, density) * scale;
+                RectF hatRect = new RectF(hatOffsetX, hatOffsetY, hatOffsetX + scaledHatSize, hatOffsetY + scaledHatSize);
+
+                if (hatBitmap != null) {
+                    canvas.drawBitmap(hatBitmap, null, hatRect, paint);
+                } else {
+                    drawDrawableInRect(canvas, context, hatRes, hatRect, paint);
+                }
             }
         }
 
@@ -344,17 +373,78 @@ public class AvatarCompositor {
         Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
         if (drawable == null) return null;
 
-        Drawable mutated = drawable.mutate();
-        mutated.setColorFilter(new android.graphics.PorterDuffColorFilter(targetColor, android.graphics.PorterDuff.Mode.SRC_IN));
+        Bitmap bitmap;
+        if (drawable instanceof BitmapDrawable) {
+            bitmap = ((BitmapDrawable) drawable).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+        } else {
+            int w = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : 320;
+            int h = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : 320;
+            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+        }
 
-        int w = mutated.getIntrinsicWidth() > 0 ? mutated.getIntrinsicWidth() : 320;
-        int h = mutated.getIntrinsicHeight() > 0 ? mutated.getIntrinsicHeight() : 320;
+        String resEntryName = "";
+        try {
+            resEntryName = context.getResources().getResourceEntryName(drawableRes);
+        } catch (Exception ignored) {}
 
-        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        mutated.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        mutated.draw(canvas);
+        boolean isSunglasses = resEntryName.contains("sunglasses");
+        boolean isHat = resEntryName.contains("hat");
 
+        float[] targetHsv = new float[3];
+        Color.colorToHSV(targetColor, targetHsv);
+        float targetHue = targetHsv[0];
+        float targetSat = targetHsv[1];
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >> 24) & 0xff;
+            if (a < 30) continue;
+
+            if (isHat) {
+                float[] pixelHsv = new float[3];
+                Color.colorToHSV(p, pixelHsv);
+                pixelHsv[0] = targetHue;
+                if (targetSat > 0) {
+                    pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.80f);
+                }
+                pixels[i] = Color.HSVToColor(a, pixelHsv);
+            } else if (isSunglasses) {
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isLightFrame = (r > 100 && g > 100 && b > 100);
+                if (isLightFrame && a >= 50) {
+                    float[] pixelHsv = new float[3];
+                    Color.colorToHSV(p, pixelHsv);
+                    pixelHsv[0] = targetHue;
+                    if (targetSat > 0) {
+                        pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                    }
+                    pixels[i] = Color.HSVToColor(a, pixelHsv);
+                } else {
+                    pixels[i] = p;
+                }
+            } else {
+                float[] pixelHsv = new float[3];
+                Color.colorToHSV(p, pixelHsv);
+                pixelHsv[0] = targetHue;
+                if (targetSat > 0) {
+                    pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                }
+                pixels[i] = Color.HSVToColor(a, pixelHsv);
+            }
+        }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         return bitmap;
     }
 

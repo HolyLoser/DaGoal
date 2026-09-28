@@ -91,8 +91,24 @@ public class AvatarConfig {
 
         ShopItem equippedItem = TaskManager.getEquippedItem(context);
         if (equippedItem != null && "accessory".equalsIgnoreCase(equippedItem.getCategory())) {
-            if (equippedItem.getResName() != null) {
-                accessoryAssetId = equippedItem.getResName();
+            String resName = equippedItem.getResName();
+            if (resName != null) {
+                int lastUnderscore = resName.lastIndexOf('_');
+                if (lastUnderscore > 0 && resName.startsWith("accessory_")) {
+                    accessoryAssetId = resName.substring(0, lastUnderscore);
+                    String colorName = resName.substring(lastUnderscore + 1);
+
+                    if ("purple".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#800080");
+                    else if ("yellow".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#FFD700");
+                    else if ("red".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#E53935");
+                    else if ("blue".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#1E88E5");
+                    else if ("black".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#1E1E1E");
+                    else if ("orange".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#FFA500");
+                    else if ("pink".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#FF69B4");
+                    else if ("straw".equalsIgnoreCase(colorName)) accessoryColor = Color.parseColor("#E6C280");
+                } else {
+                    accessoryAssetId = resName;
+                }
             }
         }
 

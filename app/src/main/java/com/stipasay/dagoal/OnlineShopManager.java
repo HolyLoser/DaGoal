@@ -30,8 +30,7 @@ public class OnlineShopManager {
                 if (activeNetwork == null) return false;
                 android.net.NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
                 if (capabilities == null) return false;
-                return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                        && capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
             } else {
                 NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
                 return activeNetwork != null && activeNetwork.isConnected();

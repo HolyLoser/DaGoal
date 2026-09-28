@@ -248,7 +248,13 @@ public class SettingsActivity extends AppCompatActivity {
                         }
 
                         if (fUser != null) {
-                            fUser.delete().addOnCompleteListener(task -> performLocalReset.run());
+                            fUser.delete().addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    performLocalReset.run();
+                                } else {
+                                    showReAuthAndDeleteDialog(fUser, uid, performLocalReset);
+                                }
+                            });
                         } else {
                             performLocalReset.run();
                         }
@@ -258,6 +264,51 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         contentFrame.addView(container);
+    }
+
+    private void showReAuthAndDeleteDialog(com.google.firebase.auth.FirebaseUser fUser, String uid, Runnable performLocalReset) {
+        if (fUser == null || fUser.getEmail() == null) {
+            performLocalReset.run();
+            return;
+        }
+
+        android.widget.EditText editPassword = new android.widget.EditText(this);
+        editPassword.setHint("Password");
+        editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        editPassword.setPadding(padding, padding, padding, padding);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Confirm Password")
+                .setMessage("Deleting your cloud account requires recent verification. Please enter your password to confirm.")
+                .setView(editPassword)
+                .setPositiveButton("Confirm & Delete", (dialog, which) -> {
+                    String password = editPassword.getText().toString().trim();
+                    if (password.isEmpty()) {
+                        ToastUtils.showToast(this, "Password cannot be empty.");
+                        return;
+                    }
+
+                    com.google.firebase.auth.AuthCredential credential =
+                            com.google.firebase.auth.EmailAuthProvider.getCredential(fUser.getEmail(), password);
+
+                    fUser.reauthenticate(credential).addOnCompleteListener(reAuthTask -> {
+                        if (reAuthTask.isSuccessful()) {
+                            if (uid != null && !uid.isEmpty()) {
+                                try {
+                                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                            .collection("users").document(uid).delete();
+                                } catch (Exception ignored) {}
+                            }
+                            fUser.delete().addOnCompleteListener(deleteTask -> performLocalReset.run());
+                        } else {
+                            String err = reAuthTask.getException() != null ? reAuthTask.getException().getMessage() : "Verification failed";
+                            ToastUtils.showToast(this, "Verification failed: " + err);
+                        }
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showEditUsernameDialog() {
