@@ -224,7 +224,7 @@ public class AvatarCompositor {
             }
         }
 
-        // 4. Layer 4: Nose
+        // 4. Layer 4: Nose (Independent selectedNoseColorName)
         boolean isSmallNose = "square_nose".equals(config.selectedNoseShape);
         float baseNoseSizeDp = isSmallNose ? 34.0f : 50.0f;
         float noseSizePx = dpToPx(baseNoseSizeDp, density) * scale;
@@ -237,12 +237,16 @@ public class AvatarCompositor {
         int noseRes = context.getResources().getIdentifier(config.selectedNoseShape, "drawable", context.getPackageName());
         if (noseRes == 0) noseRes = R.drawable.nose_category_icon;
 
-        int noseColor = getSwatchColorInt(config.selectedColorName);
-        Bitmap tintedNose = generateTintedBitmap(context, noseRes, noseColor);
-        if (tintedNose != null) canvas.drawBitmap(tintedNose, null, noseRect, paint);
-        else drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
+        if ("black".equalsIgnoreCase(config.selectedNoseColorName)) {
+            drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
+        } else {
+            int noseColor = getSwatchColorInt(config.selectedNoseColorName);
+            Bitmap tintedNose = generateTintedBitmap(context, noseRes, noseColor);
+            if (tintedNose != null) canvas.drawBitmap(tintedNose, null, noseRect, paint);
+            else drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
+        }
 
-        // 5. Layer 5: Mouth
+        // 5. Layer 5: Mouth (Independent selectedMouthColorName)
         float mouthSizePx = dpToPx(60.0f, density) * scale;
         float mouthBottomMarginPx = dpToPx(24.0f, density) * scale;
 
@@ -253,10 +257,14 @@ public class AvatarCompositor {
         int mouthRes = context.getResources().getIdentifier(config.selectedMouthShape, "drawable", context.getPackageName());
         if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
 
-        int mouthColor = getSwatchColorInt(config.selectedColorName);
-        Bitmap tintedMouth = generateTintedBitmap(context, mouthRes, mouthColor);
-        if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
-        else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
+        if ("black".equalsIgnoreCase(config.selectedMouthColorName)) {
+            drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
+        } else {
+            int mouthColor = getSwatchColorInt(config.selectedMouthColorName);
+            Bitmap tintedMouth = generateTintedBitmap(context, mouthRes, mouthColor);
+            if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
+            else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
+        }
 
         // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
         if (config.accessoryAssetId != null && !config.accessoryAssetId.isEmpty()) {
@@ -287,6 +295,19 @@ public class AvatarCompositor {
             if (frontRes != 0) {
                 Bitmap frontBitmap = generateTintedBitmap(context, frontRes, config.selectedHairColor);
                 drawLayerFittingCanvas(canvas, frontBitmap, frontRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+            }
+        }
+
+        // 6.5 Layer 6.5: Hair Accessories (Hair Bow, Hair Flowers - on top of hair)
+        if (config.accessoryAssetId != null && config.accessoryAssetId.contains("hair")) {
+            int hairAccRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
+            if (hairAccRes != 0) {
+                Bitmap hairAccBitmap = generateAccessoryBitmap(context, hairAccRes, config.accessoryColor);
+                if (hairAccBitmap != null) {
+                    drawLayerFittingCanvas(canvas, hairAccBitmap, hairAccRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                } else {
+                    drawLayerFittingCanvas(canvas, null, hairAccRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                }
             }
         }
 
@@ -391,7 +412,7 @@ public class AvatarCompositor {
         } catch (Exception ignored) {}
 
         boolean isSunglasses = resEntryName.contains("sunglasses");
-        boolean isHat = resEntryName.contains("hat");
+        boolean isHueTintedAccessory = resEntryName.contains("hat") || resEntryName.contains("hair");
 
         float[] targetHsv = new float[3];
         Color.colorToHSV(targetColor, targetHsv);
@@ -408,14 +429,24 @@ public class AvatarCompositor {
             int a = (p >> 24) & 0xff;
             if (a < 30) continue;
 
-            if (isHat) {
-                float[] pixelHsv = new float[3];
-                Color.colorToHSV(p, pixelHsv);
-                pixelHsv[0] = targetHue;
-                if (targetSat > 0) {
-                    pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.80f);
+            if (isHueTintedAccessory) {
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isGrayOrWhiteFabric = (r > 40) && (Math.abs(r - g) < 40) && (Math.abs(g - b) < 40);
+
+                if (isGrayOrWhiteFabric) {
+                    float[] pixelHsv = new float[3];
+                    Color.colorToHSV(p, pixelHsv);
+                    pixelHsv[0] = targetHue;
+                    if (targetSat > 0) {
+                        pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.80f);
+                    }
+                    pixels[i] = Color.HSVToColor(a, pixelHsv);
+                } else {
+                    pixels[i] = p;
                 }
-                pixels[i] = Color.HSVToColor(a, pixelHsv);
             } else if (isSunglasses) {
                 int r = (p >> 16) & 0xff;
                 int g = (p >> 8) & 0xff;
@@ -498,24 +529,18 @@ public class AvatarCompositor {
         for (int i = 0; i < pixels.length; i++) {
             int p = pixels[i];
             int a = (p >> 24) & 0xff;
-            if (a == 0) continue;
+            if (a < 30) continue;
 
             int r = (p >> 16) & 0xff;
             int g = (p >> 8) & 0xff;
             int b = p & 0xff;
 
             boolean isWhite = (r > 200 && g > 200 && b > 200);
-            boolean isBlack = (r < 60 && g < 60 && b < 60);
 
-            if (isWhite || isBlack) {
+            if (isWhite) {
                 pixels[i] = p;
             } else {
-                float grayFactor = (r + g + b) / (3.0f * 255.0f);
-                float factor = grayFactor / 0.5f;
-                int newR = Math.min(255, (int) (targetR * factor));
-                int newG = Math.min(255, (int) (targetG * factor));
-                int newB = Math.min(255, (int) (targetB * factor));
-                pixels[i] = (a << 24) | (newR << 16) | (newG << 8) | newB;
+                pixels[i] = (a << 24) | (targetR << 16) | (targetG << 8) | targetB;
             }
         }
 

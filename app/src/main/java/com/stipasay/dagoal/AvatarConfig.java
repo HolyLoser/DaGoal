@@ -7,6 +7,8 @@ import android.graphics.Color;
 public class AvatarConfig {
     public int skinIndex;
     public String selectedColorName;
+    public String selectedNoseColorName;
+    public String selectedMouthColorName;
     public String selectedNoseShape;
     public String selectedMouthShape;
     public int selectedEyeColor;
@@ -22,6 +24,8 @@ public class AvatarConfig {
     public AvatarConfig() {
         this.skinIndex = 0;
         this.selectedColorName = "peach";
+        this.selectedNoseColorName = "black";
+        this.selectedMouthColorName = "peach";
         this.selectedNoseShape = "triangle_nose";
         this.selectedMouthShape = "smile_01";
         this.selectedEyeColor = Color.parseColor("#1E90FF");
@@ -35,12 +39,14 @@ public class AvatarConfig {
         this.accessoryColor = Color.parseColor("#1E1E1E");
     }
 
-    public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
-                        String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
+    public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseColorName, String selectedMouthColorName,
+                        String selectedNoseShape, String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId, String accessoryAssetId, int accessoryColor) {
         this.skinIndex = skinIndex;
         this.selectedColorName = selectedColorName != null ? selectedColorName : "peach";
+        this.selectedNoseColorName = selectedNoseColorName != null ? selectedNoseColorName : "black";
+        this.selectedMouthColorName = selectedMouthColorName != null ? selectedMouthColorName : "peach";
         this.selectedNoseShape = selectedNoseShape != null ? selectedNoseShape : "triangle_nose";
         this.selectedMouthShape = selectedMouthShape != null ? selectedMouthShape : "smile_01";
         this.selectedEyeColor = selectedEyeColor;
@@ -57,15 +63,31 @@ public class AvatarConfig {
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
+                        String clothesAssetId, String accessoryAssetId, int accessoryColor) {
+        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
+                selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, accessoryAssetId, accessoryColor);
+    }
+
+    public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseColorName, String selectedMouthColorName,
+                        String selectedNoseShape, String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
+                        int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId) {
-        this(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, selectedNoseColorName, selectedMouthColorName, selectedNoseShape, selectedMouthShape, selectedEyeColor,
+                selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, "", Color.parseColor("#1E1E1E"));
+    }
+
+    public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
+                        String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
+                        int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
+                        String clothesAssetId) {
+        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, "", Color.parseColor("#1E1E1E"));
     }
 
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase) {
-        this(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, "tank_top", "", Color.parseColor("#1E1E1E"));
     }
 
@@ -75,6 +97,8 @@ public class AvatarConfig {
 
         int skinIndex = prefs.getInt("pref_avatar_skin", 0);
         String selectedColorName = prefs.getString("pref_avatar_color", "peach");
+        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "black");
+        String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", selectedColorName);
         String selectedNoseShape = prefs.getString("pref_avatar_nose_shape", "triangle_nose");
         String selectedMouthShape = prefs.getString("pref_avatar_mouth_shape", "smile_01");
         int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E90FF"));
@@ -112,10 +136,9 @@ public class AvatarConfig {
             }
         }
 
-        android.util.Log.d("AvatarDebug", "loadFromPreferences: accessoryAssetId=" + accessoryAssetId + " accessoryColor=" + accessoryColor);
-
-        return new AvatarConfig(skinIndex, selectedColorName, selectedNoseShape, selectedMouthShape,
-                selectedEyeColor, selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, accessoryAssetId, accessoryColor);
+        return new AvatarConfig(skinIndex, selectedColorName, selectedNoseColorName, selectedMouthColorName,
+                selectedNoseShape, selectedMouthShape, selectedEyeColor, selectedEyeBase, cheeksIndex, hairIndex,
+                selectedHairColor, selectedHairBase, clothesAssetId, accessoryAssetId, accessoryColor);
     }
 
     public void saveToPreferences(Context context) {
@@ -124,6 +147,8 @@ public class AvatarConfig {
         prefs.edit()
                 .putInt("pref_avatar_skin", skinIndex)
                 .putString("pref_avatar_color", selectedColorName)
+                .putString("pref_avatar_nose_color", selectedNoseColorName)
+                .putString("pref_avatar_mouth_color", selectedMouthColorName)
                 .putString("pref_avatar_nose_shape", selectedNoseShape)
                 .putString("pref_avatar_mouth_shape", selectedMouthShape)
                 .putInt("pref_avatar_eye_color", selectedEyeColor)
@@ -139,7 +164,7 @@ public class AvatarConfig {
     }
 
     public String getCacheKey(int outputSizePx) {
-        return skinIndex + "_" + selectedColorName + "_" + selectedNoseShape + "_"
+        return skinIndex + "_" + selectedColorName + "_" + selectedNoseColorName + "_" + selectedMouthColorName + "_" + selectedNoseShape + "_"
                 + selectedMouthShape + "_" + selectedEyeColor + "_" + selectedEyeBase + "_"
                 + cheeksIndex + "_" + hairIndex + "_" + selectedHairColor + "_" + selectedHairBase + "_"
                 + clothesAssetId + "_" + accessoryAssetId + "_" + accessoryColor + "_" + outputSizePx;

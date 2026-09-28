@@ -36,6 +36,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
     private String activeCategory = "Skin";
     private String selectedColorName = "peach"; // black, brown, darkred, orange, peach
+    private String selectedNoseColorName = "black";
+    private String selectedMouthColorName = "peach";
     private String selectedNoseShape = "triangle_nose"; // triangle_nose, square_nose, oblong_nose
     private String selectedMouthShape = "smile_01"; // smile_01, smile_02, w_01, w_02
     private int selectedEyeColor = Color.parseColor("#1E90FF");
@@ -52,7 +54,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
     private int selectedSkinIndex = 0;
 
     private final String[] noseShapes = {"triangle_nose", "square_nose", "oblong_nose"};
-    private final String[] mouthShapes = {"smile_01", "smile_02", "w_01", "w_02"};
+    private final String[] mouthShapes = {"smile_01", "smile_02", "w_01", "w_02", "smile_bucktooth"};
     private final String[] eyeBases = {
             "bigeye",
             "bigeyes2",
@@ -150,6 +152,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
         AvatarConfig savedConfig = AvatarConfig.loadFromPreferences(this);
         this.selectedSkinIndex = savedConfig.skinIndex;
         this.selectedColorName = savedConfig.selectedColorName;
+        this.selectedNoseColorName = savedConfig.selectedNoseColorName;
+        this.selectedMouthColorName = savedConfig.selectedMouthColorName;
         this.selectedNoseShape = savedConfig.selectedNoseShape;
         this.selectedMouthShape = savedConfig.selectedMouthShape;
         this.selectedEyeColor = savedConfig.selectedEyeColor;
@@ -158,6 +162,25 @@ public class AvatarCreationActivity extends AppCompatActivity {
         this.selectedHairIndex = savedConfig.hairIndex;
         this.selectedHairColor = savedConfig.selectedHairColor;
         this.selectedHairBase = savedConfig.selectedHairBase;
+
+        for (int i = 0; i < mouthShapes.length; i++) {
+            if (mouthShapes[i].equalsIgnoreCase(savedConfig.selectedMouthShape)) {
+                this.selectedMouthIndex = i;
+                break;
+            }
+        }
+        for (int i = 0; i < noseShapes.length; i++) {
+            if (noseShapes[i].equalsIgnoreCase(savedConfig.selectedNoseShape)) {
+                this.selectedNoseIndex = i;
+                break;
+            }
+        }
+        for (int i = 0; i < eyeBases.length; i++) {
+            if (eyeBases[i].equalsIgnoreCase(savedConfig.selectedEyeBase)) {
+                this.selectedEyesIndex = i;
+                break;
+            }
+        }
 
         boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
         if (isEditMode && btnSaveAvatar != null) {
@@ -185,7 +208,13 @@ public class AvatarCreationActivity extends AppCompatActivity {
     }
 
     private void selectColor(String colorName) {
-        this.selectedColorName = colorName;
+        if ("Nose".equals(activeCategory)) {
+            this.selectedNoseColorName = colorName;
+        } else if ("Mouth".equals(categoryForSelectColor())) {
+            this.selectedMouthColorName = colorName;
+        } else {
+            this.selectedColorName = colorName;
+        }
         ToastUtils.showToast(this, "Color: " + colorName.toUpperCase() + " Selected!");
 
         // Refresh category grid and live feature layer preview
@@ -198,6 +227,10 @@ public class AvatarCreationActivity extends AppCompatActivity {
             int activeIndex = "Nose".equals(activeCategory) ? selectedNoseIndex : ("Mouth".equals(activeCategory) ? selectedMouthIndex : 0);
             applyAssetSelection(activeCategory, activeIndex);
         }
+    }
+
+    private String categoryForSelectColor() {
+        return activeCategory;
     }
 
     private void showEyeColorPickerDialog() {
@@ -408,26 +441,18 @@ public class AvatarCreationActivity extends AppCompatActivity {
         for (int i = 0; i < pixels.length; i++) {
             int p = pixels[i];
             int a = (p >> 24) & 0xff;
-            if (a == 0) continue; // transparent background
+            if (a < 30) continue;
 
             int r = (p >> 16) & 0xff;
             int g = (p >> 8) & 0xff;
             int b = p & 0xff;
 
-            // Exclude white sclera/highlights (R,G,B > 200) and dark black outlines (R,G,B < 60) from tinting!
             boolean isWhite = (r > 200 && g > 200 && b > 200);
-            boolean isBlack = (r < 60 && g < 60 && b < 60);
 
-            if (isWhite || isBlack) {
-                pixels[i] = p; // Keep original white sclera/highlights and dark outlines untouched
+            if (isWhite) {
+                pixels[i] = p;
             } else {
-                // Mid-gray iris/strand area: recolor proportionally while preserving shading
-                float grayFactor = (r + g + b) / (3.0f * 255.0f);
-                float factor = grayFactor / 0.5f;
-                int newR = Math.min(255, (int)(targetR * factor));
-                int newG = Math.min(255, (int)(targetG * factor));
-                int newB = Math.min(255, (int)(targetB * factor));
-                pixels[i] = (a << 24) | (newR << 16) | (newG << 8) | newB;
+                pixels[i] = (a << 24) | (targetR << 16) | (targetG << 8) | targetB;
             }
         }
 
@@ -839,7 +864,6 @@ public class AvatarCreationActivity extends AppCompatActivity {
             }
         } else if ("Nose".equals(category)) {
             // Render 3 nose shape choices (triangle_nose, square_nose, oblong_nose)
-            int tintColor = getSwatchColorInt(selectedColorName);
             for (int i = 0; i < noseShapes.length; i++) {
                 String shapeName = noseShapes[i];
                 int shapeRes = getResources().getIdentifier(shapeName, "drawable", getPackageName());
@@ -860,13 +884,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int paddingDp = isSmallNose ? 14 : 8;
                 itemImage.setPadding(dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp));
 
-                Bitmap tintedNose = getTintedEyeBitmap(shapeRes, tintColor);
                 itemImage.clearColorFilter();
-                if (tintedNose != null) {
-                    itemImage.setImageBitmap(tintedNose);
-                } else {
-                    itemImage.setImageResource(shapeRes);
-                }
+                itemImage.setImageResource(shapeRes);
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
@@ -878,8 +897,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 gridAssets.addView(itemImage);
             }
         } else if ("Mouth".equals(category)) {
-            // Render 4 mouth choices (smile_01, smile_02, w_01, w_02)
-            int tintColor = getSwatchColorInt(selectedColorName);
+            // Render 5 mouth choices (smile_01, smile_02, w_01, w_02, smile_bucktooth)
             for (int i = 0; i < mouthShapes.length; i++) {
                 String mouthShapeName = mouthShapes[i];
                 int mouthRes = getResources().getIdentifier(mouthShapeName, "drawable", getPackageName());
@@ -898,13 +916,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
 
-                Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
                 itemImage.clearColorFilter();
-                if (tintedMouth != null) {
-                    itemImage.setImageBitmap(tintedMouth);
-                } else {
-                    itemImage.setImageResource(mouthRes);
-                }
+                itemImage.setImageResource(mouthRes);
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
@@ -1042,14 +1055,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int shapeRes = getResources().getIdentifier(selectedNoseShape, "drawable", getPackageName());
                 if (shapeRes == 0) shapeRes = R.drawable.nose_category_icon;
 
-                int tintColor = getSwatchColorInt(selectedColorName);
-                Bitmap tintedNose = getTintedEyeBitmap(shapeRes, tintColor);
                 ivLayerNose.clearColorFilter();
-                if (tintedNose != null) {
-                    ivLayerNose.setImageBitmap(tintedNose);
-                } else {
-                    ivLayerNose.setImageResource(shapeRes);
-                }
+                ivLayerNose.setImageResource(shapeRes);
 
                 boolean isSmallNose = "square_nose".equals(selectedNoseShape);
                 int noseSizeDp = isSmallNose ? 34 : 50;
@@ -1073,14 +1080,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int mouthRes = getResources().getIdentifier(selectedMouthShape, "drawable", getPackageName());
                 if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
 
-                int tintColor = getSwatchColorInt(selectedColorName);
-                Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
                 ivLayerMouth.clearColorFilter();
-                if (tintedMouth != null) {
-                    ivLayerMouth.setImageBitmap(tintedMouth);
-                } else {
-                    ivLayerMouth.setImageResource(mouthRes);
-                }
+                ivLayerMouth.setImageResource(mouthRes);
 
                 int mouthBottomMarginDp = 24; // All mouth variants sit higher up at 24dp
 
@@ -1118,6 +1119,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
         AvatarConfig config = new AvatarConfig(
                 selectedSkinIndex,
                 selectedColorName,
+                selectedNoseColorName,
+                selectedMouthColorName,
                 selectedNoseShape,
                 selectedMouthShape,
                 selectedEyeColor,
@@ -1125,7 +1128,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 selectedCheeksIndex,
                 selectedHairIndex,
                 selectedHairColor,
-                selectedHairBase
+                selectedHairBase,
+                "tank_top"
         );
         config.saveToPreferences(this);
         AvatarCompositor.clearCache();

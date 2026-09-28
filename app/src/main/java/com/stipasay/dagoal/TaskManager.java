@@ -1747,6 +1747,27 @@ public class TaskManager {
         items.add(new ShopItem(123, "Yellow Knit Hat", 60, "accessory", "accessory_knit_hat_yellow", "UNCOMMON", 1, "\uD83E\uDDE2"));
         items.add(new ShopItem(124, "Blue Knit Hat", 60, "accessory", "accessory_knit_hat_blue", "UNCOMMON", 1, "\uD83E\uDDE2"));
 
+        // Hair Bow Variants (IDs 125 - 129)
+        items.add(new ShopItem(125, "Red Hair Bow", 55, "accessory", "accessory_hair_bow_red", "COMMON", 1, "\uD83C\uDF80"));
+        items.add(new ShopItem(126, "Blue Hair Bow", 55, "accessory", "accessory_hair_bow_blue", "COMMON", 1, "\uD83C\uDF80"));
+        items.add(new ShopItem(127, "Yellow Hair Bow", 55, "accessory", "accessory_hair_bow_yellow", "COMMON", 1, "\uD83C\uDF80"));
+        items.add(new ShopItem(128, "Pink Hair Bow", 55, "accessory", "accessory_hair_bow_pink", "COMMON", 1, "\uD83C\uDF80"));
+        items.add(new ShopItem(129, "Purple Hair Bow", 55, "accessory", "accessory_hair_bow_purple", "COMMON", 1, "\uD83C\uDF80"));
+
+        // Hair Flower 1 Variants (IDs 130 - 134)
+        items.add(new ShopItem(130, "Red Hair Flower 1", 55, "accessory", "accessory_hair_flower1_red", "COMMON", 1, "\uD83C\uDF3A"));
+        items.add(new ShopItem(131, "Blue Hair Flower 1", 55, "accessory", "accessory_hair_flower1_blue", "COMMON", 1, "\uD83C\uDF3A"));
+        items.add(new ShopItem(132, "Yellow Hair Flower 1", 55, "accessory", "accessory_hair_flower1_yellow", "COMMON", 1, "\uD83C\uDF3A"));
+        items.add(new ShopItem(133, "Pink Hair Flower 1", 55, "accessory", "accessory_hair_flower1_pink", "COMMON", 1, "\uD83C\uDF3A"));
+        items.add(new ShopItem(134, "Purple Hair Flower 1", 55, "accessory", "accessory_hair_flower1_purple", "COMMON", 1, "\uD83C\uDF3A"));
+
+        // Hair Butterfly Variants (IDs 135 - 139)
+        items.add(new ShopItem(135, "Red Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_red", "COMMON", 1, "\uD83E\uDD8B"));
+        items.add(new ShopItem(136, "Blue Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_blue", "COMMON", 1, "\uD83E\uDD8B"));
+        items.add(new ShopItem(137, "Yellow Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_yellow", "COMMON", 1, "\uD83E\uDD8B"));
+        items.add(new ShopItem(138, "Pink Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_pink", "COMMON", 1, "\uD83E\uDD8B"));
+        items.add(new ShopItem(139, "Purple Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_purple", "COMMON", 1, "\uD83E\uDD8B"));
+
         return items;
     }
 
