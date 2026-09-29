@@ -157,10 +157,20 @@ public class AvatarCompositor {
             drawDrawableFittingCanvas(canvas, context, R.drawable.base_skin, paint, outputSizePx, 0, topPaddingPx);
         }
 
-        // 1.5 Layer 1.5: Clothes / Wardrobe Outfit
+        // 1.2 Layer 1.2: Base Shorts (ALWAYS-ON lower body clothing)
+        drawDrawableFittingCanvas(canvas, context, R.drawable.shorts, paint, outputSizePx, 0, topPaddingPx);
+
+        // 1.5 Layer 1.5: Clothes / Wardrobe Upper Body Outfit (with scale & position controls)
         int clothesRes = context.getResources().getIdentifier(config.clothesAssetId, "drawable", context.getPackageName());
         if (clothesRes == 0) clothesRes = R.drawable.tank_top;
-        drawDrawableFittingCanvas(canvas, context, clothesRes, paint, outputSizePx, 0, topPaddingPx);
+
+        float clothesScale = 0.70f;
+        float scaledClothesSize = outputSizePx * clothesScale;
+        float clothesOffsetX = (outputSizePx - scaledClothesSize) / 2.0f;
+        float clothesOffsetY = topPaddingPx + (outputSizePx - scaledClothesSize) / 2.0f + dpToPx(70.0f, density) * scale;
+        RectF clothesRect = new RectF(clothesOffsetX, clothesOffsetY, clothesOffsetX + scaledClothesSize, clothesOffsetY + scaledClothesSize);
+
+        drawDrawableInRect(canvas, context, clothesRes, clothesRect, paint);
 
         // 2. Layer 2: Eyes (Paired Left _a & Right _b)
         int baseEyeSizeDp = getEyeSizeDp(config.selectedEyeBase);
@@ -224,7 +234,7 @@ public class AvatarCompositor {
             }
         }
 
-        // 4. Layer 4: Nose (Independent selectedNoseColorName)
+        // 4. Layer 4: Nose (Independent selectedNoseColorName; pure black #1E1E1E when "black")
         boolean isSmallNose = "square_nose".equals(config.selectedNoseShape);
         float baseNoseSizeDp = isSmallNose ? 34.0f : 50.0f;
         float noseSizePx = dpToPx(baseNoseSizeDp, density) * scale;
@@ -237,18 +247,18 @@ public class AvatarCompositor {
         int noseRes = context.getResources().getIdentifier(config.selectedNoseShape, "drawable", context.getPackageName());
         if (noseRes == 0) noseRes = R.drawable.nose_category_icon;
 
-        if ("black".equalsIgnoreCase(config.selectedNoseColorName)) {
-            drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
-        } else {
-            int noseColor = getSwatchColorInt(config.selectedNoseColorName);
-            Bitmap tintedNose = generateTintedBitmap(context, noseRes, noseColor);
-            if (tintedNose != null) canvas.drawBitmap(tintedNose, null, noseRect, paint);
-            else drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
-        }
+        int noseColor = getSwatchColorInt(config.selectedNoseColorName);
+        Bitmap tintedNose = generateTintedBitmap(context, noseRes, noseColor);
+        if (tintedNose != null) canvas.drawBitmap(tintedNose, null, noseRect, paint);
+        else drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
 
-        // 5. Layer 5: Mouth (Independent selectedMouthColorName)
-        float mouthSizePx = dpToPx(60.0f, density) * scale;
-        float mouthBottomMarginPx = dpToPx(24.0f, density) * scale;
+        // 5. Layer 5: Mouth (Independent selectedMouthColorName; 84dp size & 28dp margin for smile_bucktooth)
+        boolean isBucktooth = "smile_bucktooth".equals(config.selectedMouthShape);
+        float baseMouthSizeDp = isBucktooth ? 84.0f : 60.0f;
+        float baseMouthBottomMarginDp = isBucktooth ? 28.0f : 24.0f;
+
+        float mouthSizePx = dpToPx(baseMouthSizeDp, density) * scale;
+        float mouthBottomMarginPx = dpToPx(baseMouthBottomMarginDp, density) * scale;
 
         float mouthLeft = (outputSizePx - mouthSizePx) / 2.0f;
         float mouthTop = topPaddingPx + (outputSizePx - mouthSizePx) / 2.0f - mouthBottomMarginPx;
@@ -257,19 +267,15 @@ public class AvatarCompositor {
         int mouthRes = context.getResources().getIdentifier(config.selectedMouthShape, "drawable", context.getPackageName());
         if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
 
-        if ("black".equalsIgnoreCase(config.selectedMouthColorName)) {
-            drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
-        } else {
-            int mouthColor = getSwatchColorInt(config.selectedMouthColorName);
-            Bitmap tintedMouth = generateTintedBitmap(context, mouthRes, mouthColor);
-            if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
-            else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
-        }
+        int mouthColor = getSwatchColorInt(config.selectedMouthColorName);
+        Bitmap tintedMouth = generateTintedBitmap(context, mouthRes, mouthColor);
+        if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
+        else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
 
         // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
         if (config.accessoryAssetId != null && !config.accessoryAssetId.isEmpty()) {
-            boolean isHat = config.accessoryAssetId.contains("hat");
-            if (!isHat) {
+            boolean isGlasses = config.accessoryAssetId.contains("glasses") || config.accessoryAssetId.contains("sunglasses");
+            if (isGlasses) {
                 int accessoryRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
                 if (accessoryRes != 0) {
                     Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, config.accessoryColor);
@@ -298,15 +304,22 @@ public class AvatarCompositor {
             }
         }
 
-        // 6.5 Layer 6.5: Hair Accessories (Hair Bow, Hair Flowers - on top of hair)
+        // 6.5 Layer 6.5: Hair Accessories (Hair Bow, Hair Flowers, Hair Butterfly - on top of hair)
         if (config.accessoryAssetId != null && config.accessoryAssetId.contains("hair")) {
             int hairAccRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
             if (hairAccRes != 0) {
                 Bitmap hairAccBitmap = generateAccessoryBitmap(context, hairAccRes, config.accessoryColor);
+
+                float hairAccScale = 0.50f;
+                float scaledHairAccSize = outputSizePx * hairAccScale;
+                float hairAccOffsetX = (outputSizePx - scaledHairAccSize) / 150.0f + hairTranslationX + dpToPx(130.0f, density) * scale;
+                float hairAccOffsetY = hairTranslationY - dpToPx(0.65f, density) * scale;
+                RectF hairAccRect = new RectF(hairAccOffsetX, hairAccOffsetY, hairAccOffsetX + scaledHairAccSize, hairAccOffsetY + scaledHairAccSize);
+
                 if (hairAccBitmap != null) {
-                    drawLayerFittingCanvas(canvas, hairAccBitmap, hairAccRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                    canvas.drawBitmap(hairAccBitmap, null, hairAccRect, paint);
                 } else {
-                    drawLayerFittingCanvas(canvas, null, hairAccRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                    drawDrawableInRect(canvas, context, hairAccRes, hairAccRect, paint);
                 }
             }
         }

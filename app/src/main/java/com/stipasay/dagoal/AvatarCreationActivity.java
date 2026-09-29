@@ -864,6 +864,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
             }
         } else if ("Nose".equals(category)) {
             // Render 3 nose shape choices (triangle_nose, square_nose, oblong_nose)
+            int tintColor = getSwatchColorInt(selectedNoseColorName);
             for (int i = 0; i < noseShapes.length; i++) {
                 String shapeName = noseShapes[i];
                 int shapeRes = getResources().getIdentifier(shapeName, "drawable", getPackageName());
@@ -884,8 +885,13 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int paddingDp = isSmallNose ? 14 : 8;
                 itemImage.setPadding(dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp));
 
+                Bitmap tintedNose = getTintedEyeBitmap(shapeRes, tintColor);
                 itemImage.clearColorFilter();
-                itemImage.setImageResource(shapeRes);
+                if (tintedNose != null) {
+                    itemImage.setImageBitmap(tintedNose);
+                } else {
+                    itemImage.setImageResource(shapeRes);
+                }
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
@@ -898,6 +904,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
             }
         } else if ("Mouth".equals(category)) {
             // Render 5 mouth choices (smile_01, smile_02, w_01, w_02, smile_bucktooth)
+            int tintColor = getSwatchColorInt(selectedMouthColorName);
             for (int i = 0; i < mouthShapes.length; i++) {
                 String mouthShapeName = mouthShapes[i];
                 int mouthRes = getResources().getIdentifier(mouthShapeName, "drawable", getPackageName());
@@ -916,8 +923,13 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
 
+                Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
                 itemImage.clearColorFilter();
-                itemImage.setImageResource(mouthRes);
+                if (tintedMouth != null) {
+                    itemImage.setImageBitmap(tintedMouth);
+                } else {
+                    itemImage.setImageResource(mouthRes);
+                }
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
@@ -1055,8 +1067,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int shapeRes = getResources().getIdentifier(selectedNoseShape, "drawable", getPackageName());
                 if (shapeRes == 0) shapeRes = R.drawable.nose_category_icon;
 
+                int tintColor = getSwatchColorInt(selectedNoseColorName);
+                Bitmap tintedNose = getTintedEyeBitmap(shapeRes, tintColor);
                 ivLayerNose.clearColorFilter();
-                ivLayerNose.setImageResource(shapeRes);
+                if (tintedNose != null) ivLayerNose.setImageBitmap(tintedNose);
+                else ivLayerNose.setImageResource(shapeRes);
 
                 boolean isSmallNose = "square_nose".equals(selectedNoseShape);
                 int noseSizeDp = isSmallNose ? 34 : 50;
@@ -1080,15 +1095,20 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 int mouthRes = getResources().getIdentifier(selectedMouthShape, "drawable", getPackageName());
                 if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
 
+                int tintColor = getSwatchColorInt(selectedMouthColorName);
+                Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
                 ivLayerMouth.clearColorFilter();
-                ivLayerMouth.setImageResource(mouthRes);
+                if (tintedMouth != null) ivLayerMouth.setImageBitmap(tintedMouth);
+                else ivLayerMouth.setImageResource(mouthRes);
 
-                int mouthBottomMarginDp = 24; // All mouth variants sit higher up at 24dp
+                boolean isBucktooth = "smile_bucktooth".equals(selectedMouthShape);
+                int mouthSizeDp = isBucktooth ? 84 : 60;
+                int mouthBottomMarginDp = isBucktooth ? 28 : 24;
 
                 android.widget.FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) ivLayerMouth.getLayoutParams();
                 if (params != null) {
-                    params.width = dpToPx(60);
-                    params.height = dpToPx(60);
+                    params.width = dpToPx(mouthSizeDp);
+                    params.height = dpToPx(mouthSizeDp);
                     params.bottomMargin = dpToPx(mouthBottomMarginDp);
                     ivLayerMouth.setLayoutParams(params);
                 }

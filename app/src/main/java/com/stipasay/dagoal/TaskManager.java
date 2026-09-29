@@ -1768,6 +1768,34 @@ public class TaskManager {
         items.add(new ShopItem(138, "Pink Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_pink", "COMMON", 1, "\uD83E\uDD8B"));
         items.add(new ShopItem(139, "Purple Hair Butterfly", 55, "accessory", "accessory_hair_butterfly_purple", "COMMON", 1, "\uD83E\uDD8B"));
 
+        // Outfits & Clothing (COMMON Tier - IDs 203 - 208)
+        items.add(new ShopItem(203, "Flame Shirt", 50, "outfit", "shirt_flame", "COMMON", 1, "\uD83D\uDD25"));
+        items.add(new ShopItem(204, "Frog Shirt", 50, "outfit", "shirt_frog", "COMMON", 1, "\uD83D\uDC38"));
+        items.add(new ShopItem(205, "Hawaiian Shirt", 50, "outfit", "shirt_hawaiian", "COMMON", 1, "\uD83C\uDF3A"));
+        items.add(new ShopItem(206, "Flan Crop Top", 50, "outfit", "crop_flan", "COMMON", 1, "\uD83C\uDF6E"));
+        items.add(new ShopItem(207, "Flower Crop Top", 50, "outfit", "crop_flower", "COMMON", 1, "\uD83C\uDF38"));
+        items.add(new ShopItem(208, "Watermelon Crop Top", 50, "outfit", "crop_watermelon", "COMMON", 1, "\uD83C\uDF49"));
+
+        // Puffy & Sleeveless Shirts (UNCOMMON Tier - IDs 209 - 213)
+        items.add(new ShopItem(209, "Puffy Red Shirt", 120, "outfit", "puffy_red", "UNCOMMON", 15, "\uD83D\uDC54"));
+        items.add(new ShopItem(210, "Puffy Green Shirt", 120, "outfit", "puffy_green", "UNCOMMON", 15, "\uD83D\uDC54"));
+        items.add(new ShopItem(211, "Puffy Pink Shirt", 120, "outfit", "puffy_pink", "UNCOMMON", 15, "\uD83D\uDC54"));
+        items.add(new ShopItem(212, "Sleeveless Pink Shirt", 120, "outfit", "sleeveless_pink", "UNCOMMON", 15, "\uD83E\uDDE5"));
+        items.add(new ShopItem(213, "Sleeveless Shirt", 120, "outfit", "sleeveless_shirt", "UNCOMMON", 15, "\uD83E\uDDE5"));
+
+        // Rare Outfits (RARE Tier - IDs 214 - 218)
+        items.add(new ShopItem(214, "Green Long Dress", 300, "outfit", "long_dress_green", "RARE", 25, "\uD83D\uDC57"));
+        items.add(new ShopItem(215, "Long Sleeve Hoodie", 300, "outfit", "longsleeve_hoodie", "RARE", 25, "\uD83E\uDDE5"));
+        items.add(new ShopItem(216, "Rainbow Long Sleeve", 300, "outfit", "longsleeve_rainbow", "RARE", 25, "\uD83C\uDF08"));
+        items.add(new ShopItem(217, "Long Sleeve Sweater", 300, "outfit", "longsleeve_sweater", "RARE", 25, "\uD83E\uDDF6"));
+        items.add(new ShopItem(218, "Uniform Long Dress", 300, "outfit", "long_dress_uniform", "RARE", 25, "\uD83E\uDD4B"));
+
+        // Epic / Rarest Outfits (EPIC Tier - IDs 219 - 222)
+        items.add(new ShopItem(219, "Cupcake Dress", 600, "outfit", "cupcake_dress", "EPIC", 40, "\uD83E\uDDC1"));
+        items.add(new ShopItem(220, "Green Cupcake Dress", 600, "outfit", "cupcake_green", "EPIC", 40, "\uD83E\uDDC1"));
+        items.add(new ShopItem(221, "Royal Cupcake Dress", 600, "outfit", "cupcake_royal", "EPIC", 40, "\uD83D\uDC51"));
+        items.add(new ShopItem(222, "Royal Long Sleeve", 600, "outfit", "long_sleeve_royal", "EPIC", 40, "\uD83D\uDC51"));
+
         return items;
     }
 
@@ -1779,51 +1807,12 @@ public class TaskManager {
     }
 
     public int getShopRefreshCost(Context context) {
-        int tokenQty = getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
-        if (tokenQty > 0) {
-            return 0;
-        }
-        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        int count = prefs.getInt("pref_daily_shop_refresh_count", 0);
-        if (count >= 5) {
-            return -1;
-        }
-        return 30 + (count * 5);
+        return 0;
     }
 
     public boolean performShopRefresh(Context context) {
-        int tokenQty = getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
-        if (tokenQty > 0) {
-            useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
-            OnlineShopManager.forceShopRotationRefresh(context);
-            ToastUtils.showToast(context, "Shop Refreshed using 1 Token! 🔄");
-            return true;
-        }
-
-        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        int count = prefs.getInt("pref_daily_shop_refresh_count", 0);
-        if (count >= 5) {
-            ToastUtils.showToast(context, "Maximum paid refreshes reached for today (5/5)");
-            return false;
-        }
-
-        int cost = 30 + (count * 5);
-        int currentGold = getUserGoldBalance();
-        if (currentGold < cost) {
-            ToastUtils.showToast(context, "Not enough Gold! Need " + cost + " Gold");
-            return false;
-        }
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        ContentValues userValues = new ContentValues();
-        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold - cost);
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
-        syncUserProfileToFirestore(context);
-
-        prefs.edit().putInt("pref_daily_shop_refresh_count", count + 1).apply();
-
         OnlineShopManager.forceShopRotationRefresh(context);
-        ToastUtils.showToast(context, "Shop Refreshed! (-" + cost + " Gold) 🔄");
+        ToastUtils.showToast(context, "Shop Refreshed! 🔄 (Free Debug)");
         return true;
     }
 
@@ -1876,6 +1865,8 @@ public class TaskManager {
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 int id = cursor.getInt(0);
+                if (id == 202) continue;
+
                 String name = cursor.getString(1);
                 String category = cursor.getString(2);
                 String resName = cursor.getString(3);
@@ -1971,14 +1962,19 @@ public class TaskManager {
                     .remove("pref_equipped_item_id")
                     .remove("pref_avatar_accessory")
                     .remove("pref_avatar_accessory_color")
+                    .putString("pref_avatar_clothes", "tank_top")
                     .apply();
             Log.d("AvatarDebug", "setEquippedItem: NULL (unequipped)");
         } else {
-            prefs.edit()
-                    .putInt("pref_equipped_item_id", item.getId())
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            editor.putInt("pref_equipped_item_id", item.getId())
                     .remove("pref_avatar_accessory")
-                    .remove("pref_avatar_accessory_color")
-                    .apply();
+                    .remove("pref_avatar_accessory_color");
+
+            if ("outfit".equalsIgnoreCase(item.getCategory()) || "shirt".equalsIgnoreCase(item.getCategory()) || "pants".equalsIgnoreCase(item.getCategory())) {
+                editor.putString("pref_avatar_clothes", item.getResName());
+            }
+            editor.apply();
             Log.d("AvatarDebug", "setEquippedItem: itemId=" + item.getId() + " resName=" + item.getResName());
         }
         AvatarCompositor.clearCache();

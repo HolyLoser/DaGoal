@@ -224,6 +224,15 @@ public class DashboardActivity extends AppCompatActivity {
 
                             db.update("user", userValues, "_id = 1", null);
                             updateGlobalAvatarHeader();
+
+                            android.widget.GridView gridShop = findViewById(R.id.grid_shop_items);
+                            if (gridShop != null && gridShop.getAdapter() != null) {
+                                ((android.widget.BaseAdapter) gridShop.getAdapter()).notifyDataSetChanged();
+                            }
+                            android.widget.GridView gridWardrobe = findViewById(R.id.grid_wardrobe_items);
+                            if (gridWardrobe != null && gridWardrobe.getAdapter() != null) {
+                                ((android.widget.BaseAdapter) gridWardrobe.getAdapter()).notifyDataSetChanged();
+                            }
                         }
                     });
         } catch (Exception ignored) {}
@@ -1073,7 +1082,7 @@ public class DashboardActivity extends AppCompatActivity {
                         }
                         ShopItem item = shopList.get(position);
                         boolean isOwned = shopManager.isItemOwned(item.getId());
-                        boolean isLocked = shopUserLevel < item.getRequiredLevel();
+                        boolean isLocked = getCurrentUserLevel() < item.getRequiredLevel();
 
                         View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
                         TextView tvEmoji = convertView.findViewById(R.id.tv_shop_item_emoji);
