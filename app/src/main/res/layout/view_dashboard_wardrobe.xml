@@ -4,66 +4,29 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_surface_card"
     android:orientation="vertical"
-    android:padding="20dp">
-
-    <TextView
-        android:id="@+id/tv_wardrobe_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:text="@string/my_outfits_bag"
-        android:textColor="@color/dagoal_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingBottom="16dp">
 
     <LinearLayout
-        android:id="@+id/card_wardrobe_avatar_preview"
+        android:id="@+id/drag_handle_touch_area"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/bg_task_card"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp">
+        android:layout_height="32dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center">
 
-        <FrameLayout
-            android:id="@+id/avatar_me_host"
-            android:layout_width="54dp"
-            android:layout_height="54dp"
-            android:background="@drawable/bg_circle_primary" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_equipped_item_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Equipped: None"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_equipped_item_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select an item below to equip"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="12sp"
-                android:alpha="0.7" />
-        </LinearLayout>
+        <View
+            android:layout_width="50dp"
+            android:layout_height="5dp"
+            android:background="@drawable/bg_drag_handle" />
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
 
         <GridView
             android:id="@+id/grid_wardrobe_items"
@@ -78,8 +41,9 @@
     <Button
         android:id="@+id/btn_wardrobe_action"
         android:layout_width="match_parent"
-        android:layout_height="54dp"
-        android:backgroundTint="@color/dagoal_secondary"
+        android:layout_height="50dp"
+        android:layout_marginTop="10dp"
+        android:backgroundTint="#546B41"
         android:text="@string/equip_item"
         android:textAllCaps="false"
         android:textColor="@color/white"

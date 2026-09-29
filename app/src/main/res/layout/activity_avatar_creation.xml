@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/avatar_creation_bg">
+    android:background="@drawable/bg_edit_character">
 
     <!-- Character Preview Container (Modular Layer Stack) -->
     <FrameLayout

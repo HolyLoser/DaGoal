@@ -17,6 +17,14 @@
             android:layout_gravity="center"
             android:background="@drawable/bg_achievement_badge" />
 
+        <ImageView
+            android:id="@+id/iv_shop_item_image"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/tv_shop_item_emoji"
             android:layout_width="wrap_content"

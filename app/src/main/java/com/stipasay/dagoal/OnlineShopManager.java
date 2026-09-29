@@ -152,10 +152,31 @@ public class OnlineShopManager {
         List<ShopItem> catalog = new ArrayList<>();
         int maxPerTier = 3;
 
-        for (int c = 0; c < Math.min(maxPerTier, commons.size()); c++) catalog.add(commons.get(c));
-        for (int u = 0; u < Math.min(maxPerTier, uncommons.size()); u++) catalog.add(uncommons.get(u));
-        for (int r = 0; r < Math.min(maxPerTier, rares.size()); r++) catalog.add(rares.get(r));
-        for (int e = 0; e < Math.min(maxPerTier, epics.size()); e++) catalog.add(epics.get(e));
+        for (int c = 0; c < Math.min(maxPerTier, commons.size()); c++) {
+            ShopItem item = commons.get(c);
+            catalog.add(new ShopItem(item.getId(), item.getName(), item.getPrice(), item.getCategory(), item.getResName(), item.getRarityTier(), 1, item.getIconEmoji()));
+        }
+
+        int[] uncommonLevels = {9, 11, 13};
+        for (int u = 0; u < Math.min(maxPerTier, uncommons.size()); u++) {
+            ShopItem item = uncommons.get(u);
+            int reqLvl = (u < uncommonLevels.length) ? uncommonLevels[u] : 9;
+            catalog.add(new ShopItem(item.getId(), item.getName(), item.getPrice(), item.getCategory(), item.getResName(), item.getRarityTier(), reqLvl, item.getIconEmoji()));
+        }
+
+        int[] rareLevels = {15, 17, 19};
+        for (int r = 0; r < Math.min(maxPerTier, rares.size()); r++) {
+            ShopItem item = rares.get(r);
+            int reqLvl = (r < rareLevels.length) ? rareLevels[r] : 15;
+            catalog.add(new ShopItem(item.getId(), item.getName(), item.getPrice(), item.getCategory(), item.getResName(), item.getRarityTier(), reqLvl, item.getIconEmoji()));
+        }
+
+        int[] epicLevels = {21, 23, 25};
+        for (int e = 0; e < Math.min(maxPerTier, epics.size()); e++) {
+            ShopItem item = epics.get(e);
+            int reqLvl = (e < epicLevels.length) ? epicLevels[e] : 21;
+            catalog.add(new ShopItem(item.getId(), item.getName(), item.getPrice(), item.getCategory(), item.getResName(), item.getRarityTier(), reqLvl, item.getIconEmoji()));
+        }
 
         return catalog;
     }

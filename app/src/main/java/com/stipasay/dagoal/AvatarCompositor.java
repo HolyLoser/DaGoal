@@ -160,17 +160,22 @@ public class AvatarCompositor {
         // 1.2 Layer 1.2: Base Shorts (ALWAYS-ON lower body clothing)
         drawDrawableFittingCanvas(canvas, context, R.drawable.shorts, paint, outputSizePx, 0, topPaddingPx);
 
-        // 1.5 Layer 1.5: Clothes / Wardrobe Upper Body Outfit (with scale & position controls)
+        // 1.5 Layer 1.5: Clothes / Wardrobe Upper Body Outfit
+        boolean isTankTop = config.clothesAssetId == null || config.clothesAssetId.isEmpty() || "tank_top".equals(config.clothesAssetId);
         int clothesRes = context.getResources().getIdentifier(config.clothesAssetId, "drawable", context.getPackageName());
         if (clothesRes == 0) clothesRes = R.drawable.tank_top;
 
-        float clothesScale = 0.70f;
-        float scaledClothesSize = outputSizePx * clothesScale;
-        float clothesOffsetX = (outputSizePx - scaledClothesSize) / 2.0f;
-        float clothesOffsetY = topPaddingPx + (outputSizePx - scaledClothesSize) / 2.0f + dpToPx(70.0f, density) * scale;
-        RectF clothesRect = new RectF(clothesOffsetX, clothesOffsetY, clothesOffsetX + scaledClothesSize, clothesOffsetY + scaledClothesSize);
+        if (isTankTop || clothesRes == R.drawable.tank_top) {
+            drawDrawableFittingCanvas(canvas, context, R.drawable.tank_top, paint, outputSizePx, 0, topPaddingPx);
+        } else {
+            float clothesScale = 0.70f;
+            float scaledClothesSize = outputSizePx * clothesScale;
+            float clothesOffsetX = (outputSizePx - scaledClothesSize) / 2.0f;
+            float clothesOffsetY = topPaddingPx + (outputSizePx - scaledClothesSize) / 2.0f + dpToPx(70.0f, density) * scale;
+            RectF clothesRect = new RectF(clothesOffsetX, clothesOffsetY, clothesOffsetX + scaledClothesSize, clothesOffsetY + scaledClothesSize);
 
-        drawDrawableInRect(canvas, context, clothesRes, clothesRect, paint);
+            drawDrawableInRect(canvas, context, clothesRes, clothesRect, paint);
+        }
 
         // 2. Layer 2: Eyes (Paired Left _a & Right _b)
         int baseEyeSizeDp = getEyeSizeDp(config.selectedEyeBase);
@@ -273,24 +278,23 @@ public class AvatarCompositor {
         else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
 
         // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
-        if (config.accessoryAssetId != null && !config.accessoryAssetId.isEmpty()) {
-            boolean isGlasses = config.accessoryAssetId.contains("glasses") || config.accessoryAssetId.contains("sunglasses");
-            if (isGlasses) {
-                int accessoryRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
-                if (accessoryRes != 0) {
-                    Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, config.accessoryColor);
+        String glassesAsset = (config.glassesAssetId != null && !config.glassesAssetId.isEmpty()) ? config.glassesAssetId : config.accessoryAssetId;
+        if (glassesAsset != null && !glassesAsset.isEmpty() && (glassesAsset.contains("glasses") || glassesAsset.contains("sunglasses"))) {
+            int accessoryRes = context.getResources().getIdentifier(glassesAsset, "drawable", context.getPackageName());
+            if (accessoryRes != 0) {
+                int color = config.glassesColor != 0 ? config.glassesColor : config.accessoryColor;
+                Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, color);
 
-                    float accessoryScale = 0.76f;
-                    float scaledSize = outputSizePx * accessoryScale;
-                    float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
-                    float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
-                    RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
+                float accessoryScale = 0.76f;
+                float scaledSize = outputSizePx * accessoryScale;
+                float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
+                float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
+                RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
 
-                    if (accessoryBitmap != null) {
-                        canvas.drawBitmap(accessoryBitmap, null, accessoryRect, paint);
-                    } else {
-                        drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
-                    }
+                if (accessoryBitmap != null) {
+                    canvas.drawBitmap(accessoryBitmap, null, accessoryRect, paint);
+                } else {
+                    drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
                 }
             }
         }
@@ -304,42 +308,43 @@ public class AvatarCompositor {
             }
         }
 
-        // 6.5 Layer 6.5: Hair Accessories (Hair Bow, Hair Flowers, Hair Butterfly - on top of hair)
-        if (config.accessoryAssetId != null && config.accessoryAssetId.contains("hair")) {
-            int hairAccRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
-            if (hairAccRes != 0) {
-                Bitmap hairAccBitmap = generateAccessoryBitmap(context, hairAccRes, config.accessoryColor);
+        // 6.5 & 7. Layer 6.5 / 7: Head & Hat Accessories (Hair Bow, Flowers, Butterfly, Hats)
+        String hatAsset = (config.hatAssetId != null && !config.hatAssetId.isEmpty()) ? config.hatAssetId : config.accessoryAssetId;
+        if (hatAsset != null && !hatAsset.isEmpty()) {
+            int color = config.hatColor != 0 ? config.hatColor : config.accessoryColor;
+            if (hatAsset.contains("hair")) {
+                int hairAccRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
+                if (hairAccRes != 0) {
+                    Bitmap hairAccBitmap = generateAccessoryBitmap(context, hairAccRes, color);
 
-                float hairAccScale = 0.50f;
-                float scaledHairAccSize = outputSizePx * hairAccScale;
-                float hairAccOffsetX = (outputSizePx - scaledHairAccSize) / 150.0f + hairTranslationX + dpToPx(130.0f, density) * scale;
-                float hairAccOffsetY = hairTranslationY - dpToPx(0.65f, density) * scale;
-                RectF hairAccRect = new RectF(hairAccOffsetX, hairAccOffsetY, hairAccOffsetX + scaledHairAccSize, hairAccOffsetY + scaledHairAccSize);
+                    float hairAccScale = 0.65f;
+                    float scaledHairAccSize = outputSizePx * hairAccScale;
+                    float hairAccOffsetX = (outputSizePx - scaledHairAccSize) / 150.0f + hairTranslationX + dpToPx(130.0f, density) * scale;
+                    float hairAccOffsetY = hairTranslationY - dpToPx(0.75f, density) * scale;
+                    RectF hairAccRect = new RectF(hairAccOffsetX, hairAccOffsetY, hairAccOffsetX + scaledHairAccSize, hairAccOffsetY + scaledHairAccSize);
 
-                if (hairAccBitmap != null) {
-                    canvas.drawBitmap(hairAccBitmap, null, hairAccRect, paint);
-                } else {
-                    drawDrawableInRect(canvas, context, hairAccRes, hairAccRect, paint);
+                    if (hairAccBitmap != null) {
+                        canvas.drawBitmap(hairAccBitmap, null, hairAccRect, paint);
+                    } else {
+                        drawDrawableInRect(canvas, context, hairAccRes, hairAccRect, paint);
+                    }
                 }
-            }
-        }
+            } else if (hatAsset.contains("hat")) {
+                int hatRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
+                if (hatRes != 0) {
+                    Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, color);
 
-        // 7. Layer 7: Hat Accessories (On Top of Head/Hair at 1.15f scale, higher elevation)
-        if (config.accessoryAssetId != null && config.accessoryAssetId.contains("hat")) {
-            int hatRes = context.getResources().getIdentifier(config.accessoryAssetId, "drawable", context.getPackageName());
-            if (hatRes != 0) {
-                Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, config.accessoryColor);
+                    float hatScale = 1.40f;
+                    float scaledHatSize = outputSizePx * hatScale;
+                    float hatOffsetX = (outputSizePx - scaledHatSize) / 2.0f + hairTranslationX;
+                    float hatOffsetY = hairTranslationY - dpToPx(155.0f, density) * scale;
+                    RectF hatRect = new RectF(hatOffsetX, hatOffsetY, hatOffsetX + scaledHatSize, hatOffsetY + scaledHatSize);
 
-                float hatScale = 1.40f;
-                float scaledHatSize = outputSizePx * hatScale;
-                float hatOffsetX = (outputSizePx - scaledHatSize) / 2.0f + hairTranslationX;
-                float hatOffsetY = hairTranslationY - dpToPx(155.0f, density) * scale;
-                RectF hatRect = new RectF(hatOffsetX, hatOffsetY, hatOffsetX + scaledHatSize, hatOffsetY + scaledHatSize);
-
-                if (hatBitmap != null) {
-                    canvas.drawBitmap(hatBitmap, null, hatRect, paint);
-                } else {
-                    drawDrawableInRect(canvas, context, hatRes, hatRect, paint);
+                    if (hatBitmap != null) {
+                        canvas.drawBitmap(hatBitmap, null, hatRect, paint);
+                    } else {
+                        drawDrawableInRect(canvas, context, hatRes, hatRect, paint);
+                    }
                 }
             }
         }

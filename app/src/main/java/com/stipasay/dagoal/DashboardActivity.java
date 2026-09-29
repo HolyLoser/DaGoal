@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -64,6 +65,9 @@ public class DashboardActivity extends AppCompatActivity {
     private BroadcastReceiver taskProgressReceiver;
     private SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener;
     private com.google.firebase.firestore.ListenerRegistration firestoreUserListener;
+    private String currentActiveTab = "QUEST";
+    private String selectedWardrobeCategoryFilter = "clothes";
+    private android.view.GestureDetector dashboardGestureDetector;
     private LinearLayout currentActiveQuestContainer;
     private LinearLayout currentCompletedQuestContainer;
     private Handler avoidanceTickHandler = new Handler(Looper.getMainLooper());
@@ -144,6 +148,7 @@ public class DashboardActivity extends AppCompatActivity {
         checkAndRequestStepPermissions();
         checkAndRequestAvoidancePermissions();
         startAvoidanceServiceIfNeeded();
+        setupDashboardSwipeGestures();
 
         selectTab("QUEST");
     }
@@ -876,7 +881,94 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
 
+    private void setupDashboardSwipeGestures() {
+        dashboardGestureDetector = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
+            private static final int SWIPE_THRESHOLD = 100;
+            private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) return false;
+                float diffX = e2.getX() - e1.getX();
+                float diffY = e2.getY() - e1.getY();
+
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffX < 0) {
+                        if ("QUEST".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("WARDROBE");
+                            return true;
+                        } else if ("WARDROBE".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("SHOP");
+                            return true;
+                        }
+                    } else {
+                        if ("SHOP".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("WARDROBE");
+                            return true;
+                        } else if ("WARDROBE".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("QUEST");
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (dashboardGestureDetector != null) {
+            dashboardGestureDetector.onTouchEvent(ev);
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private int getTabIndex(String tabName) {
+        if ("WARDROBE".equalsIgnoreCase(tabName)) return 1;
+        if ("SHOP".equalsIgnoreCase(tabName)) return 2;
+        if ("ME".equalsIgnoreCase(tabName)) return 3;
+        return 0; // QUEST
+    }
+
+    private void updateDashboardBackground(String tabName, boolean movingRight) {
+        if ("ME".equalsIgnoreCase(tabName)) return; // Do not change background for ME tab
+
+        ImageView ivActive = findViewById(R.id.iv_dashboard_bg_active);
+        ImageView ivNext = findViewById(R.id.iv_dashboard_bg_next);
+        if (ivActive == null || ivNext == null) return;
+
+        int targetRes = R.drawable.bg_home;
+        if ("WARDROBE".equalsIgnoreCase(tabName)) {
+            targetRes = R.drawable.bg_wardrobe;
+        } else if ("SHOP".equalsIgnoreCase(tabName)) {
+            targetRes = R.drawable.bg_shop;
+        }
+
+        int width = getResources().getDisplayMetrics().widthPixels;
+        float startX = movingRight ? width : -width;
+        float endActiveX = movingRight ? -width : width;
+
+        final int bgRes = targetRes;
+        ivNext.setImageResource(bgRes);
+        ivNext.setTranslationX(startX);
+        ivNext.setVisibility(View.VISIBLE);
+
+        ivActive.animate().translationX(endActiveX).setDuration(250).start();
+        ivNext.animate().translationX(0).setDuration(250).withEndAction(() -> {
+            ivActive.setImageResource(bgRes);
+            ivActive.setTranslationX(0);
+            ivNext.setTranslationX(0);
+        }).start();
+    }
+
     private void selectTab(String tabName) {
+        int oldIndex = getTabIndex(currentActiveTab);
+        int newIndex = getTabIndex(tabName);
+        boolean movingRight = newIndex >= oldIndex;
+
+        currentActiveTab = tabName;
+        updateDashboardBackground(tabName, movingRight);
         SoundEffectsHelper.playHighlight(this);
         resetTabColors();
         contentFrame.removeAllViews();
@@ -900,6 +992,23 @@ public class DashboardActivity extends AppCompatActivity {
             contentParams.height = contentFrameHeightPx;
         }
         contentFrame.setLayoutParams(contentParams);
+
+        contentFrame.setTranslationX(0);
+        contentFrame.setAlpha(1.0f);
+
+        View cardChestBar = findViewById(R.id.card_chest_bar);
+        View panelSidebar = findViewById(R.id.panel_wardrobe_sidebar);
+
+        if ("QUEST".equals(tabName)) {
+            if (cardChestBar != null) cardChestBar.setVisibility(View.VISIBLE);
+            if (panelSidebar != null) panelSidebar.setVisibility(View.GONE);
+        } else if ("WARDROBE".equals(tabName)) {
+            if (cardChestBar != null) cardChestBar.setVisibility(View.GONE);
+            if (panelSidebar != null) panelSidebar.setVisibility(View.VISIBLE);
+        } else {
+            if (cardChestBar != null) cardChestBar.setVisibility(View.GONE);
+            if (panelSidebar != null) panelSidebar.setVisibility(View.GONE);
+        }
 
         switch (tabName) {
             case "QUEST":
@@ -931,6 +1040,7 @@ public class DashboardActivity extends AppCompatActivity {
                 highlightTab(navWardrobe);
                 View wardrobeView = inflater.inflate(R.layout.view_dashboard_wardrobe, contentFrame, false);
                 contentFrame.addView(wardrobeView);
+                setupDragHandle(wardrobeView);
 
                 Button btnEquipAction = wardrobeView.findViewById(R.id.btn_wardrobe_action);
                 android.widget.GridView gridWardrobeItems = wardrobeView.findViewById(R.id.grid_wardrobe_items);
@@ -938,47 +1048,120 @@ public class DashboardActivity extends AppCompatActivity {
                 btnEquipAction.setText("Equip Item");
                 btnEquipAction.setVisibility(View.GONE);
 
-                refreshWardrobeAvatarPreview(wardrobeView, btnEquipAction);
-
                 TaskManager wardrobeManager = new TaskManager(this);
-                java.util.List<ShopItem> ownedList = wardrobeManager.getOwnedItems();
+
+                View btnFilterHat = findViewById(R.id.btn_wardrobe_filter_hat);
+                View btnFilterGlasses = findViewById(R.id.btn_wardrobe_filter_glasses);
+                View btnFilterClothes = findViewById(R.id.btn_wardrobe_filter_clothes);
+                View bgFilterHat = findViewById(R.id.view_bg_filter_hat);
+                View bgFilterGlasses = findViewById(R.id.view_bg_filter_glasses);
+                View bgFilterClothes = findViewById(R.id.view_bg_filter_clothes);
+
+                ImageView ivSidebarHat = findViewById(R.id.iv_sidebar_icon_hat);
+                ImageView ivSidebarGlasses = findViewById(R.id.iv_sidebar_icon_glasses);
+                ImageView ivSidebarClothes = findViewById(R.id.iv_sidebar_icon_clothes);
+
+                Runnable updateSidebarItemPreviews = new Runnable() {
+                    @Override
+                    public void run() {
+                        ShopItem eqHat = TaskManager.getEquippedItemForSlot(DashboardActivity.this, "hat");
+                        if (eqHat != null && ivSidebarHat != null) {
+                            bindShopItemImagePreview(eqHat, ivSidebarHat, null);
+                        } else if (ivSidebarHat != null) {
+                            ivSidebarHat.setImageResource(R.drawable.accessory_knit_hat);
+                            ivSidebarHat.setVisibility(View.VISIBLE);
+                        }
+
+                        ShopItem eqGlasses = TaskManager.getEquippedItemForSlot(DashboardActivity.this, "glasses");
+                        if (eqGlasses != null && ivSidebarGlasses != null) {
+                            bindShopItemImagePreview(eqGlasses, ivSidebarGlasses, null);
+                        } else if (ivSidebarGlasses != null) {
+                            ivSidebarGlasses.setImageResource(R.drawable.accessory_reading_glasses);
+                            ivSidebarGlasses.setVisibility(View.VISIBLE);
+                        }
+
+                        ShopItem eqClothes = TaskManager.getEquippedItemForSlot(DashboardActivity.this, "clothes");
+                        if (eqClothes != null && ivSidebarClothes != null) {
+                            bindShopItemImagePreview(eqClothes, ivSidebarClothes, null);
+                        } else if (ivSidebarClothes != null) {
+                            ivSidebarClothes.setImageResource(R.drawable.tank_top);
+                            ivSidebarClothes.setVisibility(View.VISIBLE);
+                        }
+                    }
+                };
+
+                java.util.List<ShopItem> allOwned = wardrobeManager.getOwnedItems();
+                java.util.List<ShopItem> filteredOwned = new java.util.ArrayList<>();
+
+                Runnable applyWardrobeFilter = new Runnable() {
+                    @Override
+                    public void run() {
+                        filteredOwned.clear();
+                        for (ShopItem item : allOwned) {
+                            String itemSlot = TaskManager.getItemSlotType(item);
+                            if (selectedWardrobeCategoryFilter.equalsIgnoreCase(itemSlot)) {
+                                filteredOwned.add(item);
+                            }
+                        }
+                        java.util.Collections.sort(filteredOwned, (a, b) -> {
+                            boolean eqA = isItemEquippedInSlot(a);
+                            boolean eqB = isItemEquippedInSlot(b);
+                            if (eqA && !eqB) return -1;
+                            if (!eqA && eqB) return 1;
+                            return 0;
+                        });
+
+                        int greenColor = Color.parseColor("#546B41");
+                        int grayColor = Color.parseColor("#CBD5E1");
+                        if (bgFilterHat != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterHat, android.content.res.ColorStateList.valueOf("hat".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
+                        if (bgFilterGlasses != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterGlasses, android.content.res.ColorStateList.valueOf("glasses".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
+                        if (bgFilterClothes != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterClothes, android.content.res.ColorStateList.valueOf("clothes".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
+
+                        if (gridWardrobeItems.getAdapter() != null) {
+                            ((android.widget.BaseAdapter) gridWardrobeItems.getAdapter()).notifyDataSetChanged();
+                        }
+                    }
+                };
+
+                if (btnFilterHat != null) btnFilterHat.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "hat"; applyWardrobeFilter.run(); });
+                if (btnFilterGlasses != null) btnFilterGlasses.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "glasses"; applyWardrobeFilter.run(); });
+                if (btnFilterClothes != null) btnFilterClothes.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "clothes"; applyWardrobeFilter.run(); });
 
                 gridWardrobeItems.setAdapter(new android.widget.BaseAdapter() {
                     @Override
-                    public int getCount() { return ownedList.size(); }
+                    public int getCount() { return filteredOwned.size(); }
                     @Override
-                    public Object getItem(int position) { return ownedList.get(position); }
+                    public Object getItem(int position) { return filteredOwned.get(position); }
                     @Override
-                    public long getItemId(int position) { return ownedList.get(position).getId(); }
+                    public long getItemId(int position) { return filteredOwned.get(position).getId(); }
                     @Override
                     public View getView(int position, View convertView, android.view.ViewGroup parent) {
                         if (convertView == null) {
                             convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_shop_grid, parent, false);
                         }
-                        ShopItem item = ownedList.get(position);
+                        ShopItem item = filteredOwned.get(position);
 
                         View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
                         TextView tvEmoji = convertView.findViewById(R.id.tv_shop_item_emoji);
+                        ImageView ivItemImage = convertView.findViewById(R.id.iv_shop_item_image);
                         View lockOverlay = convertView.findViewById(R.id.view_shop_lock_overlay);
                         ImageView ivLockIcon = convertView.findViewById(R.id.iv_shop_lock_icon);
                         TextView tvName = convertView.findViewById(R.id.tv_shop_item_name);
                         TextView tvMeta = convertView.findViewById(R.id.tv_shop_item_meta);
 
-                        int tierColor = getShopTierColor(item.getRarityTier());
-                        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(tierColor));
-
-                        tvEmoji.setText(item.getIconEmoji());
+                        bindShopItemImagePreview(item, ivItemImage, tvEmoji);
                         tvName.setText(item.getName());
 
-                        ShopItem currentlyEquipped = TaskManager.getEquippedItem(DashboardActivity.this);
-                        boolean isEquipped = (currentlyEquipped != null && currentlyEquipped.getId() == item.getId());
+                        boolean isEquipped = isItemEquippedInSlot(item);
 
                         if (isEquipped) {
                             tvMeta.setText("EQUIPPED");
-                            tvMeta.setTextColor(android.graphics.Color.parseColor("#546B41"));
+                            tvMeta.setTextColor(android.graphics.Color.parseColor("#2D5A27"));
+                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#546B41")));
                         } else {
                             tvMeta.setText(item.getRarityTier());
-                            tvMeta.setTextColor(tierColor);
+                            tvMeta.setTextColor(android.graphics.Color.parseColor("#64748B"));
+                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#CBD5E1")));
                         }
 
                         lockOverlay.setVisibility(View.GONE);
@@ -987,7 +1170,8 @@ public class DashboardActivity extends AppCompatActivity {
                         convertView.setOnClickListener(v -> {
                             selectedWardrobeItem = item;
                             btnEquipAction.setVisibility(View.VISIBLE);
-                            ShopItem eq = TaskManager.getEquippedItem(DashboardActivity.this);
+                            String itemSlot = TaskManager.getItemSlotType(item);
+                            ShopItem eq = TaskManager.getEquippedItemForSlot(DashboardActivity.this, itemSlot);
                             if (eq != null && eq.getId() == item.getId()) {
                                 btnEquipAction.setText("Unequip " + item.getName());
                             } else {
@@ -1000,28 +1184,31 @@ public class DashboardActivity extends AppCompatActivity {
 
                 btnEquipAction.setOnClickListener(v -> {
                     if (selectedWardrobeItem != null) {
-                        ShopItem currentlyEquipped = TaskManager.getEquippedItem(this);
+                        String itemSlot = TaskManager.getItemSlotType(selectedWardrobeItem);
+                        ShopItem currentlyEquipped = TaskManager.getEquippedItemForSlot(this, itemSlot);
                         if (currentlyEquipped != null && currentlyEquipped.getId() == selectedWardrobeItem.getId()) {
-                            TaskManager.setEquippedItem(this, null);
+                            TaskManager.unequipItemInSlot(this, itemSlot);
                             ToastUtils.showToast(this, "Unequipped: " + selectedWardrobeItem.getName());
                         } else {
                             TaskManager.setEquippedItem(this, selectedWardrobeItem);
                             ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
                         }
                         AvatarCompositor.clearCache();
-                        refreshWardrobeAvatarPreview(wardrobeView, btnEquipAction);
                         updateGlobalAvatarHeader();
-                        if (gridWardrobeItems.getAdapter() != null) {
-                            ((android.widget.BaseAdapter) gridWardrobeItems.getAdapter()).notifyDataSetChanged();
-                        }
+                        updateSidebarItemPreviews.run();
+                        applyWardrobeFilter.run();
                     }
                 });
+
+                updateSidebarItemPreviews.run();
+                applyWardrobeFilter.run();
                 break;
 
             case "SHOP":
                 highlightTab(navShop);
                 View shopView = inflater.inflate(R.layout.view_dashboard_shop, contentFrame, false);
                 contentFrame.addView(shopView);
+                setupDragHandle(shopView);
 
                 TextView tvShopGoldBalance = shopView.findViewById(R.id.tv_shop_gold_balance);
                 TextView tvStatusBadge = shopView.findViewById(R.id.tv_shop_status_badge);
@@ -1086,6 +1273,7 @@ public class DashboardActivity extends AppCompatActivity {
 
                         View badgeBg = convertView.findViewById(R.id.view_shop_badge_bg);
                         TextView tvEmoji = convertView.findViewById(R.id.tv_shop_item_emoji);
+                        ImageView ivItemImage = convertView.findViewById(R.id.iv_shop_item_image);
                         View lockOverlay = convertView.findViewById(R.id.view_shop_lock_overlay);
                         ImageView ivLockIcon = convertView.findViewById(R.id.iv_shop_lock_icon);
                         TextView tvName = convertView.findViewById(R.id.tv_shop_item_name);
@@ -1094,7 +1282,7 @@ public class DashboardActivity extends AppCompatActivity {
                         int tierColor = getShopTierColor(item.getRarityTier());
                         androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(tierColor));
 
-                        tvEmoji.setText(item.getIconEmoji());
+                        bindShopItemImagePreview(item, ivItemImage, tvEmoji);
                         tvName.setText(item.getName());
 
                         if (isOwned) {
@@ -1179,6 +1367,58 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private void bindShopItemImagePreview(ShopItem item, ImageView ivItemImage, TextView tvEmoji) {
+        if (item == null) return;
+        String resName = item.getResName();
+        if (resName != null && !resName.isEmpty() && ivItemImage != null) {
+            int drawableRes = 0;
+            int tintColor = 0;
+
+            if (resName.startsWith("accessory_")) {
+                int lastUnderscore = resName.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    String baseAsset = resName.substring(0, lastUnderscore);
+                    String colorName = resName.substring(lastUnderscore + 1);
+                    drawableRes = getResources().getIdentifier(baseAsset, "drawable", getPackageName());
+                    tintColor = AvatarConfig.parseAccessoryColor(colorName);
+                } else {
+                    drawableRes = getResources().getIdentifier(resName, "drawable", getPackageName());
+                }
+            } else {
+                drawableRes = getResources().getIdentifier(resName, "drawable", getPackageName());
+            }
+
+            if (drawableRes != 0) {
+                if (tintColor != 0) {
+                    Bitmap tintedBitmap = AvatarCompositor.generateAccessoryBitmap(this, drawableRes, tintColor);
+                    if (tintedBitmap != null) {
+                        ivItemImage.setImageBitmap(tintedBitmap);
+                    } else {
+                        ivItemImage.setImageResource(drawableRes);
+                    }
+                } else {
+                    ivItemImage.setImageResource(drawableRes);
+                }
+                ivItemImage.setVisibility(View.VISIBLE);
+                if (tvEmoji != null) tvEmoji.setVisibility(View.GONE);
+                return;
+            }
+        }
+
+        if (ivItemImage != null) ivItemImage.setVisibility(View.GONE);
+        if (tvEmoji != null) {
+            tvEmoji.setText(item.getIconEmoji());
+            tvEmoji.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private boolean isItemEquippedInSlot(ShopItem item) {
+        if (item == null) return false;
+        String slot = TaskManager.getItemSlotType(item);
+        ShopItem equipped = TaskManager.getEquippedItemForSlot(this, slot);
+        return equipped != null && equipped.getId() == item.getId();
+    }
+
     private void updateGlobalAvatarHeader() {
         if (avatarHostContainer != null) {
             AvatarCompositor.clearCache();
@@ -1217,33 +1457,6 @@ public class DashboardActivity extends AppCompatActivity {
                 SoundEffectsHelper.playMenuOpen(this);
                 startActivity(new Intent(this, SettingsActivity.class));
             });
-        }
-    }
-
-    private void refreshWardrobeAvatarPreview(View wardrobeView, Button btnEquipAction) {
-        if (wardrobeView == null) return;
-        AvatarCompositor.clearCache();
-        FrameLayout avatarHost = wardrobeView.findViewById(R.id.avatar_me_host);
-        if (avatarHost != null) {
-            AvatarHelper.renderUserAvatarFaceOnly(this, avatarHost);
-        }
-
-        TextView tvName = wardrobeView.findViewById(R.id.tv_equipped_item_name);
-        TextView tvStatus = wardrobeView.findViewById(R.id.tv_equipped_item_status);
-
-        ShopItem equipped = TaskManager.getEquippedItem(this);
-        if (equipped != null) {
-            if (tvName != null) tvName.setText("Equipped: " + equipped.getName());
-            if (tvStatus != null) tvStatus.setText(equipped.getRarityTier() + " • Tap an item below to change");
-            if (btnEquipAction != null && selectedWardrobeItem != null && selectedWardrobeItem.getId() == equipped.getId()) {
-                btnEquipAction.setText("Unequip " + equipped.getName());
-            }
-        } else {
-            if (tvName != null) tvName.setText("Equipped: None");
-            if (tvStatus != null) tvStatus.setText("Select an item below to equip");
-            if (btnEquipAction != null && selectedWardrobeItem != null) {
-                btnEquipAction.setText("Equip " + selectedWardrobeItem.getName());
-            }
         }
     }
 

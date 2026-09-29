@@ -45,6 +45,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
     private int selectedHairColor = Color.parseColor("#3B2219"); // Dark Brown default
     private String selectedHairBase = "01"; // "01" .. "10"
+    private String selectedClothesAssetId = "tank_top";
 
     private int selectedHairIndex = 0;
     private int selectedEyesIndex = 0;
@@ -162,6 +163,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
         this.selectedHairIndex = savedConfig.hairIndex;
         this.selectedHairColor = savedConfig.selectedHairColor;
         this.selectedHairBase = savedConfig.selectedHairBase;
+        this.selectedClothesAssetId = savedConfig.clothesAssetId != null ? savedConfig.clothesAssetId : "tank_top";
 
         for (int i = 0; i < mouthShapes.length; i++) {
             if (mouthShapes[i].equalsIgnoreCase(savedConfig.selectedMouthShape)) {
@@ -1149,7 +1151,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 selectedHairIndex,
                 selectedHairColor,
                 selectedHairBase,
-                "tank_top"
+                selectedClothesAssetId != null ? selectedClothesAssetId : "tank_top"
         );
         config.saveToPreferences(this);
         AvatarCompositor.clearCache();

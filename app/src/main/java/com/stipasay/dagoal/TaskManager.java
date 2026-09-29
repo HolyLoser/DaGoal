@@ -1935,6 +1935,40 @@ public class TaskManager {
         }
     }
 
+    public static String getItemSlotType(ShopItem item) {
+        if (item == null) return "glasses";
+        String cat = item.getCategory();
+        String resName = item.getResName() != null ? item.getResName().toLowerCase() : "";
+
+        if ("outfit".equalsIgnoreCase(cat) || "shirt".equalsIgnoreCase(cat) || "pants".equalsIgnoreCase(cat)) {
+            return "clothes";
+        }
+        if (resName.contains("hat") || resName.contains("hair")) {
+            return "hat";
+        }
+        return "glasses";
+    }
+
+    public static ShopItem getEquippedItemForSlot(Context context, String slotType) {
+        if (context == null) return null;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String prefKey = "pref_equipped_glasses_id";
+        if ("clothes".equals(slotType)) prefKey = "pref_equipped_clothes_id";
+        else if ("hat".equals(slotType)) prefKey = "pref_equipped_hat_id";
+
+        int equippedId = prefs.getInt(prefKey, -1);
+        if (equippedId <= 0) return null;
+
+        TaskManager tm = new TaskManager(context);
+        for (ShopItem item : tm.getOwnedItems()) {
+            if (item.getId() == equippedId) return item;
+        }
+        for (ShopItem item : tm.getShopItems()) {
+            if (item.getId() == equippedId) return item;
+        }
+        return null;
+    }
+
     public static ShopItem getEquippedItem(Context context) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         int equippedId = prefs.getInt("pref_equipped_item_id", -1);
@@ -1956,27 +1990,48 @@ public class TaskManager {
     }
 
     public static void setEquippedItem(Context context, ShopItem item) {
+        if (context == null) return;
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+
         if (item == null) {
-            prefs.edit()
-                    .remove("pref_equipped_item_id")
+            editor.remove("pref_equipped_item_id")
+                    .remove("pref_equipped_clothes_id")
+                    .remove("pref_equipped_glasses_id")
+                    .remove("pref_equipped_hat_id")
                     .remove("pref_avatar_accessory")
                     .remove("pref_avatar_accessory_color")
                     .putString("pref_avatar_clothes", "tank_top")
                     .apply();
-            Log.d("AvatarDebug", "setEquippedItem: NULL (unequipped)");
+            Log.d("AvatarDebug", "setEquippedItem: NULL (unequipped all)");
         } else {
-            android.content.SharedPreferences.Editor editor = prefs.edit();
-            editor.putInt("pref_equipped_item_id", item.getId())
-                    .remove("pref_avatar_accessory")
-                    .remove("pref_avatar_accessory_color");
-
-            if ("outfit".equalsIgnoreCase(item.getCategory()) || "shirt".equalsIgnoreCase(item.getCategory()) || "pants".equalsIgnoreCase(item.getCategory())) {
-                editor.putString("pref_avatar_clothes", item.getResName());
+            String slotType = getItemSlotType(item);
+            if ("clothes".equals(slotType)) {
+                editor.putInt("pref_equipped_clothes_id", item.getId())
+                        .putString("pref_avatar_clothes", item.getResName());
+            } else if ("hat".equals(slotType)) {
+                editor.putInt("pref_equipped_hat_id", item.getId());
+            } else {
+                editor.putInt("pref_equipped_glasses_id", item.getId());
             }
-            editor.apply();
-            Log.d("AvatarDebug", "setEquippedItem: itemId=" + item.getId() + " resName=" + item.getResName());
+            editor.putInt("pref_equipped_item_id", item.getId()).apply();
+            Log.d("AvatarDebug", "setEquippedItem: slot=" + slotType + " itemId=" + item.getId() + " resName=" + item.getResName());
         }
+        AvatarCompositor.clearCache();
+    }
+
+    public static void unequipItemInSlot(Context context, String slotType) {
+        if (context == null) return;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        if ("clothes".equals(slotType)) {
+            editor.remove("pref_equipped_clothes_id").putString("pref_avatar_clothes", "tank_top");
+        } else if ("hat".equals(slotType)) {
+            editor.remove("pref_equipped_hat_id");
+        } else {
+            editor.remove("pref_equipped_glasses_id");
+        }
+        editor.apply();
         AvatarCompositor.clearCache();
     }
 }

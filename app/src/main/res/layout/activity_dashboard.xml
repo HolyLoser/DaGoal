@@ -3,8 +3,27 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_dashboard_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/quest_sec_bg">
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/dashboard_bg_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/iv_dashboard_bg_next"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_home" />
+
+        <ImageView
+            android:id="@+id/iv_dashboard_bg_active"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_home" />
+    </FrameLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/dashboard_main_layout"
@@ -163,11 +182,99 @@
                 android:layout_height="0dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="12dp"
-                android:layout_marginEnd="16dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/panel_wardrobe_sidebar"
                 app:layout_constraintStart_toEndOf="@id/card_chest_bar"
                 app:layout_constraintTop_toBottomOf="@id/stats_header" />
+
+            <!-- Wardrobe Right-Side Category Sidebar (Right Side) -->
+            <LinearLayout
+                android:id="@+id/panel_wardrobe_sidebar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/stats_header">
+
+                <!-- 1. Hat / Head Slot Button -->
+                <FrameLayout
+                    android:id="@+id/btn_wardrobe_filter_hat"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_marginBottom="12dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <View
+                        android:id="@+id/view_bg_filter_hat"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/bg_circle_bordered"
+                        android:backgroundTint="#CBD5E1" />
+
+                    <ImageView
+                        android:id="@+id/iv_sidebar_icon_hat"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/accessory_knit_hat" />
+                </FrameLayout>
+
+                <!-- 2. Glasses Slot Button -->
+                <FrameLayout
+                    android:id="@+id/btn_wardrobe_filter_glasses"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_marginBottom="12dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <View
+                        android:id="@+id/view_bg_filter_glasses"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/bg_circle_bordered"
+                        android:backgroundTint="#CBD5E1" />
+
+                    <ImageView
+                        android:id="@+id/iv_sidebar_icon_glasses"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/accessory_reading_glasses" />
+                </FrameLayout>
+
+                <!-- 3. Clothes / Shirt Slot Button -->
+                <FrameLayout
+                    android:id="@+id/btn_wardrobe_filter_clothes"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <View
+                        android:id="@+id/view_bg_filter_clothes"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/bg_circle_bordered"
+                        android:backgroundTint="#546B41" />
+
+                    <ImageView
+                        android:id="@+id/iv_sidebar_icon_clothes"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/tank_top" />
+                </FrameLayout>
+            </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
