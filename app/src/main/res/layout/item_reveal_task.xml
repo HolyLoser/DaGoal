@@ -103,19 +103,40 @@
         android:textStyle="bold"
         android:visibility="gone" />
 
-    <!-- Completion / Shuffle Checkbox (Hidden if not generic or when using custom button) -->
+    <!-- Clean Manual Complete Button -->
+    <Button
+        android:id="@+id/btn_manual_complete"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:backgroundTint="@color/dagoal_secondary"
+        android:paddingHorizontal="14dp"
+        android:text="Complete"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Legacy Checkbox (Hidden) -->
     <CheckBox
         android:id="@+id/btn_shuffle_item"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <!-- Separate Shuffle Button -->
+    <ImageButton
+        android:id="@+id/btn_card_shuffle"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:background="@android:drawable/checkbox_on_background"
-        android:button="@null"
-        android:clickable="false"
-        android:contentDescription="Complete Task Checkbox"
-        android:focusable="false"
-        android:visibility="visible" />
+        android:layout_marginStart="8dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="Shuffle Quest"
+        android:scaleType="fitCenter"
+        android:src="@drawable/shuffle_icon"
+        android:visibility="gone" />
 
-    <!-- Custom Quest Completed Button -->
+    <!-- Custom Quest Completed Label -->
     <Button
         android:id="@+id/btn_quest_completed_label"
         android:layout_width="wrap_content"

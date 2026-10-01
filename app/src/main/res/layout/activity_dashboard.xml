@@ -66,32 +66,40 @@
                 <!-- XP Badge (Centered) -->
                 <LinearLayout
                     android:id="@+id/xp_badge_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="120dp"
+                    android:layout_height="38dp"
                     android:background="@drawable/bg_stats_badge_light"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="18dp"
-                    android:paddingVertical="10dp"
+                    android:paddingHorizontal="12dp"
+                    app:layout_constraintBottom_toBottomOf="@id/tv_global_dashboard_lvl"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
+                    app:layout_constraintTop_toTopOf="@id/tv_global_dashboard_lvl">
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
                         android:contentDescription="@null"
                         android:src="@drawable/exp_icon" />
+
+                    <ProgressBar
+                        android:id="@+id/pb_global_dashboard_xp"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="0dp"
+                        android:layout_height="10dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:max="100"
+                        android:progress="50"
+                        android:progressTint="#8A2BE2"
+                        android:progressBackgroundTint="#CBD5E1" />
 
                     <TextView
                         android:id="@+id/tv_global_dashboard_xp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:text="@string/xp_placeholder"
-                        android:textColor="@color/dagoal_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:visibility="gone" />
                 </LinearLayout>
 
                 <!-- Gold Badge (Top Right) -->
@@ -108,8 +116,8 @@
                     app:layout_constraintTop_toTopOf="parent">
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
                         android:contentDescription="@null"
                         android:src="@drawable/coins_icon" />
 
@@ -121,6 +129,75 @@
                         android:text="@string/gold_placeholder"
                         android:textColor="@color/dagoal_primary"
                         android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Active XP Boost Timer Badge (Below XP Badge Centered) -->
+                <LinearLayout
+                    android:id="@+id/xp_boost_badge_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_stats_badge_light"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="5dp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="@id/xp_badge_container"
+                    app:layout_constraintStart_toStartOf="@id/xp_badge_container"
+                    app:layout_constraintTop_toBottomOf="@id/xp_badge_container">
+
+                    <ImageView
+                        android:id="@+id/iv_global_dashboard_xp_boost_icon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/icon_2x_xp" />
+
+                    <TextView
+                        android:id="@+id/tv_global_dashboard_xp_boost_timer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="05:59:50"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Active Gold Boost Timer Badge (Below Gold Badge Top Right) -->
+                <LinearLayout
+                    android:id="@+id/gold_boost_badge_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_stats_badge_light"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="5dp"
+                    android:visibility="gone"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/gold_badge_container">
+
+                    <ImageView
+                        android:id="@+id/iv_global_dashboard_gold_boost_icon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/icon_2x_gold" />
+
+                    <TextView
+                        android:id="@+id/tv_global_dashboard_gold_boost_timer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="05:59:50"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
@@ -141,13 +218,12 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/stats_header">
 
-                <TextView
-                    android:id="@+id/tv_chest_bar_icon"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:gravity="center"
-                    android:text="🎁"
-                    android:textSize="22sp" />
+                <ImageView
+                    android:id="@+id/iv_chest_bar_icon"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/chest_wood" />
 
                 <!-- Vertical Progress Bar Track -->
                 <FrameLayout
@@ -219,8 +295,8 @@
 
                     <ImageView
                         android:id="@+id/iv_sidebar_icon_hat"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
                         android:layout_gravity="center"
                         android:scaleType="fitCenter"
                         android:src="@drawable/accessory_knit_hat" />

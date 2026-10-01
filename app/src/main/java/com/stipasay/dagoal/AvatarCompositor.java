@@ -138,6 +138,9 @@ public class AvatarCompositor {
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
 
         float hairTranslationY = topPaddingPx - dpToPx(58.0f, density) * scale;
+        if ("08".equals(config.selectedHairBase)) {
+            hairTranslationY += dpToPx(12.0f, density) * scale;
+        }
         float hairTranslationX = -dpToPx(2.0f, density) * scale;
 
         // 0. Layer 0: Back Hair (_b)
@@ -285,10 +288,11 @@ public class AvatarCompositor {
                 int color = config.glassesColor != 0 ? config.glassesColor : config.accessoryColor;
                 Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, color);
 
-                float accessoryScale = 0.76f;
+                float baseFaceTranslationY = topPaddingPx - dpToPx(58.0f, density) * scale + dpToPx(12.0f, density) * scale;
+                float accessoryScale = 0.60f;
                 float scaledSize = outputSizePx * accessoryScale;
-                float offsetX = (outputSizePx - scaledSize) / 2.0f + hairTranslationX;
-                float offsetY = (outputSizePx - scaledSize) / 2.0f + hairTranslationY;
+                float offsetX = (outputSizePx - scaledSize) / 1.95f + hairTranslationX;
+                float offsetY = (outputSizePx - scaledSize) / 2.5f + baseFaceTranslationY;
                 RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
 
                 if (accessoryBitmap != null) {
@@ -472,24 +476,41 @@ public class AvatarCompositor {
 
                 boolean isLightFrame = (r > 100 && g > 100 && b > 100);
                 if (isLightFrame && a >= 50) {
-                    float[] pixelHsv = new float[3];
-                    Color.colorToHSV(p, pixelHsv);
-                    pixelHsv[0] = targetHue;
-                    if (targetSat > 0) {
-                        pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                    if (targetColor == Color.parseColor("#1E1E1E") || resEntryName.contains("black")) {
+                        pixels[i] = (a << 24) | (0x1e << 16) | (0x1e << 8) | 0x1e;
+                    } else {
+                        float[] pixelHsv = new float[3];
+                        Color.colorToHSV(p, pixelHsv);
+                        pixelHsv[0] = targetHue;
+                        if (targetSat > 0) {
+                            pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                        }
+                        pixels[i] = Color.HSVToColor(a, pixelHsv);
                     }
-                    pixels[i] = Color.HSVToColor(a, pixelHsv);
                 } else {
                     pixels[i] = p;
                 }
             } else {
-                float[] pixelHsv = new float[3];
-                Color.colorToHSV(p, pixelHsv);
-                pixelHsv[0] = targetHue;
-                if (targetSat > 0) {
-                    pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isLightFrame = (r > 100 && g > 100 && b > 100);
+                if (isLightFrame && a >= 50) {
+                    if (targetColor == Color.parseColor("#1E1E1E") || resEntryName.contains("black")) {
+                        pixels[i] = (a << 24) | (0x1e << 16) | (0x1e << 8) | 0x1e;
+                    } else {
+                        float[] pixelHsv = new float[3];
+                        Color.colorToHSV(p, pixelHsv);
+                        pixelHsv[0] = targetHue;
+                        if (targetSat > 0) {
+                            pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                        }
+                        pixels[i] = Color.HSVToColor(a, pixelHsv);
+                    }
+                } else {
+                    pixels[i] = p;
                 }
-                pixels[i] = Color.HSVToColor(a, pixelHsv);
             }
         }
 

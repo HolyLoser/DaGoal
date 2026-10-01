@@ -35,7 +35,7 @@
                 android:paddingBottom="20dp">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:gravity="center_vertical"
@@ -50,11 +50,24 @@
 
                     <TextView
                         android:id="@+id/tv_quests_remaining_header"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="@string/no_quest_available"
                         android:textColor="@color/dagoal_primary"
                         android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_custom_quest_counter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_task_card"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:text="0 Custom Goals"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 

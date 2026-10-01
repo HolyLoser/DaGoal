@@ -149,7 +149,6 @@ public class AvatarConfig {
         int hatColor = Color.parseColor("#1E1E1E");
 
         ShopItem equippedGlasses = TaskManager.getEquippedItemForSlot(context, "glasses");
-        if (equippedGlasses == null) equippedGlasses = TaskManager.getEquippedItem(context);
         if (equippedGlasses != null) {
             String resName = equippedGlasses.getResName();
             if (resName != null) {

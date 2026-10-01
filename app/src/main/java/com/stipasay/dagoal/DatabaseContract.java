@@ -109,6 +109,9 @@ public final class DatabaseContract {
         public static final String TYPE_XP_BOOST = "XP_BOOST";
         public static final String TYPE_GOLD_BOOST = "GOLD_BOOST";
         public static final String TYPE_SHOP_REFRESH = "SHOP_REFRESH";
+        public static final String TYPE_QUEST_REFRESH = "QUEST_REFRESH";
+        public static final String TYPE_XP_BOOST_1_5 = "XP_BOOST_1_5";
+        public static final String TYPE_GOLD_BOOST_1_5 = "GOLD_BOOST_1_5";
     }
 
     public static class StreakHistoryEntry {

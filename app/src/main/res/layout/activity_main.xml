@@ -20,7 +20,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
-    <!-- Sign Up Button -->
+    <!-- Create an Avatar Button -->
     <Button
         android:id="@+id/btn_start_signup"
         android:layout_width="match_parent"
@@ -28,7 +28,7 @@
         android:layout_marginHorizontal="20dp"
         android:layout_marginTop="32dp"
         android:background="@drawable/bg_auth_pill"
-        android:text="Sign Up"
+        android:text="Create an Avatar"
         android:textAllCaps="false"
         android:textColor="#1E1E1E"
         android:textSize="18sp"

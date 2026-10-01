@@ -44,9 +44,14 @@ public class AppSelectionActivity extends AppCompatActivity {
         containerAppChecklist = findViewById(R.id.container_app_checklist);
         btnContinue = findViewById(R.id.btn_app_selection_continue);
         btnBack = findViewById(R.id.btn_app_selection_back);
-
+        boolean fromSettings = getIntent().getBooleanExtra("FROM_SETTINGS", false);
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            if (fromSettings) {
+                btnBack.setVisibility(View.VISIBLE);
+                btnBack.setOnClickListener(v -> finish());
+            } else {
+                btnBack.setVisibility(View.GONE);
+            }
         }
 
         android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);

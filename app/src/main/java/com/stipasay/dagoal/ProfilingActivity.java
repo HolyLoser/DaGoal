@@ -137,6 +137,14 @@ public class ProfilingActivity extends AppCompatActivity {
 
     private void processNicknameSubmit() {
         if (isAnimating) return;
+
+        try {
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null && getCurrentFocus() != null) {
+                imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+            }
+        } catch (Exception ignored) {}
+
         String typedName = "Adventurer";
         if (editNicknameInput != null && !editNicknameInput.getText().toString().trim().isEmpty()) {
             typedName = editNicknameInput.getText().toString().trim();
@@ -148,18 +156,22 @@ public class ProfilingActivity extends AppCompatActivity {
         displayQuestionWithAnimation(1, true);
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        handleBackClick();
+    }
+
     private void handleBackClick() {
         if (isAnimating) return;
         if (currentQuestionIndex > 0) {
             currentQuestionIndex--;
             displayQuestionWithAnimation(currentQuestionIndex, false);
         } else {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Exit Questionnaire?")
-                    .setMessage("Your character is saved! You can resume this questionnaire anytime.")
-                    .setPositiveButton("Exit", (dialog, which) -> finish())
-                    .setNegativeButton("Resume", null)
-                    .show();
+            Intent intent = new Intent(this, AvatarCreationActivity.class);
+            intent.putExtra("extra_edit_mode", false);
+            startActivity(intent);
+            finish();
         }
     }
 

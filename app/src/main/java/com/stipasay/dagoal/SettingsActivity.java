@@ -120,12 +120,29 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private View addInfoRow(LinearLayout container, String title, String value, Runnable onClick) {
+        return addInfoRow(container, title, null, value, onClick);
+    }
+
+    private View addInfoRow(LinearLayout container, String title, String subtitle, String value, Runnable onClick) {
         View row = LayoutInflater.from(this).inflate(R.layout.item_settings_row, container, false);
         TextView tvTitle = row.findViewById(R.id.tv_settings_row_title);
+        TextView tvSubtitle = row.findViewById(R.id.tv_settings_row_subtitle);
         TextView tvValue = row.findViewById(R.id.tv_settings_row_value);
 
         tvTitle.setText(title);
-        tvValue.setText(value);
+        if (subtitle != null && !subtitle.isEmpty()) {
+            tvSubtitle.setText(subtitle);
+            tvSubtitle.setVisibility(View.VISIBLE);
+        } else if (tvSubtitle != null) {
+            tvSubtitle.setVisibility(View.GONE);
+        }
+
+        if (value != null && !value.isEmpty()) {
+            tvValue.setText(value);
+            tvValue.setVisibility(View.VISIBLE);
+        } else if (tvValue != null) {
+            tvValue.setVisibility(View.GONE);
+        }
 
         if (onClick != null) {
             row.setOnClickListener(v -> onClick.run());
@@ -159,18 +176,13 @@ public class SettingsActivity extends AppCompatActivity {
         String savedEmail = prefs.getString("user_email", "Guest Mode (Offline)");
         com.google.firebase.auth.FirebaseUser firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
 
-        addInfoRow(container, "Account", isLoggedIn ? savedEmail : "Guest Mode", null);
-        if (firebaseUser != null) {
-            addInfoRow(container, "Firebase Auth", "Authenticated (" + firebaseUser.getEmail() + ")", null);
-        } else {
-            addInfoRow(container, "Link Account to Cloud", "Sync guest profile to Email", () -> showLinkAccountDialog());
+        if (firebaseUser == null) {
+            addInfoRow(container, "Sync to Cloud", "Back up your progress to cloud", "", () -> showSignUpAndSyncDialog());
         }
 
         addInfoRow(container, "Username", username, () -> showEditUsernameDialog());
         addInfoRow(container, "Level", String.valueOf(level), null);
 
-        boolean isOnline = OnlineShopManager.isNetworkAvailable(this);
-        addInfoRow(container, "Cloud Sync Status", isOnline ? "🌐 Online (Connected)" : "📱 Offline Mode", null);
         addSwitchRow(container, "Show Network Badge on Shop", "Display online tag in Shop header",
                 prefs.getBoolean("pref_show_network_badge", false),
                 isChecked -> prefs.edit().putBoolean("pref_show_network_badge", isChecked).apply());
@@ -205,11 +217,11 @@ public class SettingsActivity extends AppCompatActivity {
             });
         }
 
-        addInfoRow(container, "Reset Progress & Account", "Tap to reset", () -> {
+        addInfoRow(container, "Delete Account", "", () -> {
             new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Reset Progress & Delete Account?")
+                    .setTitle("Delete Account?")
                     .setMessage("This will delete your account and erase all quests, achievements, gold, XP, and levels. This cannot be undone.")
-                    .setPositiveButton("Reset & Delete", (d, w) -> {
+                    .setPositiveButton("Delete Account", (d, w) -> {
                         String uid = prefs.getString("user_uid", null);
                         com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
 
@@ -272,16 +284,40 @@ public class SettingsActivity extends AppCompatActivity {
             return;
         }
 
-        android.widget.EditText editPassword = new android.widget.EditText(this);
-        editPassword.setHint("Password");
-        editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        android.widget.LinearLayout container = new android.widget.LinearLayout(this);
+        container.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        container.setGravity(android.view.Gravity.CENTER_VERTICAL);
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
-        editPassword.setPadding(padding, padding, padding, padding);
+        container.setPadding(padding, padding / 2, padding, padding / 2);
+
+        android.widget.EditText editPassword = new android.widget.EditText(this);
+        editPassword.setHint("Enter Password");
+        editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        editPassword.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEye = new android.widget.ImageButton(this);
+        btnEye.setImageResource(android.R.drawable.ic_menu_view);
+        btnEye.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEye.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isVisible = {false};
+        btnEye.setOnClickListener(v -> {
+            isVisible[0] = !isVisible[0];
+            if (isVisible[0]) {
+                editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+            editPassword.setSelection(editPassword.getText().length());
+        });
+
+        container.addView(editPassword);
+        container.addView(btnEye);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Confirm Password")
                 .setMessage("Deleting your cloud account requires recent verification. Please enter your password to confirm.")
-                .setView(editPassword)
+                .setView(container)
                 .setPositiveButton("Confirm & Delete", (dialog, which) -> {
                     String password = editPassword.getText().toString().trim();
                     if (password.isEmpty()) {
@@ -366,32 +402,95 @@ public class SettingsActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showLinkAccountDialog() {
+    private void showSignUpAndSyncDialog() {
         LinearLayout dialogLayout = new LinearLayout(this);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
-        dialogLayout.setPadding(padding, padding, padding, padding);
+        dialogLayout.setPadding(padding, padding / 2, padding, padding / 2);
 
         android.widget.EditText editEmail = new android.widget.EditText(this);
         editEmail.setHint("Email Address");
-        editEmail.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
-        dialogLayout.addView(editEmail);
+        editEmail.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+
+        LinearLayout passContainer = new LinearLayout(this);
+        passContainer.setOrientation(LinearLayout.HORIZONTAL);
+        passContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
         android.widget.EditText editPassword = new android.widget.EditText(this);
-        editPassword.setHint("Create Password");
+        editPassword.setHint("Password");
         editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        dialogLayout.addView(editPassword);
+        editPassword.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEye1 = new android.widget.ImageButton(this);
+        btnEye1.setImageResource(android.R.drawable.ic_menu_view);
+        btnEye1.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEye1.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isPassVisible = {false};
+        btnEye1.setOnClickListener(v -> {
+            isPassVisible[0] = !isPassVisible[0];
+            if (isPassVisible[0]) {
+                editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                editPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+            editPassword.setSelection(editPassword.getText().length());
+        });
+
+        passContainer.addView(editPassword);
+        passContainer.addView(btnEye1);
+
+        LinearLayout confirmPassContainer = new LinearLayout(this);
+        confirmPassContainer.setOrientation(LinearLayout.HORIZONTAL);
+        confirmPassContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        android.widget.EditText editConfirmPassword = new android.widget.EditText(this);
+        editConfirmPassword.setHint("Confirm Password");
+        editConfirmPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        editConfirmPassword.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEye2 = new android.widget.ImageButton(this);
+        btnEye2.setImageResource(android.R.drawable.ic_menu_view);
+        btnEye2.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEye2.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isConfirmVisible = {false};
+        btnEye2.setOnClickListener(v -> {
+            isConfirmVisible[0] = !isConfirmVisible[0];
+            if (isConfirmVisible[0]) {
+                editConfirmPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                editConfirmPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+            editConfirmPassword.setSelection(editConfirmPassword.getText().length());
+        });
+
+        confirmPassContainer.addView(editConfirmPassword);
+        confirmPassContainer.addView(btnEye2);
+
+        dialogLayout.addView(editEmail);
+        dialogLayout.addView(passContainer);
+        dialogLayout.addView(confirmPassContainer);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Link Account to Email")
+                .setTitle("Sign Up & Sync Account")
                 .setMessage("Convert your offline guest profile into a cloud-synced account.")
                 .setView(dialogLayout)
-                .setPositiveButton("Link & Sync", (dialog, which) -> {
+                .setPositiveButton("Sign Up & Sync", (dialog, which) -> {
                     String email = editEmail.getText().toString().trim();
                     String password = editPassword.getText().toString().trim();
+                    String confirmPassword = editConfirmPassword.getText().toString().trim();
 
-                    if (email.isEmpty() || password.isEmpty() || password.length() < 4) {
-                        ToastUtils.showToast(this, "Please enter a valid email and 4+ char password.");
+                    if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                        ToastUtils.showToast(this, "Please fill in all fields.");
+                        return;
+                    }
+                    if (!password.equals(confirmPassword)) {
+                        ToastUtils.showToast(this, "Passwords do not match.");
+                        return;
+                    }
+                    if (password.length() < 6) {
+                        ToastUtils.showToast(this, "Password must be at least 6 characters.");
                         return;
                     }
 
@@ -434,11 +533,11 @@ public class SettingsActivity extends AppCompatActivity {
                                             .putString("user_nickname", username)
                                             .apply();
 
-                                    ToastUtils.showToast(this, "Account linked and synced to cloud!");
+                                    ToastUtils.showToast(this, "Account created and profile synced! ☁️");
                                     showScreen("ACCOUNT");
                                 } else {
-                                    String errorMsg = task.getException() != null ? task.getException().getMessage() : "Linking failed";
-                                    ToastUtils.showToast(this, "Notice: " + errorMsg);
+                                    String err = task.getException() != null ? task.getException().getMessage() : "Registration failed";
+                                    ToastUtils.showToast(this, "Sign up failed: " + err);
                                 }
                             });
                 })

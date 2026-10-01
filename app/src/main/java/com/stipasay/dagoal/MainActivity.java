@@ -36,16 +36,9 @@ public class MainActivity extends AppCompatActivity {
         btnStartLogin = findViewById(R.id.btn_start_login);
         tvTermsFooter = findViewById(R.id.tv_terms_footer);
 
-        boolean isOnline = OnlineShopManager.isNetworkAvailable(this);
-        if (!isOnline && btnStartSignUp != null) {
+        if (btnStartSignUp != null) {
             btnStartSignUp.setText("Create an Avatar");
             btnStartSignUp.setOnClickListener(v -> processCreateAvatarGuest());
-        } else if (btnStartSignUp != null) {
-            btnStartSignUp.setText("Sign Up");
-            btnStartSignUp.setOnClickListener(v -> {
-                Intent intent = new Intent(MainActivity.this, SignUpActivity.class);
-                startActivity(intent);
-            });
         }
 
         if (btnStartLogin != null) {

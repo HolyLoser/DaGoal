@@ -546,7 +546,10 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
 
         float universalHairOffsetY = -dpToPx(39);
-        float universalHairOffsetX = -dpToPx(1.0f);
+        if ("08".equals(selectedHairBase)) {
+            universalHairOffsetY += dpToPx(15.0f);
+        }
+        float universalHairOffsetX = -dpToPx(0.5f);
 
         String num = selectedHairBase;
         int frontRes = getResources().getIdentifier("hairstyle_" + num + "a", "drawable", getPackageName());
