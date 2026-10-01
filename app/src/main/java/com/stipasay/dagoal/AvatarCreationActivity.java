@@ -210,6 +210,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
     }
 
     private void selectColor(String colorName) {
+        SoundEffectsHelper.playHighlight(this);
         if ("Nose".equals(activeCategory)) {
             this.selectedNoseColorName = colorName;
         } else if ("Mouth".equals(categoryForSelectColor())) {
@@ -217,7 +218,6 @@ public class AvatarCreationActivity extends AppCompatActivity {
         } else {
             this.selectedColorName = colorName;
         }
-        ToastUtils.showToast(this, "Color: " + colorName.toUpperCase() + " Selected!");
 
         // Refresh category grid and live feature layer preview
         ImageButton currentTab = getTabButton(activeCategory);
@@ -545,15 +545,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
             return;
         }
 
-        View previewContainer = findViewById(R.id.preview_container);
-        float canvasHeight = previewContainer != null && previewContainer.getHeight() > 0 ? previewContainer.getHeight() : dpToPx(320);
-        float scale = canvasHeight / dpToPx(320);
-        float topPaddingPx = dpToPx(60.0f) * scale;
-        float universalHairOffsetY = topPaddingPx - dpToPx(58.0f) * scale + dpToPx(12.0f) * scale - dpToPx(39.0f);
+        float universalHairOffsetY = 0;
         if ("08".equals(selectedHairBase)) {
-            universalHairOffsetY += dpToPx(15.0f) * scale;
+            universalHairOffsetY = dpToPx(15.0f);
         }
-        float universalHairOffsetX = -dpToPx(0.5f);
+        float universalHairOffsetX = 0;
 
         String num = selectedHairBase;
         int frontRes = getResources().getIdentifier("hairstyle_" + num + "a", "drawable", getPackageName());
@@ -807,12 +803,12 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     selectedHairIndex = finalIndex;
                     if (finalIndex > 0) {
                         selectedHairBase = availableHairstyles.get(finalIndex - 1);
                     }
                     applyAssetSelection(category, finalIndex);
-                    ToastUtils.showToast(this, finalIndex == 0 ? "Hair Off" : ("Hairstyle #" + finalIndex + " Selected!"));
                 });
 
                 gridAssets.addView(itemImage);
@@ -864,9 +860,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     selectedEyeBase = eyeBase;
                     applyAssetSelection(category, finalIndex);
-                    ToastUtils.showToast(this, "Eye Style #" + (finalIndex + 1) + " Selected!");
                 });
 
                 gridAssets.addView(itemImage);
@@ -904,9 +900,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     selectedNoseShape = shapeName;
                     applyAssetSelection(category, finalIndex);
-                    ToastUtils.showToast(this, "Nose Style #" + (finalIndex + 1) + " Selected!");
                 });
 
                 gridAssets.addView(itemImage);
@@ -942,9 +938,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     selectedMouthShape = mouthShapeName;
                     applyAssetSelection(category, finalIndex);
-                    ToastUtils.showToast(this, "Mouth Style #" + (finalIndex + 1) + " Selected!");
                 });
 
                 gridAssets.addView(itemImage);
@@ -977,9 +973,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     selectedCheeksIndex = finalIndex;
                     applyAssetSelection(category, finalIndex);
-                    ToastUtils.showToast(this, finalIndex == 0 ? "Blush Off" : ("Blush Style #" + finalIndex + " Selected!"));
                 });
 
                 gridAssets.addView(itemImage);
@@ -1012,9 +1008,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
                     applyAssetSelection(category, finalIndex);
-                    String label = "Skin".equals(category) ? ("Skin Tone #" + (finalIndex + 1)) : (category + " #" + (finalIndex + 1));
-                    ToastUtils.showToast(this, label + " Selected!");
                 });
 
                 gridAssets.addView(itemImage);
@@ -1184,8 +1179,6 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 firestore.collection("users").document(uid).set(map, com.google.firebase.firestore.SetOptions.merge());
             } catch (Exception ignored) {}
         }
-
-        ToastUtils.showToast(this, "Character Customization Saved!");
 
         boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
         if (isEditMode) {
