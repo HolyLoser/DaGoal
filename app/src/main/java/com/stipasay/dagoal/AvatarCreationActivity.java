@@ -545,9 +545,13 @@ public class AvatarCreationActivity extends AppCompatActivity {
             return;
         }
 
-        float universalHairOffsetY = -dpToPx(39);
+        View previewContainer = findViewById(R.id.preview_container);
+        float canvasHeight = previewContainer != null && previewContainer.getHeight() > 0 ? previewContainer.getHeight() : dpToPx(320);
+        float scale = canvasHeight / dpToPx(320);
+        float topPaddingPx = dpToPx(60.0f) * scale;
+        float universalHairOffsetY = topPaddingPx - dpToPx(58.0f) * scale + dpToPx(12.0f) * scale - dpToPx(39.0f);
         if ("08".equals(selectedHairBase)) {
-            universalHairOffsetY += dpToPx(15.0f);
+            universalHairOffsetY += dpToPx(15.0f) * scale;
         }
         float universalHairOffsetX = -dpToPx(0.5f);
 

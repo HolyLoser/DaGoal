@@ -138,6 +138,29 @@ public class AvatarHelper {
         });
     }
 
+    public static void alignBitmapToBottom(ImageView imageView, Bitmap bitmap) {
+        if (imageView == null || bitmap == null || bitmap.isRecycled()) return;
+        imageView.setScaleType(ImageView.ScaleType.MATRIX);
+        imageView.setImageBitmap(bitmap);
+        imageView.post(() -> {
+            int viewWidth = imageView.getWidth();
+            int viewHeight = imageView.getHeight();
+            if (viewWidth <= 0 || viewHeight <= 0) return;
+
+            int bmWidth = bitmap.getWidth();
+            int bmHeight = bitmap.getHeight();
+
+            float scale = Math.min((float) viewWidth / bmWidth, (float) viewHeight / bmHeight);
+            float dx = (viewWidth - bmWidth * scale) / 2.0f;
+            float dy = viewHeight - bmHeight * scale;
+
+            android.graphics.Matrix matrix = new android.graphics.Matrix();
+            matrix.setScale(scale, scale);
+            matrix.postTranslate(dx, dy);
+            imageView.setImageMatrix(matrix);
+        });
+    }
+
     private static void renderUserAvatarInternal(Context context, FrameLayout container, int generation) {
         if (container == null || context == null) return;
         if (!isLatestGeneration(container, generation)) return;
@@ -173,10 +196,9 @@ public class AvatarHelper {
                 FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
                 params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
                 ivAvatar.setLayoutParams(params);
-                ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 container.addView(ivAvatar);
             }
-            ivAvatar.setImageBitmap(compositedBitmap);
+            alignBitmapToBottom(ivAvatar, compositedBitmap);
 
             String resourceName = "unknown";
             try {
