@@ -78,6 +78,11 @@ public class DashboardActivity extends AppCompatActivity {
     private ShopItem selectedShopItem = null;
     private ShopItem selectedWardrobeItem = null;
 
+    private View tabViewQuest = null;
+    private View tabViewWardrobe = null;
+    private View tabViewShop = null;
+    private View tabViewMe = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,6 +158,10 @@ public class DashboardActivity extends AppCompatActivity {
         checkAndRequestAvoidancePermissions();
         startAvoidanceServiceIfNeeded();
         setupDashboardSwipeGestures();
+
+        getCachedSampledBackground(R.drawable.bg_home);
+        getCachedSampledBackground(R.drawable.bg_wardrobe);
+        getCachedSampledBackground(R.drawable.bg_shop);
 
         selectTab("QUEST");
     }
@@ -982,12 +991,53 @@ public class DashboardActivity extends AppCompatActivity {
         return 0; // QUEST
     }
 
+    private final java.util.Map<Integer, Bitmap> sBgBitmapCache = new java.util.HashMap<>();
+
+    private Bitmap getCachedSampledBackground(int resId) {
+        if (sBgBitmapCache.containsKey(resId)) {
+            Bitmap b = sBgBitmapCache.get(resId);
+            if (b != null && !b.isRecycled()) return b;
+        }
+        int displayWidth = getResources().getDisplayMetrics().widthPixels;
+        int displayHeight = getResources().getDisplayMetrics().heightPixels;
+        Bitmap sampled = decodeSampledBitmapFromResource(getResources(), resId, displayWidth / 2, displayHeight / 2);
+        if (sampled != null) {
+            sBgBitmapCache.put(resId, sampled);
+        }
+        return sampled;
+    }
+
+    public static Bitmap decodeSampledBitmapFromResource(android.content.res.Resources res, int resId, int reqWidth, int reqHeight) {
+        final android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeResource(res, resId, options);
+
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+        options.inJustDecodeBounds = false;
+        options.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+        return android.graphics.BitmapFactory.decodeResource(res, resId, options);
+    }
+
+    public static int calculateInSampleSize(android.graphics.BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
     private void updateDashboardBackground(String tabName, boolean movingRight) {
-        if ("ME".equalsIgnoreCase(tabName)) return; // Do not change background for ME tab
+        if ("ME".equalsIgnoreCase(tabName)) return;
 
         ImageView ivActive = findViewById(R.id.iv_dashboard_bg_active);
-        ImageView ivNext = findViewById(R.id.iv_dashboard_bg_next);
-        if (ivActive == null || ivNext == null) return;
+        if (ivActive == null) return;
 
         int targetRes = R.drawable.bg_home;
         if ("WARDROBE".equalsIgnoreCase(tabName)) {
@@ -996,21 +1046,12 @@ public class DashboardActivity extends AppCompatActivity {
             targetRes = R.drawable.bg_shop;
         }
 
-        int width = getResources().getDisplayMetrics().widthPixels;
-        float startX = movingRight ? width : -width;
-        float endActiveX = movingRight ? -width : width;
-
-        final int bgRes = targetRes;
-        ivNext.setImageResource(bgRes);
-        ivNext.setTranslationX(startX);
-        ivNext.setVisibility(View.VISIBLE);
-
-        ivActive.animate().translationX(endActiveX).setDuration(250).start();
-        ivNext.animate().translationX(0).setDuration(250).withEndAction(() -> {
-            ivActive.setImageResource(bgRes);
-            ivActive.setTranslationX(0);
-            ivNext.setTranslationX(0);
-        }).start();
+        Bitmap bgBitmap = getCachedSampledBackground(targetRes);
+        if (bgBitmap != null) {
+            ivActive.setImageBitmap(bgBitmap);
+        } else {
+            ivActive.setImageResource(targetRes);
+        }
     }
 
     private void selectTab(String tabName) {
@@ -1022,9 +1063,8 @@ public class DashboardActivity extends AppCompatActivity {
         updateDashboardBackground(tabName, movingRight);
         SoundEffectsHelper.playHighlight(this);
         resetTabColors();
-        contentFrame.removeAllViews();
-        LayoutInflater inflater = LayoutInflater.from(this);
 
+        LayoutInflater inflater = LayoutInflater.from(this);
         updateGlobalAvatarHeader();
 
         currentActiveQuestContainer = null;
@@ -1061,15 +1101,32 @@ public class DashboardActivity extends AppCompatActivity {
             if (panelSidebar != null) panelSidebar.setVisibility(View.GONE);
         }
 
+        if (tabViewQuest != null) tabViewQuest.setVisibility("QUEST".equals(tabName) ? View.VISIBLE : View.GONE);
+        if (tabViewWardrobe != null) tabViewWardrobe.setVisibility("WARDROBE".equals(tabName) ? View.VISIBLE : View.GONE);
+        if (tabViewShop != null) tabViewShop.setVisibility("SHOP".equals(tabName) ? View.VISIBLE : View.GONE);
+        if (tabViewMe != null) tabViewMe.setVisibility("ME".equals(tabName) ? View.VISIBLE : View.GONE);
+
         switch (tabName) {
             case "QUEST":
                 highlightTab(navQuest);
-                View questView = inflater.inflate(R.layout.view_dashboard_quest, contentFrame, false);
-                contentFrame.addView(questView);
-                setupDragHandle(questView);
+                if (tabViewQuest == null) {
+                    tabViewQuest = inflater.inflate(R.layout.view_dashboard_quest, contentFrame, false);
+                    contentFrame.addView(tabViewQuest);
+                    setupDragHandle(tabViewQuest);
 
-                LinearLayout activeContainer = questView.findViewById(R.id.container_active_dashboard_quests);
-                LinearLayout completedContainer = questView.findViewById(R.id.container_completed_dashboard_quests);
+                    Button btnAddGoal = tabViewQuest.findViewById(R.id.btn_dashboard_add_goal);
+                    if (btnAddGoal != null) {
+                        btnAddGoal.setOnClickListener(v -> {
+                            LinearLayout activeC = tabViewQuest.findViewById(R.id.container_active_dashboard_quests);
+                            LinearLayout completedC = tabViewQuest.findViewById(R.id.container_completed_dashboard_quests);
+                            showAddGoalChooserDialog(activeC, completedC);
+                        });
+                    }
+                }
+                tabViewQuest.setVisibility(View.VISIBLE);
+
+                LinearLayout activeContainer = tabViewQuest.findViewById(R.id.container_active_dashboard_quests);
+                LinearLayout completedContainer = tabViewQuest.findViewById(R.id.container_completed_dashboard_quests);
                 currentActiveQuestContainer = activeContainer;
                 currentCompletedQuestContainer = completedContainer;
 
@@ -1080,21 +1137,19 @@ public class DashboardActivity extends AppCompatActivity {
                 updateChestBarUI();
                 checkAndShowChestTierPrompt();
                 startAvoidanceTicker();
-
-                Button btnAddGoal = questView.findViewById(R.id.btn_dashboard_add_goal);
-                if (btnAddGoal != null) {
-                    btnAddGoal.setOnClickListener(v -> showAddGoalChooserDialog(activeContainer, completedContainer));
-                }
                 break;
 
             case "WARDROBE":
                 highlightTab(navWardrobe);
-                View wardrobeView = inflater.inflate(R.layout.view_dashboard_wardrobe, contentFrame, false);
-                contentFrame.addView(wardrobeView);
-                setupDragHandle(wardrobeView);
+                if (tabViewWardrobe == null) {
+                    tabViewWardrobe = inflater.inflate(R.layout.view_dashboard_wardrobe, contentFrame, false);
+                    contentFrame.addView(tabViewWardrobe);
+                    setupDragHandle(tabViewWardrobe);
+                }
+                tabViewWardrobe.setVisibility(View.VISIBLE);
 
-                Button btnEquipAction = wardrobeView.findViewById(R.id.btn_wardrobe_action);
-                android.widget.GridView gridWardrobeItems = wardrobeView.findViewById(R.id.grid_wardrobe_items);
+                Button btnEquipAction = tabViewWardrobe.findViewById(R.id.btn_wardrobe_action);
+                android.widget.GridView gridWardrobeItems = tabViewWardrobe.findViewById(R.id.grid_wardrobe_items);
 
                 btnEquipAction.setText("Equip Item");
                 btnEquipAction.setVisibility(View.GONE);
@@ -1257,16 +1312,19 @@ public class DashboardActivity extends AppCompatActivity {
 
             case "SHOP":
                 highlightTab(navShop);
-                View shopView = inflater.inflate(R.layout.view_dashboard_shop, contentFrame, false);
-                contentFrame.addView(shopView);
-                setupDragHandle(shopView);
+                if (tabViewShop == null) {
+                    tabViewShop = inflater.inflate(R.layout.view_dashboard_shop, contentFrame, false);
+                    contentFrame.addView(tabViewShop);
+                    setupDragHandle(tabViewShop);
+                }
+                tabViewShop.setVisibility(View.VISIBLE);
 
-                TextView tvShopGoldBalance = shopView.findViewById(R.id.tv_shop_gold_balance);
-                TextView tvStatusBadge = shopView.findViewById(R.id.tv_shop_status_badge);
-                TextView tvShopTimer = shopView.findViewById(R.id.tv_shop_timer);
-                Button btnRefreshShop = shopView.findViewById(R.id.btn_refresh_shop);
-                Button btnPurchaseAction = shopView.findViewById(R.id.btn_shop_action);
-                android.widget.GridView gridShopItems = shopView.findViewById(R.id.grid_shop_items);
+                TextView tvShopGoldBalance = tabViewShop.findViewById(R.id.tv_shop_gold_balance);
+                TextView tvStatusBadge = tabViewShop.findViewById(R.id.tv_shop_status_badge);
+                TextView tvShopTimer = tabViewShop.findViewById(R.id.tv_shop_timer);
+                Button btnRefreshShop = tabViewShop.findViewById(R.id.btn_refresh_shop);
+                Button btnPurchaseAction = tabViewShop.findViewById(R.id.btn_shop_action);
+                android.widget.GridView gridShopItems = tabViewShop.findViewById(R.id.grid_shop_items);
 
                 btnPurchaseAction.setText("Purchase Item");
                 btnPurchaseAction.setVisibility(View.GONE);
@@ -1289,16 +1347,14 @@ public class DashboardActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (btnRefreshShop != null) {
-                            int cost = shopManager.getShopRefreshCost(DashboardActivity.this);
-                            if (cost == 0) {
-                                btnRefreshShop.setText("🔄 Refresh (Token)");
-                                btnRefreshShop.setEnabled(true);
-                            } else if (cost > 0) {
-                                btnRefreshShop.setText("🔄 Refresh (" + cost + "g)");
+                            int tokenQty = shopManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
+                            if (tokenQty > 0) {
+                                btnRefreshShop.setText("🔄 Refresh (1/" + tokenQty + ")");
                                 btnRefreshShop.setEnabled(true);
                             } else {
-                                btnRefreshShop.setText("🔄 Maxed (5/5)");
-                                btnRefreshShop.setEnabled(false);
+                                int cost = shopManager.getShopRefreshCost(DashboardActivity.this);
+                                btnRefreshShop.setText("🔄 Refresh (" + cost + "g)");
+                                btnRefreshShop.setEnabled(true);
                             }
                         }
                     }
@@ -1420,19 +1476,33 @@ public class DashboardActivity extends AppCompatActivity {
 
             case "ME":
                 highlightTab(navMe);
-                View meView = inflater.inflate(R.layout.view_dashboard_me, contentFrame, false);
-                contentFrame.addView(meView);
-                loadMeTabDataData(meView);
-                populateAchievementsList(meView);
-                wireSettingsButton(meView);
+                if (tabViewMe == null) {
+                    tabViewMe = inflater.inflate(R.layout.view_dashboard_me, contentFrame, false);
+                    contentFrame.addView(tabViewMe);
+                }
+                tabViewMe.setVisibility(View.VISIBLE);
+
+                loadMeTabDataData(tabViewMe);
+                populateAchievementsList(tabViewMe);
+                wireSettingsButton(tabViewMe);
                 break;
         }
     }
+
+    private final static android.util.LruCache<String, Bitmap> sAccessoryBitmapCache = new android.util.LruCache<>(200);
 
     private void bindShopItemImagePreview(ShopItem item, ImageView ivItemImage, TextView tvEmoji) {
         if (item == null) return;
         String resName = item.getResName();
         if (resName != null && !resName.isEmpty() && ivItemImage != null) {
+            Bitmap cached = sAccessoryBitmapCache.get(resName);
+            if (cached != null && !cached.isRecycled()) {
+                ivItemImage.setImageBitmap(cached);
+                ivItemImage.setVisibility(View.VISIBLE);
+                if (tvEmoji != null) tvEmoji.setVisibility(View.GONE);
+                return;
+            }
+
             int drawableRes = 0;
             int tintColor = 0;
 
@@ -1454,6 +1524,7 @@ public class DashboardActivity extends AppCompatActivity {
                 if (tintColor != 0) {
                     Bitmap tintedBitmap = AvatarCompositor.generateAccessoryBitmap(this, drawableRes, tintColor);
                     if (tintedBitmap != null) {
+                        sAccessoryBitmapCache.put(resName, tintedBitmap);
                         ivItemImage.setImageBitmap(tintedBitmap);
                     } else {
                         ivItemImage.setImageResource(drawableRes);
@@ -1562,12 +1633,10 @@ public class DashboardActivity extends AppCompatActivity {
     private void updateGlobalAvatarHeader() {
         updateActiveBoostTickerUI();
         if (avatarHostContainer != null) {
-            AvatarCompositor.clearCache();
             AvatarHelper.renderUserAvatar(this, avatarHostContainer);
         } else {
             FrameLayout host = findViewById(R.id.avatar_host_container);
             if (host != null) {
-                AvatarCompositor.clearCache();
                 AvatarHelper.renderUserAvatar(this, host);
             }
         }

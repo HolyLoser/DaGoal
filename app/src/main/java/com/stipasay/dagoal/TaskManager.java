@@ -1882,7 +1882,9 @@ public class TaskManager {
     }
 
     public int getRemainingCustomQuests(int level) {
-        return 999;
+        int allowance = getCustomQuestAllowance(level);
+        int used = getCustomQuestsUsedThisWeek();
+        return Math.max(allowance - used, 0);
     }
 
     public boolean createCustomQuest(String title, String description, int target, String unit, int goldPicked, int level, String unitType, int repeatInterval, String repeatUnit, String repeatWeekdays, String repeatEndType, String repeatEndValue) {
@@ -2052,13 +2054,36 @@ public class TaskManager {
     }
 
     public int getShopRefreshCost(Context context) {
-        return 0;
+        if (getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH) > 0) {
+            return 0;
+        }
+        return 30;
     }
 
     public boolean performShopRefresh(Context context) {
-        OnlineShopManager.forceShopRotationRefresh(context);
-        ToastUtils.showToast(context, "Shop Refreshed! 🔄 (Free Debug)");
-        return true;
+        int cost = getShopRefreshCost(context);
+        if (cost == 0) {
+            useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
+            OnlineShopManager.forceShopRotationRefresh(context);
+            ToastUtils.showToast(context, "Shop Refreshed using Refresh Token! 🔄");
+            return true;
+        } else {
+            int gold = getUserGoldBalance();
+            if (gold >= cost) {
+                SQLiteDatabase db = dbHelper.getWritableDatabase();
+                ContentValues values = new ContentValues();
+                values.put("gold", gold - cost);
+                db.update("user", values, "_id = 1", null);
+                syncUserProfileToFirestore(context);
+
+                OnlineShopManager.forceShopRotationRefresh(context);
+                ToastUtils.showToast(context, "Shop Refreshed! (-" + cost + "g) 🔄");
+                return true;
+            } else {
+                ToastUtils.showToast(context, "Not enough Gold to refresh shop!");
+                return false;
+            }
+        }
     }
 
     public boolean purchaseShopItem(ShopItem item) {

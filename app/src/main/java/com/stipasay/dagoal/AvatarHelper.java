@@ -117,14 +117,17 @@ public class AvatarHelper {
                 paint.setColor(Color.parseColor("#2D5A27"));
                 canvas.drawCircle(radius, radius, radius - dpToPx(context, 1.5f), paint);
 
-                ImageView ivAvatar = new ImageView(context);
-                ivAvatar.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-                ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                ImageView ivAvatar = null;
+                if (container.getChildCount() > 0 && container.getChildAt(0) instanceof ImageView) {
+                    ivAvatar = (ImageView) container.getChildAt(0);
+                } else {
+                    container.removeAllViews();
+                    ivAvatar = new ImageView(context);
+                    ivAvatar.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                    ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    container.addView(ivAvatar);
+                }
                 ivAvatar.setImageBitmap(circleBitmap);
-
-                // Atomic clear and add inside runnable scope
-                container.removeAllViews();
-                container.addView(ivAvatar);
 
                 String resourceName = "unknown";
                 try {
@@ -161,16 +164,19 @@ public class AvatarHelper {
         Bitmap compositedBitmap = AvatarCompositor.renderAvatarBitmap(context, config, targetSizePx);
 
         if (compositedBitmap != null && !compositedBitmap.isRecycled()) {
-            ImageView ivAvatar = new ImageView(context);
-            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
-            params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-            ivAvatar.setLayoutParams(params);
-            ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            ImageView ivAvatar = null;
+            if (container.getChildCount() > 0 && container.getChildAt(0) instanceof ImageView) {
+                ivAvatar = (ImageView) container.getChildAt(0);
+            } else {
+                container.removeAllViews();
+                ivAvatar = new ImageView(context);
+                FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+                params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+                ivAvatar.setLayoutParams(params);
+                ivAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                container.addView(ivAvatar);
+            }
             ivAvatar.setImageBitmap(compositedBitmap);
-
-            // Atomic clear and add inside runnable scope
-            container.removeAllViews();
-            container.addView(ivAvatar);
 
             String resourceName = "unknown";
             try {
