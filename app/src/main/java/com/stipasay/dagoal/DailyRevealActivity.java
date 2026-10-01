@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -27,7 +28,7 @@ public class DailyRevealActivity extends AppCompatActivity {
     private TextView tvShuffleCounter;
     private Button btnAcceptTasks;
     private DatabaseHelper dbHelper;
-    private int availableShuffles = 999;
+    private int availableShuffles = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +50,18 @@ public class DailyRevealActivity extends AppCompatActivity {
         TaskManager taskManager = new TaskManager(this);
         taskManager.generateDailyTasks();
 
-        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
+        Cursor userCursor = dbHelper.getReadableDatabase().rawQuery("SELECT level FROM user WHERE _id = 1", null);
+        int userLevel = 1;
+        if (userCursor != null && userCursor.moveToFirst()) {
+            userLevel = userCursor.getInt(0);
+            userCursor.close();
+        }
+        int baseSlots = TaskManager.getDailyQuestSlotCount(userLevel);
+        int tokensOwned = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
+        availableShuffles = baseSlots + tokensOwned;
+
+        tvShuffleCounter.setText("Available Shuffles today: " + availableShuffles);
+        loadDailyTasksFromDatabase();
         loadDailyTasksFromDatabase();
 
         btnAcceptTasks.setOnClickListener(v -> {
@@ -110,10 +122,14 @@ public class DailyRevealActivity extends AppCompatActivity {
                 if (pbProgress != null) pbProgress.setVisibility(View.GONE);
                 if (btnCompletedLabel != null) btnCompletedLabel.setVisibility(View.GONE);
 
-                btnShuffle.setOnClickListener(v -> {
-                    btnShuffle.setChecked(false);
-                    handleTaskShuffle(taskId, tvTitle, tvTarget);
-                });
+                ImageButton btnCardShuffle = taskRow.findViewById(R.id.btn_card_shuffle);
+                if (btnCardShuffle != null) {
+                    btnCardShuffle.setVisibility(View.VISIBLE);
+                    btnCardShuffle.setImageResource(R.drawable.shuffle_icon);
+                    btnCardShuffle.setOnClickListener(v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                }
+
+                if (btnShuffle != null) btnShuffle.setVisibility(View.GONE);
 
                 containerDailyTasks.addView(taskRow);
             }
@@ -133,6 +149,11 @@ public class DailyRevealActivity extends AppCompatActivity {
         if (!success) {
             ToastUtils.showToast(this, "No alternative tasks found!");
             return;
+        }
+
+        int tokensOwned = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
+        if (tokensOwned > 0) {
+            taskManager.useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
         }
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();

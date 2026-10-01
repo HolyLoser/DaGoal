@@ -137,18 +137,19 @@ public class AvatarCompositor {
         Canvas canvas = new Canvas(bitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
 
-        float hairTranslationY = topPaddingPx - dpToPx(58.0f, density) * scale;
+        float hairScale = 1.02f;
+        float hairTranslationY = topPaddingPx - dpToPx(60.0f, density) * scale;
         if ("08".equals(config.selectedHairBase)) {
             hairTranslationY += dpToPx(12.0f, density) * scale;
         }
-        float hairTranslationX = -dpToPx(2.0f, density) * scale;
+        float hairTranslationX = -dpToPx(1.5f, density) * scale;
 
         // 0. Layer 0: Back Hair (_b)
         if (config.hairIndex > 0) {
             int backRes = context.getResources().getIdentifier("hairstyle_" + config.selectedHairBase + "b", "drawable", context.getPackageName());
             if (backRes != 0) {
                 Bitmap backBitmap = generateTintedBitmap(context, backRes, config.selectedHairColor);
-                drawLayerFittingCanvas(canvas, backBitmap, backRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                drawHairLayerFittingCanvas(canvas, backBitmap, backRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY, hairScale);
             }
         }
 
@@ -308,7 +309,7 @@ public class AvatarCompositor {
             int frontRes = context.getResources().getIdentifier("hairstyle_" + config.selectedHairBase + "a", "drawable", context.getPackageName());
             if (frontRes != 0) {
                 Bitmap frontBitmap = generateTintedBitmap(context, frontRes, config.selectedHairColor);
-                drawLayerFittingCanvas(canvas, frontBitmap, frontRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY);
+                drawHairLayerFittingCanvas(canvas, frontBitmap, frontRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY, hairScale);
             }
         }
 
@@ -516,6 +517,20 @@ public class AvatarCompositor {
 
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         return bitmap;
+    }
+
+    private static void drawHairLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY, float hairScale) {
+        float scaledWidth = outputSizePx * hairScale;
+        float scaledHeight = outputSizePx * hairScale;
+        float extraX = (scaledWidth - outputSizePx) / 2.0f;
+        float extraY = (scaledHeight - outputSizePx) / 2.0f;
+
+        RectF rect = new RectF(transX - extraX, transY - extraY, transX + scaledWidth - extraX, transY + scaledHeight - extraY);
+        if (bitmap != null) {
+            canvas.drawBitmap(bitmap, null, rect, paint);
+        } else {
+            drawDrawableInRect(canvas, context, drawableRes, rect, paint);
+        }
     }
 
     private static void drawLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY) {

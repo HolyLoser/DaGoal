@@ -98,19 +98,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
         tabSkin = findViewById(R.id.tab_skin);
         gridAssets = findViewById(R.id.grid_assets);
 
-        layoutEyesContainer = findViewById(R.id.layout_eyes_container);
-        layoutCheeksContainer = findViewById(R.id.layout_cheeks_container);
-
-        ivLayerHairBack = findViewById(R.id.iv_layer_hair_back);
-        ivLayerHairFront = findViewById(R.id.iv_layer_hair_front);
-        ivLayerHairAcc = findViewById(R.id.iv_layer_hair_acc);
-
-        ivLayerEyeLeft = findViewById(R.id.iv_layer_eye_left);
-        ivLayerEyeRight = findViewById(R.id.iv_layer_eye_right);
-        ivLayerNose = findViewById(R.id.iv_layer_nose);
-        ivLayerMouth = findViewById(R.id.iv_layer_mouth);
-        ivLayerCheekLeft = findViewById(R.id.iv_layer_cheek_left);
-        ivLayerCheekRight = findViewById(R.id.iv_layer_cheek_right);
+        ivCompositedAvatarPreview = findViewById(R.id.iv_composited_avatar_preview);
 
         ImageButton btnBack = findViewById(R.id.btn_back_avatar);
         if (btnBack != null) {
@@ -549,7 +537,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
         if ("08".equals(selectedHairBase)) {
             universalHairOffsetY = dpToPx(15.0f);
         }
-        float universalHairOffsetX = 0;
+        float universalHairOffsetX = dpToPx(10.0f);
 
         String num = selectedHairBase;
         int frontRes = getResources().getIdentifier("hairstyle_" + num + "a", "drawable", getPackageName());
@@ -1049,88 +1037,66 @@ public class AvatarCreationActivity extends AppCompatActivity {
         return R.drawable.hair_category_icon;
     }
 
+    private ImageView ivCompositedAvatarPreview;
+
+    private AvatarConfig buildCurrentConfig() {
+        return new AvatarConfig(
+                selectedSkinIndex,
+                selectedColorName,
+                selectedNoseColorName,
+                selectedMouthColorName,
+                selectedNoseShape,
+                selectedMouthShape,
+                selectedEyeColor,
+                selectedEyeBase,
+                selectedCheeksIndex,
+                selectedHairIndex,
+                selectedHairColor,
+                selectedHairBase,
+                selectedClothesAssetId != null ? selectedClothesAssetId : "tank_top"
+        );
+    }
+
+    private void renderLiveAvatarPreview() {
+        if (ivCompositedAvatarPreview == null) {
+            ivCompositedAvatarPreview = findViewById(R.id.iv_composited_avatar_preview);
+        }
+        if (ivCompositedAvatarPreview == null) return;
+
+        AvatarConfig config = buildCurrentConfig();
+        Bitmap compositedBitmap = AvatarCompositor.renderAvatarBitmap(this, config, 640);
+        if (compositedBitmap != null && !compositedBitmap.isRecycled()) {
+            ivCompositedAvatarPreview.setImageBitmap(compositedBitmap);
+        }
+    }
+
     private void applyAssetSelection(String category, int index) {
         if ("Hair".equals(category)) {
             selectedHairIndex = index;
             if (index > 0 && index <= hairBases.length) {
                 selectedHairBase = hairBases[index - 1];
             }
-            updateHairLayers();
         } else if ("Eyes".equals(category)) {
             selectedEyesIndex = index;
             if (index >= 0 && index < eyeBases.length) {
                 selectedEyeBase = eyeBases[index];
             }
-            updateEyeLayers();
         } else if ("Nose".equals(category)) {
             selectedNoseIndex = index;
             if (index >= 0 && index < noseShapes.length) {
                 selectedNoseShape = noseShapes[index];
-            }
-            if (ivLayerNose != null) {
-                int shapeRes = getResources().getIdentifier(selectedNoseShape, "drawable", getPackageName());
-                if (shapeRes == 0) shapeRes = R.drawable.nose_category_icon;
-
-                int tintColor = getSwatchColorInt(selectedNoseColorName);
-                Bitmap tintedNose = getTintedEyeBitmap(shapeRes, tintColor);
-                ivLayerNose.clearColorFilter();
-                if (tintedNose != null) ivLayerNose.setImageBitmap(tintedNose);
-                else ivLayerNose.setImageResource(shapeRes);
-
-                boolean isSmallNose = "square_nose".equals(selectedNoseShape);
-                int noseSizeDp = isSmallNose ? 34 : 50;
-
-                android.widget.FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) ivLayerNose.getLayoutParams();
-                if (params != null) {
-                    params.width = dpToPx(noseSizeDp);
-                    params.height = dpToPx(noseSizeDp);
-                    params.bottomMargin = dpToPx(48);
-                    ivLayerNose.setLayoutParams(params);
-                }
-
-                ivLayerNose.setVisibility(View.VISIBLE);
             }
         } else if ("Mouth".equals(category)) {
             selectedMouthIndex = index;
             if (index >= 0 && index < mouthShapes.length) {
                 selectedMouthShape = mouthShapes[index];
             }
-            if (ivLayerMouth != null) {
-                int mouthRes = getResources().getIdentifier(selectedMouthShape, "drawable", getPackageName());
-                if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
-
-                int tintColor = getSwatchColorInt(selectedMouthColorName);
-                Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
-                ivLayerMouth.clearColorFilter();
-                if (tintedMouth != null) ivLayerMouth.setImageBitmap(tintedMouth);
-                else ivLayerMouth.setImageResource(mouthRes);
-
-                boolean isBucktooth = "smile_bucktooth".equals(selectedMouthShape);
-                int mouthSizeDp = isBucktooth ? 84 : 60;
-                int mouthBottomMarginDp = isBucktooth ? 28 : 24;
-
-                android.widget.FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) ivLayerMouth.getLayoutParams();
-                if (params != null) {
-                    params.width = dpToPx(mouthSizeDp);
-                    params.height = dpToPx(mouthSizeDp);
-                    params.bottomMargin = dpToPx(mouthBottomMarginDp);
-                    ivLayerMouth.setLayoutParams(params);
-                }
-
-                ivLayerMouth.setVisibility(View.VISIBLE);
-            }
         } else if ("Cheeks".equals(category)) {
             selectedCheeksIndex = index;
-            updateBlushLayers();
         } else if ("Skin".equals(category)) {
             selectedSkinIndex = index;
-            int skinRes = getSkinDrawableRes(index);
-            ImageView ivLayerBody = findViewById(R.id.iv_layer_body);
-            if (ivLayerBody != null) {
-                ivLayerBody.setImageResource(skinRes);
-                ivLayerBody.clearColorFilter();
-            }
         }
+        renderLiveAvatarPreview();
     }
 
     private void saveCustomizationAndProceed() {

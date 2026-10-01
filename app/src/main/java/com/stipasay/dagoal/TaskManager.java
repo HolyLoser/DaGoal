@@ -1932,6 +1932,17 @@ public class TaskManager {
         userValues.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT, getCustomQuestsUsedThisWeek() + 1);
         db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
 
+        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType) && appContext != null) {
+            try {
+                android.content.Intent stepServiceIntent = new android.content.Intent(appContext, StepTrackingService.class);
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    appContext.startForegroundService(stepServiceIntent);
+                } else {
+                    appContext.startService(stepServiceIntent);
+                }
+            } catch (Exception ignored) {}
+        }
+
         return true;
     }
 

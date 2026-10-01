@@ -2180,7 +2180,7 @@ public class DashboardActivity extends AppCompatActivity {
         if (DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST.equals(type)) return R.drawable.icon_2x_xp;
         if (DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST.equals(type)) return R.drawable.icon_2x_gold;
         if (DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH.equals(type)) return R.drawable.shop_icon;
-        if (DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH.equals(type)) return R.drawable.quest_icon;
+        if (DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH.equals(type)) return R.drawable.shuffle_icon;
         return R.drawable.exp_icon;
     }
 

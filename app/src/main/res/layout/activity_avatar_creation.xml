@@ -22,122 +22,13 @@
             android:layout_width="320dp"
             android:layout_height="320dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="-10dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Layer 0: Back Hair (Renders Behind Head / Face) -->
             <ImageView
-                android:id="@+id/iv_layer_hair_back"
+                android:id="@+id/iv_composited_avatar_preview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="top|center_horizontal"
-                android:layout_marginTop="-39dp"
-                android:layout_marginStart="-1dp"
-                android:scaleType="fitCenter" />
-
-            <!-- Layer 1: Base Body / Skin (Defaults to skin_tone1) -->
-            <ImageView
-                android:id="@+id/iv_layer_body"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:src="@drawable/skin_tone1" />
-
-            <!-- Layer 1.5: Clothes / Tank Top -->
-            <ImageView
-                android:id="@+id/iv_layer_clothes"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="fitCenter"
-                android:src="@drawable/tank_top" />
-
-            <!-- Layer 2: Eyes Container (Paired Left '_a' & Right '_b' Eyes) -->
-            <FrameLayout
-                android:id="@+id/layout_eyes_container"
-                android:layout_width="132dp"
-                android:layout_height="65dp"
-                android:layout_gravity="center"
-                android:layout_marginBottom="65dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/iv_layer_eye_left"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_gravity="start|center_vertical"
-                    android:scaleType="fitCenter" />
-
-                <ImageView
-                    android:id="@+id/iv_layer_eye_right"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:scaleType="fitCenter" />
-            </FrameLayout>
-
-            <!-- Layer 3: Nose (Scaled & Positioned High on Face) -->
-            <ImageView
-                android:id="@+id/iv_layer_nose"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="center"
-                android:layout_marginBottom="48dp"
-                android:scaleType="fitCenter"
-                android:visibility="gone" />
-
-            <!-- Layer 4: Mouth (Scaled & Positioned below Nose) -->
-            <ImageView
-                android:id="@+id/iv_layer_mouth"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_gravity="center"
-                android:layout_marginBottom="24dp"
-                android:scaleType="fitCenter"
-                android:visibility="gone" />
-
-            <!-- Layer 5: Cheeks / Blush Container (Left & Right Mirrored) -->
-            <FrameLayout
-                android:id="@+id/layout_cheeks_container"
-                android:layout_width="176dp"
-                android:layout_height="40dp"
-                android:layout_gravity="center"
-                android:layout_marginBottom="35dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/iv_layer_cheek_left"
-                    android:layout_width="50dp"
-                    android:layout_height="35dp"
-                    android:layout_gravity="start|center_vertical"
-                    android:scaleType="fitCenter" />
-
-                <ImageView
-                    android:id="@+id/iv_layer_cheek_right"
-                    android:layout_width="50dp"
-                    android:layout_height="35dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:scaleType="fitCenter" />
-            </FrameLayout>
-
-            <!-- Layer 6: Front Hair / Bangs (Renders in Front of Forehead/Head) -->
-            <ImageView
-                android:id="@+id/iv_layer_hair_front"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="top|center_horizontal"
-                android:layout_marginTop="-39dp"
-                android:layout_marginStart="-1dp"
-                android:scaleType="fitCenter" />
-
-            <!-- Layer 7: Hair Accessory / Highlights -->
-            <ImageView
-                android:id="@+id/iv_layer_hair_acc"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="top|center_horizontal"
-                android:layout_marginTop="-39dp"
-                android:layout_marginStart="-1dp"
                 android:scaleType="fitCenter" />
         </FrameLayout>
     </FrameLayout>
