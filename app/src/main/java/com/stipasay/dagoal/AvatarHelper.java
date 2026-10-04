@@ -152,7 +152,7 @@ public class AvatarHelper {
 
             float scale = Math.min((float) viewWidth / bmWidth, (float) viewHeight / bmHeight);
             float dx = (viewWidth - bmWidth * scale) / 2.0f;
-            float dy = viewHeight - bmHeight * scale;
+            float dy = viewHeight - (bmHeight * scale);
 
             android.graphics.Matrix matrix = new android.graphics.Matrix();
             matrix.setScale(scale, scale);
@@ -180,8 +180,8 @@ public class AvatarHelper {
             }
         }
 
-        int targetSizePx = Math.max(w, h);
-        if (targetSizePx <= 0) targetSizePx = Math.round(dpToPx(context, 320f));
+        int canonical320Px = Math.round(dpToPx(context, 320f));
+        int targetSizePx = Math.max(Math.max(w, h), canonical320Px);
 
         AvatarConfig config = AvatarConfig.loadFromPreferences(context);
         Bitmap compositedBitmap = AvatarCompositor.renderAvatarBitmap(context, config, targetSizePx);

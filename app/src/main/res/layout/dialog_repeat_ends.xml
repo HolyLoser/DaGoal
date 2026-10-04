@@ -56,13 +56,22 @@
         android:layout_marginTop="16dp">
 
         <Button
+            android:id="@+id/btn_repeat_ends_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear"
+            android:textColor="#E53E3E"
+            android:background="@android:color/transparent"
+            android:layout_marginEnd="12dp" />
+
+        <Button
             android:id="@+id/btn_repeat_ends_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
             android:textColor="#4B5563"
             android:background="@android:color/transparent"
-            android:layout_marginEnd="16dp" />
+            android:layout_marginEnd="12dp" />
 
         <Button
             android:id="@+id/btn_repeat_ends_ok"

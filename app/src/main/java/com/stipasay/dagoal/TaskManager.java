@@ -14,7 +14,7 @@ import android.widget.Toast;
 
 public class TaskManager {
 
-    private static final boolean DEBUG_FAST_LEVELING = true;
+    private static final boolean DEBUG_FAST_LEVELING = false;
     private static final int DEBUG_REWARD_MULTIPLIER = 5;
 
     private final DatabaseHelper dbHelper;
@@ -284,37 +284,30 @@ public class TaskManager {
         return hours + "h " + mins + "m";
     }
 
-    private int[] getTierReward(String tier) {
-        int gold;
-        int xp;
-
-        if (DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier)) {
-            gold = 35;
-            xp = 50;
-        } else if (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier)) {
-            gold = 20;
-            xp = 30;
-        } else {
-            gold = 10;
-            xp = 15;
-        }
-
+    private int[] computeScaledQuestReward(int baseGold, int baseXp, int userLevel, float scaleMultiplier) {
+        int scaledGold = Math.round((baseGold + (userLevel - 1) * 2) * scaleMultiplier);
+        int scaledXp = Math.round((baseXp + (userLevel - 1) * 3) * scaleMultiplier);
         if (DEBUG_FAST_LEVELING) {
-            gold *= DEBUG_REWARD_MULTIPLIER;
-            xp *= DEBUG_REWARD_MULTIPLIER;
+            scaledGold *= DEBUG_REWARD_MULTIPLIER;
+            scaledXp *= DEBUG_REWARD_MULTIPLIER;
         }
-
-        return new int[]{ gold, xp };
+        return new int[]{ Math.max(scaledGold, 5), Math.max(scaledXp, 5) };
     }
 
     private void applyTierReward(ContentValues values, String tier) {
-        int[] reward = getTierReward(tier);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        int userLevel = getCurrentUserLevelInternal(db);
+        int baseGold = DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier) ? 35 : (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier) ? 20 : 10);
+        int baseXp = DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier) ? 50 : (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier) ? 30 : 15);
+        int[] reward = computeScaledQuestReward(baseGold, baseXp, userLevel, 1.0f);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, reward[0]);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, reward[1]);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER, tier);
     }
 
     private void insertRandomAdditionalTasks(SQLiteDatabase db, String dateStr, int count) {
+        int userLevel = getCurrentUserLevelInternal(db);
+
         for (int i = 0; i < count; i++) {
             String query = "SELECT title, base_value, unit, quest_type, sub_category, difficulty_tier FROM task_templates WHERE title NOT IN (SELECT title FROM " +
                     DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
@@ -325,13 +318,25 @@ public class TaskManager {
                 String title = cursor.getString(0);
                 int baseValue = cursor.getInt(1);
                 String unit = cursor.getString(2);
-                String questType = cursor.getString(3);
+                String newQuestType = cursor.getString(3);
                 String subCategory = cursor.getString(4);
                 String tier = cursor.getString(5);
                 cursor.close();
 
                 double multiplier = getMultiplier(db, subCategory);
                 int finalTarget = (int) (baseValue * multiplier);
+                float stepRatio = 1.0f;
+
+                if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(newQuestType) || "Walk steps".equalsIgnoreCase(title)) {
+                    finalTarget = 3000 + new Random().nextInt(7001);
+                    stepRatio = finalTarget / 3000.0f;
+                } else if ("day".equalsIgnoreCase(unit)) {
+                    finalTarget = 1;
+                }
+
+                int baseGold = DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier) ? 35 : (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier) ? 20 : 10);
+                int baseXp = DatabaseContract.DailyTaskEntry.TIER_HARD.equals(tier) ? 50 : (DatabaseContract.DailyTaskEntry.TIER_MEDIUM.equals(tier) ? 30 : 15);
+                int[] scaledReward = computeScaledQuestReward(baseGold, baseXp, userLevel, stepRatio);
 
                 ContentValues values = new ContentValues();
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
@@ -340,10 +345,12 @@ public class TaskManager {
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, unit);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
-                values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, newQuestType);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, subCategory);
-                applyTierReward(values, tier);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER, tier);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, scaledReward[0]);
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, scaledReward[1]);
 
                 db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
             } else {
@@ -377,10 +384,12 @@ public class TaskManager {
 
         if (useGroupQuest) {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid social media");
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER, "Warns you every time you open an app in your block list during active screen avoidance.");
             values.putNull(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME);
         } else {
             String[] randomApp = blockedApps.get(random.nextInt(blockedApps.size()));
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, "Avoid " + randomApp[1]);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER, "Stay off " + randomApp[1] + " while the screen avoidance timer is active.");
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME, randomApp[0]);
         }
 
@@ -430,41 +439,6 @@ public class TaskManager {
     public boolean shuffleQuest(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
-        Cursor typeCursor = db.query(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE },
-                DatabaseContract.DailyTaskEntry._ID + " = ?",
-                new String[]{ String.valueOf(taskId) },
-                null, null, null
-        );
-
-        String questType = "";
-        if (typeCursor != null && typeCursor.moveToFirst()) {
-            questType = typeCursor.getString(0);
-            typeCursor.close();
-        }
-
-        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
-            return refreshAvoidanceQuest(taskId);
-        }
-
-        java.util.List<String[]> blockedApps = getBlockedApps(db);
-        boolean avoidanceExistsElsewhere = hasAvoidanceQuestExcluding(db, currentDate, taskId);
-
-        if (!blockedApps.isEmpty() && !avoidanceExistsElsewhere && new Random().nextInt(3) == 0) {
-            double multiplier = getMultiplier(db, "Detox Duration Multiplier");
-            ContentValues avoidanceValues = buildAvoidanceValues(blockedApps, multiplier, currentDate);
-
-            db.update(
-                    DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                    avoidanceValues,
-                    DatabaseContract.DailyTaskEntry._ID + " = ?",
-                    new String[]{ String.valueOf(taskId) }
-            );
-
-            return true;
-        }
 
         String query = "SELECT title, base_value, unit, quest_type, sub_category, difficulty_tier FROM task_templates WHERE title NOT IN (SELECT title FROM " +
                 DatabaseContract.DailyTaskEntry.TABLE_NAME + " WHERE " + DatabaseContract.DailyTaskEntry.COLUMN_DATE + " = ?) ORDER BY RANDOM() LIMIT 1";
@@ -1901,6 +1875,8 @@ public class TaskManager {
             questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS;
         } else if (DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION.equals(unitType)) {
             questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_INCREMENT;
+        } else if (DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION.equals(unitType)) {
+            questType = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID;
         }
 
         ContentValues values = new ContentValues();

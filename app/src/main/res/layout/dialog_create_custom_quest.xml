@@ -66,37 +66,50 @@
             android:visibility="gone"
             android:layout_marginBottom="8dp" />
 
-        <Spinner
-            android:id="@+id/spinner_custom_quest_duration_unit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:layout_marginBottom="16dp" />
-
         <LinearLayout
-            android:id="@+id/row_custom_quest_time"
+            android:id="@+id/row_custom_quest_duration"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="12dp"
             android:background="@drawable/bg_task_card"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp">
+            android:visibility="gone"
+            android:layout_marginBottom="12dp">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/time"
+                android:text="Duration"
                 android:textColor="#2D3748" />
 
             <TextView
-                android:id="@+id/tv_custom_quest_time_value"
+                android:id="@+id/tv_custom_quest_duration_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/none"
+                android:text="00h 30m 00s"
                 android:textColor="#4B5563" />
         </LinearLayout>
+
+        <Spinner
+            android:id="@+id/spinner_custom_quest_duration_unit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_custom_block_apps"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Block Apps during quest (Optional)"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:backgroundTint="#778A66"
+            android:visibility="gone"
+            android:layout_marginBottom="12dp" />
 
         <LinearLayout
             android:id="@+id/row_custom_quest_repeat"
@@ -135,7 +148,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/repeat_ends"
+                android:text="Quest Ends"
                 android:textColor="#2D3748" />
 
             <TextView

@@ -497,15 +497,64 @@ public class DashboardActivity extends AppCompatActivity {
         showManualGoalDialog(level, activeContainer, completedContainer);
     }
 
+    private void showCustomDurationPickerDialog(int[] durationHms, TextView tvDisplay) {
+        SoundEffectsHelper.playMenuOpen(this);
+        LinearLayout dialogView = new LinearLayout(this);
+        dialogView.setOrientation(LinearLayout.HORIZONTAL);
+        dialogView.setGravity(android.view.Gravity.CENTER);
+        int p = (int) (16 * getResources().getDisplayMetrics().density);
+        dialogView.setPadding(p, p, p, p);
+
+        android.widget.NumberPicker pHours = new android.widget.NumberPicker(this);
+        pHours.setMinValue(0);
+        pHours.setMaxValue(23);
+        pHours.setValue(durationHms[0]);
+
+        android.widget.NumberPicker pMins = new android.widget.NumberPicker(this);
+        pMins.setMinValue(0);
+        pMins.setMaxValue(59);
+        pMins.setValue(durationHms[1]);
+
+        android.widget.NumberPicker pSecs = new android.widget.NumberPicker(this);
+        pSecs.setMinValue(0);
+        pSecs.setMaxValue(59);
+        pSecs.setValue(durationHms[2]);
+
+        TextView lH = new TextView(this); lH.setText(" h "); lH.setTextSize(16);
+        TextView lM = new TextView(this); lM.setText(" m "); lM.setTextSize(16);
+        TextView lS = new TextView(this); lS.setText(" s"); lS.setTextSize(16);
+
+        dialogView.addView(pHours);
+        dialogView.addView(lH);
+        dialogView.addView(pMins);
+        dialogView.addView(lM);
+        dialogView.addView(pSecs);
+        dialogView.addView(lS);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                .setTitle("Select Duration")
+                .setView(dialogView)
+                .setPositiveButton("OK", (d, w) -> {
+                    durationHms[0] = pHours.getValue();
+                    durationHms[1] = pMins.getValue();
+                    durationHms[2] = pSecs.getValue();
+                    if (tvDisplay != null) {
+                        tvDisplay.setText(String.format(Locale.getDefault(), "%02dh %02dm %02ds", durationHms[0], durationHms[1], durationHms[2]));
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void showManualGoalDialog(int level, LinearLayout activeContainer, LinearLayout completedContainer) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_custom_quest, null);
         android.widget.EditText editTitle = dialogView.findViewById(R.id.edit_custom_quest_title);
         android.widget.EditText editTarget = dialogView.findViewById(R.id.edit_custom_quest_target);
         android.widget.EditText editUnitLabel = dialogView.findViewById(R.id.edit_custom_quest_unit_label);
         android.widget.Spinner spinnerUnitType = dialogView.findViewById(R.id.spinner_custom_quest_unit_type);
-        android.widget.Spinner spinnerDurationUnit = dialogView.findViewById(R.id.spinner_custom_quest_duration_unit);
-        LinearLayout rowTime = dialogView.findViewById(R.id.row_custom_quest_time);
-        TextView tvTimeValue = dialogView.findViewById(R.id.tv_custom_quest_time_value);
+        LinearLayout rowDuration = dialogView.findViewById(R.id.row_custom_quest_duration);
+        TextView tvDurationValue = dialogView.findViewById(R.id.tv_custom_quest_duration_value);
+
         LinearLayout rowRepeat = dialogView.findViewById(R.id.row_custom_quest_repeat);
         TextView tvRepeatValue = dialogView.findViewById(R.id.tv_custom_quest_repeat_value);
         LinearLayout rowRepeatEnds = dialogView.findViewById(R.id.row_custom_quest_repeat_ends);
@@ -514,13 +563,17 @@ public class DashboardActivity extends AppCompatActivity {
         android.widget.SeekBar seekBarGold = dialogView.findViewById(R.id.seekbar_custom_quest_gold);
         Button btnCreate = dialogView.findViewById(R.id.btn_create_custom_quest);
 
+        int[] durationHms = { 0, 30, 0 };
+        if (rowDuration != null) {
+            rowDuration.setOnClickListener(v -> showCustomDurationPickerDialog(durationHms, tvDurationValue));
+        }
+
         android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 new String[]{ "Tap to complete", "Steps", "Repetition", "Duration" });
         spinnerUnitType.setAdapter(unitAdapter);
 
-        android.widget.ArrayAdapter<String> durationUnitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{ "Minutes", "Hours", "Seconds" });
-        spinnerDurationUnit.setAdapter(durationUnitAdapter);
+        Button btnCustomBlockApps = dialogView.findViewById(R.id.btn_custom_block_apps);
+        java.util.List<String> selectedBlockedPackages = new java.util.ArrayList<>();
 
         spinnerUnitType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
@@ -529,7 +582,8 @@ public class DashboardActivity extends AppCompatActivity {
 
                 editTarget.setVisibility(View.VISIBLE);
                 editUnitLabel.setVisibility(View.GONE);
-                spinnerDurationUnit.setVisibility(View.GONE);
+                if (rowDuration != null) rowDuration.setVisibility(View.GONE);
+                if (btnCustomBlockApps != null) btnCustomBlockApps.setVisibility(View.GONE);
 
                 switch (selection) {
                     case "Tap to complete":
@@ -543,8 +597,9 @@ public class DashboardActivity extends AppCompatActivity {
                         editUnitLabel.setVisibility(View.VISIBLE);
                         break;
                     case "Duration":
-                        editTarget.setHint("Amount of time");
-                        spinnerDurationUnit.setVisibility(View.VISIBLE);
+                        editTarget.setVisibility(View.GONE);
+                        if (rowDuration != null) rowDuration.setVisibility(View.VISIBLE);
+                        if (btnCustomBlockApps != null) btnCustomBlockApps.setVisibility(View.VISIBLE);
                         break;
                 }
             }
@@ -553,27 +608,15 @@ public class DashboardActivity extends AppCompatActivity {
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
 
-        int[] selectedTimeMinutes = { 0 };
+        if (btnCustomBlockApps != null) {
+            btnCustomBlockApps.setOnClickListener(v -> showCustomAppBlockerDialog(selectedBlockedPackages));
+        }
+
         int[] selectedRepeatInterval = { 0 };
         String[] selectedRepeatUnit = { "" };
         boolean[] selectedWeekdays = new boolean[7];
         String[] selectedRepeatEndType = { "" };
         String[] selectedRepeatEndValue = { "" };
-
-        rowTime.setOnClickListener(v -> {
-            java.util.Calendar cal = java.util.Calendar.getInstance();
-            android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
-                    this,
-                    (view, hourOfDay, minute) -> {
-                        selectedTimeMinutes[0] = hourOfDay * 60 + minute;
-                        tvTimeValue.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
-                    },
-                    cal.get(java.util.Calendar.HOUR_OF_DAY),
-                    cal.get(java.util.Calendar.MINUTE),
-                    true
-            );
-            timePickerDialog.show();
-        });
 
         rowRepeat.setOnClickListener(v -> {
             View repeatDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_picker, null);
@@ -598,6 +641,17 @@ public class DashboardActivity extends AppCompatActivity {
             pickerRepeatUnit.setMaxValue(repeatUnitOptions.length - 1);
             pickerRepeatUnit.setDisplayedValues(repeatUnitOptions);
             pickerRepeatUnit.setValue(initialUnitIndex);
+
+            TextView tvWeekdayLabel = repeatDialogView.findViewById(R.id.tv_repeat_weekday_label);
+            pickerRepeatUnit.setOnValueChangedListener((picker, oldVal, newVal) -> {
+                boolean isDay = "Day".equalsIgnoreCase(repeatUnitOptions[newVal]);
+                if (tvWeekdayLabel != null) {
+                    tvWeekdayLabel.setVisibility(isDay ? View.GONE : View.VISIBLE);
+                }
+                if (containerWeekdays != null) {
+                    containerWeekdays.setVisibility(isDay ? View.GONE : View.VISIBLE);
+                }
+            });
 
             String[] weekdayLabels = { "S", "M", "T", "W", "T", "F", "S" };
             TextView[] weekdayViews = new TextView[7];
@@ -685,6 +739,16 @@ public class DashboardActivity extends AppCompatActivity {
                     .setView(endsDialogView)
                     .create();
 
+            Button btnEndsClear = endsDialogView.findViewById(R.id.btn_repeat_ends_clear);
+            if (btnEndsClear != null) {
+                btnEndsClear.setOnClickListener(cv -> {
+                    selectedRepeatEndType[0] = "NEVER";
+                    selectedRepeatEndValue[0] = "";
+                    tvRepeatEndsValue.setText("Does not end");
+                    endsDialog.dismiss();
+                });
+            }
+
             btnEndsCancel.setOnClickListener(cv -> endsDialog.dismiss());
 
             btnEndsOk.setOnClickListener(cv -> {
@@ -749,6 +813,11 @@ public class DashboardActivity extends AppCompatActivity {
             if ("Tap to complete".equals(unitTypeSelection)) {
                 unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_GENERIC;
                 unitLabel = "";
+            } else if ("Duration".equals(unitTypeSelection)) {
+                target = durationHms[0] * 60 + durationHms[1] + (durationHms[2] > 0 ? 1 : 0);
+                if (target <= 0) target = 1;
+                unitLabel = "minutes";
+                unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION;
             } else {
                 String targetStr = editTarget.getText().toString().trim();
                 if (targetStr.isEmpty()) {
@@ -776,9 +845,6 @@ public class DashboardActivity extends AppCompatActivity {
                     }
                     unitLabel = customLabel;
                     unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_REPETITION;
-                } else {
-                    unitLabel = ((String) spinnerDurationUnit.getSelectedItem()).toLowerCase(Locale.getDefault());
-                    unitType = DatabaseContract.DailyTaskEntry.UNIT_TYPE_DURATION;
                 }
             }
 
@@ -1031,6 +1097,64 @@ public class DashboardActivity extends AppCompatActivity {
             }
         }
         return inSampleSize;
+    }
+
+    private void showCustomAppBlockerDialog(java.util.List<String> selectedPackages) {
+        SoundEffectsHelper.playMenuOpen(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_custom_app_blocker, null);
+        LinearLayout container = dialogView.findViewById(R.id.container_custom_block_apps);
+        Button btnClear = dialogView.findViewById(R.id.btn_block_apps_clear);
+        Button btnDone = dialogView.findViewById(R.id.btn_block_apps_done);
+
+        java.util.List<CheckBox> checkBoxes = new java.util.ArrayList<>();
+        android.content.pm.PackageManager pm = getPackageManager();
+        java.util.List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA);
+
+        if (container != null) {
+            container.removeAllViews();
+            for (android.content.pm.ApplicationInfo app : apps) {
+                if ((app.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+                String appName = pm.getApplicationLabel(app).toString();
+                String pkgName = app.packageName;
+
+                CheckBox cb = new CheckBox(this);
+                cb.setText(appName);
+                cb.setTextColor(Color.parseColor("#2D3748"));
+                float density = getResources().getDisplayMetrics().density;
+                int padPx = (int) (8 * density);
+                cb.setPadding(padPx, padPx, padPx, padPx);
+                cb.setTag(pkgName);
+                if (selectedPackages.contains(pkgName)) {
+                    cb.setChecked(true);
+                }
+                checkBoxes.add(cb);
+                container.addView(cb);
+            }
+        }
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                .setView(dialogView)
+                .create();
+
+        if (btnClear != null) {
+            btnClear.setOnClickListener(v -> {
+                for (CheckBox cb : checkBoxes) cb.setChecked(false);
+            });
+        }
+
+        if (btnDone != null) {
+            btnDone.setOnClickListener(v -> {
+                selectedPackages.clear();
+                for (CheckBox cb : checkBoxes) {
+                    if (cb.isChecked() && cb.getTag() != null) {
+                        selectedPackages.add((String) cb.getTag());
+                    }
+                }
+                ToastUtils.showToast(this, selectedPackages.size() + " app(s) selected for blocking.");
+                dialog.dismiss();
+            });
+        }
+        dialog.show();
     }
 
     private void updateDashboardBackground(String tabName, boolean movingRight) {
@@ -1932,6 +2056,11 @@ public class DashboardActivity extends AppCompatActivity {
                     tvEmoji.setText(emoji);
                     tvGridTitle.setText(title);
 
+                    TextView tvGridDesc = convertView.findViewById(R.id.tv_achievement_grid_desc);
+                    if (tvGridDesc != null) {
+                        tvGridDesc.setText(desc);
+                    }
+
                     if (rankIndex < 0) {
                         tvRankLabel.setText("Unranked");
                         tvRankLabel.setTextColor(Color.parseColor("#A0AEC0"));
@@ -1980,7 +2109,9 @@ public class DashboardActivity extends AppCompatActivity {
         tvEmoji.setText(getQuestTypeEmoji(questType));
         tvTitle.setText(title);
 
-        if (difficultyTier != null && !difficultyTier.isEmpty() && !difficultyTier.startsWith("EASY") && !difficultyTier.startsWith("MEDIUM") && !difficultyTier.startsWith("HARD")) {
+        if ("Avoid social media".equalsIgnoreCase(title) || (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType) && (difficultyTier == null || difficultyTier.isEmpty() || difficultyTier.startsWith("EASY") || difficultyTier.startsWith("HARD")))) {
+            tvDescription.setText("Warns you every time you open an app in your block list during active screen avoidance.");
+        } else if (difficultyTier != null && !difficultyTier.isEmpty() && !difficultyTier.startsWith("EASY") && !difficultyTier.startsWith("MEDIUM") && !difficultyTier.startsWith("HARD")) {
             tvDescription.setText(difficultyTier);
         } else {
             String unitText = "minutes".equalsIgnoreCase(unit) ? TaskManager.formatDurationMinutes(target) : target + " " + unit;
@@ -2053,7 +2184,7 @@ public class DashboardActivity extends AppCompatActivity {
             tvEmoji.setVisibility(View.VISIBLE);
         }
 
-        tvDesc.setText(title);
+        tvDesc.setText(title + "\n" + description);
         tvRankName.setText(AchievementTierHelper.getRankName(currentProgress, baseTarget));
         pbProgress.setProgress(AchievementTierHelper.getProgressPercentToNextRank(currentProgress, baseTarget));
 

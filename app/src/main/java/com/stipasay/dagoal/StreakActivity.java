@@ -57,6 +57,7 @@ public class StreakActivity extends AppCompatActivity {
         if (tvDialogStreakCount != null) {
             tvDialogStreakCount.setText(String.valueOf(streakVal));
         }
+        populateWeeklyStreakRow(streakVal);
 
         android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
         if (avatarContainer != null) {
@@ -125,5 +126,58 @@ public class StreakActivity extends AppCompatActivity {
             cursor.close();
         }
         return streak;
+    }
+
+    private void populateWeeklyStreakRow(int currentStreak) {
+        LinearLayout containerWeeklyRow = findViewById(R.id.container_streak_weekly_row);
+        if (containerWeeklyRow == null) return;
+        containerWeeklyRow.removeAllViews();
+
+        TaskManager taskManager = new TaskManager(this);
+        String activeStartDateStr = taskManager.getActiveStreakStartDate();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        java.util.Calendar startCal = java.util.Calendar.getInstance();
+
+        if (activeStartDateStr != null && !activeStartDateStr.isEmpty()) {
+            try {
+                startCal.setTime(sdf.parse(activeStartDateStr));
+            } catch (Exception ignored) {}
+        }
+
+        int startDayOfWeek = startCal.get(java.util.Calendar.DAY_OF_WEEK);
+
+        containerWeeklyRow.setClipChildren(false);
+        containerWeeklyRow.setClipToPadding(false);
+
+        String[] allWeekdayLabels = { "S", "M", "T", "W", "Th", "F", "S" };
+        float density = getResources().getDisplayMetrics().density;
+        int chipSizePx = (int) (32 * density);
+        int marginPx = (int) (4 * density);
+
+        for (int i = 0; i < 7; i++) {
+            int dayIndex = (startDayOfWeek - 1 + i) % 7;
+            String label = allWeekdayLabels[dayIndex];
+
+            TextView chip = new TextView(this);
+            chip.setText(label);
+            chip.setGravity(android.view.Gravity.CENTER);
+            chip.setTextColor(android.graphics.Color.WHITE);
+            chip.setTextSize(14);
+            chip.setTypeface(null, android.graphics.Typeface.BOLD);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(chipSizePx, chipSizePx);
+            params.setMargins(marginPx, 0, marginPx, 0);
+            chip.setLayoutParams(params);
+
+            boolean isActiveStreakDay = (i < currentStreak);
+            if (isActiveStreakDay) {
+                chip.setBackgroundResource(R.drawable.bg_calendar_active_border);
+            } else {
+                chip.setBackgroundResource(0);
+            }
+
+            containerWeeklyRow.addView(chip);
+        }
     }
 }

@@ -47,23 +47,17 @@
             android:layout_marginBottom="40dp" />
 
         <LinearLayout
+            android:id="@+id/container_streak_weekly_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#20FFFFFF"
-            android:padding="16dp"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="24dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginBottom="32dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="M T W T F S S"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.6" />
-        </LinearLayout>
+            android:layout_marginBottom="32dp" />
 
         <TextView
             android:layout_width="match_parent"

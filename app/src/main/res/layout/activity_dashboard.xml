@@ -30,12 +30,23 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <!-- Collapsed Dashboard Panel Surface Anchor (300dp above bottom_nav_container) -->
+        <View
+            android:id="@+id/view_collapsed_surface_anchor"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginBottom="300dp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toTopOf="@+id/bottom_nav_container"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
         <!-- 1. Top Preview Area: Background & Stats -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/panel_avatar_host"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            app:layout_constraintHeight_percent="0.48"
+            app:layout_constraintBottom_toTopOf="@id/view_collapsed_surface_anchor"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
