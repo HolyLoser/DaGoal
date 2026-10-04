@@ -116,6 +116,9 @@ public class DashboardActivity extends AppCompatActivity {
             return insets;
         });
 
+        scheduleDailyNotifications();
+        checkFirstTimeUserTutorialPrompt();
+
         stepPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
                 result -> {
@@ -863,11 +866,18 @@ public class DashboardActivity extends AppCompatActivity {
 
             int goldPicked = goldMin + seekBarGold.getProgress();
 
+            StringBuilder blockedCsvBuilder = new StringBuilder();
+            for (String pkg : selectedBlockedPackages) {
+                if (blockedCsvBuilder.length() > 0) blockedCsvBuilder.append(",");
+                blockedCsvBuilder.append(pkg);
+            }
+
             TaskManager taskManager = new TaskManager(this);
             boolean success = taskManager.createCustomQuest(
                     title, description, target, unitLabel, goldPicked, level,
                     unitType, selectedRepeatInterval[0], selectedRepeatUnit[0],
-                    weekdaysBuilder.toString(), selectedRepeatEndType[0], selectedRepeatEndValue[0]
+                    weekdaysBuilder.toString(), selectedRepeatEndType[0], selectedRepeatEndValue[0],
+                    blockedCsvBuilder.toString()
             );
 
             if (success) {
@@ -1799,6 +1809,171 @@ public class DashboardActivity extends AppCompatActivity {
                 startActivity(new Intent(this, SettingsActivity.class));
             });
         }
+
+        View btnTutorial = meView.findViewById(R.id.btn_app_tutorial);
+        if (btnTutorial != null) {
+            btnTutorial.setOnClickListener(v -> {
+                SoundEffectsHelper.playMenuOpen(this);
+                showAppTutorialDialog();
+            });
+        }
+    }
+
+    private void showAppTutorialDialog() {
+        SoundEffectsHelper.playMenuOpen(this);
+
+        android.view.ViewGroup decorView = (android.view.ViewGroup) getWindow().getDecorView();
+        SpotlightOverlayView spotlightView = new SpotlightOverlayView(this);
+        spotlightView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_spotlight_tutorial, spotlightView, false);
+        spotlightView.addView(dialogView);
+        decorView.addView(spotlightView);
+
+        TextView tvTitle = dialogView.findViewById(R.id.tv_spotlight_step_title);
+        TextView tvDesc = dialogView.findViewById(R.id.tv_spotlight_step_desc);
+        Button btnPrev = dialogView.findViewById(R.id.btn_spotlight_prev);
+        Button btnNext = dialogView.findViewById(R.id.btn_spotlight_next);
+
+        String[] stepTitles = {
+                "1. QUEST Tab & Add Goal 📜",
+                "2. WARDROBE Tab 💇",
+                "3. SHOP Catalog 🛒",
+                "4. Chest Milestone Bar 🎁",
+                "5. ME Tab & Info Icon ℹ️"
+        };
+
+        String[] stepDescs = {
+                "Tap QUEST to view your Daily Quests and create Custom Goals tailored to your self-care journey!",
+                "Tap WARDROBE to customize your character avatar with hairstyles, skin tones, hats, glasses, and outfits!",
+                "Tap SHOP to spend earned Gold and unlock new clothing and accessory items!",
+                "Every 3 daily quests completed fills your Chest Bar to unlock Wooden, Silver, Gold, and Platinum Chests!",
+                "Tap ME to view your Level, Streaks, Achievements, and relaunch this tutorial anytime using the Info icon ℹ️!"
+        };
+
+        int[] currentStep = { 0 };
+
+        Runnable dismissTutorial = () -> {
+            SoundEffectsHelper.playMenuClose(this);
+            decorView.removeView(spotlightView);
+        };
+
+        Runnable refreshStep = () -> {
+            int step = currentStep[0];
+            if (tvTitle != null) tvTitle.setText(stepTitles[step]);
+            if (tvDesc != null) tvDesc.setText(stepDescs[step]);
+
+            View targetView = null;
+            if (step == 0) {
+                selectTab("QUEST");
+                targetView = navQuest;
+            } else if (step == 1) {
+                selectTab("WARDROBE");
+                targetView = navWardrobe;
+            } else if (step == 2) {
+                selectTab("SHOP");
+                targetView = navShop;
+            } else if (step == 3) {
+                selectTab("QUEST");
+                targetView = findViewById(R.id.card_chest_bar);
+            } else if (step == 4) {
+                selectTab("ME");
+                targetView = navMe;
+            }
+
+            final View finalTarget = targetView;
+            spotlightView.post(() -> spotlightView.setTargetView(finalTarget));
+
+            if (btnPrev != null) btnPrev.setVisibility(step > 0 ? View.VISIBLE : View.GONE);
+            if (btnNext != null) btnNext.setText(step == stepTitles.length - 1 ? "Got It!" : "Next");
+        };
+
+        refreshStep.run();
+
+        if (btnPrev != null) {
+            btnPrev.setOnClickListener(v -> {
+                if (currentStep[0] > 0) {
+                    currentStep[0]--;
+                    refreshStep.run();
+                }
+            });
+        }
+
+        if (btnNext != null) {
+            btnNext.setOnClickListener(v -> {
+                if (currentStep[0] < stepTitles.length - 1) {
+                    currentStep[0]++;
+                    refreshStep.run();
+                } else {
+                    dismissTutorial.run();
+                }
+            });
+        }
+    }
+
+    private void checkFirstTimeUserTutorialPrompt() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        boolean hasSeenTutorialPrompt = prefs.getBoolean("has_seen_tutorial_prompt", false);
+        if (!hasSeenTutorialPrompt) {
+            prefs.edit().putBoolean("has_seen_tutorial_prompt", true).apply();
+            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                    .setTitle("Welcome to DaGoal! ℹ️")
+                    .setMessage("New to DaGoal? You can tap the Info icon (ℹ️) on the ME tab anytime to view the interactive App Tutorial!")
+                    .setPositiveButton("View Tutorial Now", (dialog, which) -> showAppTutorialDialog())
+                    .setNegativeButton("Got It", null)
+                    .show();
+        }
+    }
+
+    private void scheduleDailyNotifications() {
+        try {
+            android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) return;
+
+            java.util.Calendar calMidnight = java.util.Calendar.getInstance();
+            calMidnight.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            calMidnight.set(java.util.Calendar.MINUTE, 0);
+            calMidnight.set(java.util.Calendar.SECOND, 0);
+            if (calMidnight.getTimeInMillis() <= System.currentTimeMillis()) {
+                calMidnight.add(java.util.Calendar.DAY_OF_YEAR, 1);
+            }
+
+            Intent intentMidnight = new Intent(this, DailyNotificationReceiver.class);
+            intentMidnight.setAction(DailyNotificationReceiver.ACTION_MIDNIGHT_QUESTS);
+            android.app.PendingIntent piMidnight = android.app.PendingIntent.getBroadcast(
+                    this, 801, intentMidnight,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+            );
+            alarmManager.setInexactRepeating(
+                    android.app.AlarmManager.RTC_WAKEUP,
+                    calMidnight.getTimeInMillis(),
+                    android.app.AlarmManager.INTERVAL_DAY,
+                    piMidnight
+            );
+
+            java.util.Calendar calEvening = java.util.Calendar.getInstance();
+            calEvening.set(java.util.Calendar.HOUR_OF_DAY, 20);
+            calEvening.set(java.util.Calendar.MINUTE, 0);
+            calEvening.set(java.util.Calendar.SECOND, 0);
+            if (calEvening.getTimeInMillis() <= System.currentTimeMillis()) {
+                calEvening.add(java.util.Calendar.DAY_OF_YEAR, 1);
+            }
+
+            Intent intentEvening = new Intent(this, DailyNotificationReceiver.class);
+            intentEvening.setAction(DailyNotificationReceiver.ACTION_EVENING_REMINDER);
+            android.app.PendingIntent piEvening = android.app.PendingIntent.getBroadcast(
+                    this, 802, intentEvening,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+            );
+            alarmManager.setInexactRepeating(
+                    android.app.AlarmManager.RTC_WAKEUP,
+                    calEvening.getTimeInMillis(),
+                    android.app.AlarmManager.INTERVAL_DAY,
+                    piEvening
+            );
+        } catch (Exception ignored) {}
     }
 
     private void loadMeTabDataData(View meView) {
@@ -2091,8 +2266,24 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void showQuestDetailDialog(int taskId, String title, int target, String unit, String questType,
                                        String difficultyTier, int currentValue, int rewardGold, int rewardXp,
-                                       boolean isCustom, boolean isCompleted,
+                                       boolean isCustom, boolean isCompleted, String packageName,
                                        LinearLayout activeContainer, LinearLayout completedContainer) {
+        if (isCompleted) {
+            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                    .setTitle("Undo Quest Completion?")
+                    .setMessage("Would you like to undo completing this quest? Doing so will revert its progress and refund its rewards.")
+                    .setPositiveButton("Undo", (dialog, which) -> {
+                        SoundEffectsHelper.playButton(this);
+                        TaskManager taskManager = new TaskManager(this);
+                        taskManager.uncompleteTask(taskId, rewardGold, rewardXp);
+                        updateChestBarUI();
+                        populateQuestLists(activeContainer, completedContainer);
+                        ToastUtils.showToast(this, "Quest un-completed. Reverted rewards.");
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return;
+        }
         SoundEffectsHelper.playMenuOpen(this);
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_quest_detail, null);
 
@@ -2109,8 +2300,13 @@ public class DashboardActivity extends AppCompatActivity {
         tvEmoji.setText(getQuestTypeEmoji(questType));
         tvTitle.setText(title);
 
+        TaskManager tm = new TaskManager(this);
+        String blockedAppsList = tm.getCustomAppNamesFormatted(packageName);
+
         if ("Avoid social media".equalsIgnoreCase(title) || (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType) && (difficultyTier == null || difficultyTier.isEmpty() || difficultyTier.startsWith("EASY") || difficultyTier.startsWith("HARD")))) {
-            tvDescription.setText("Warns you every time you open an app in your block list during active screen avoidance.");
+            tvDescription.setText("Warns you every time you open an app in your block list during active screen avoidance.\nBlocked apps: " + blockedAppsList);
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+            tvDescription.setText(difficultyTier + "\nBlocked apps: " + blockedAppsList);
         } else if (difficultyTier != null && !difficultyTier.isEmpty() && !difficultyTier.startsWith("EASY") && !difficultyTier.startsWith("MEDIUM") && !difficultyTier.startsWith("HARD")) {
             tvDescription.setText(difficultyTier);
         } else {
@@ -2472,7 +2668,8 @@ public class DashboardActivity extends AppCompatActivity {
                 DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE,
                 DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
                 DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM,
-                DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER
+                DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER,
+                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME
         };
 
         Cursor cursor = db.query(
@@ -2497,6 +2694,7 @@ public class DashboardActivity extends AppCompatActivity {
                 String questType = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE));
                 int currentValue = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE));
                 long startTimestamp = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP));
+                String packageName = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME));
 
                 boolean isStepTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType);
                 boolean isAvoidanceTracked = DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType);
@@ -2514,7 +2712,7 @@ public class DashboardActivity extends AppCompatActivity {
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, (isCompleted == 1) ? completedContainer : activeContainer, false);
                 row.setOnClickListener(v -> showQuestDetailDialog(
                         taskId, title, target, unit, questType, difficultyTier, currentValue,
-                        rewardGold, rewardXp, isCustomQuest, rowCompleted, activeContainer, completedContainer
+                        rewardGold, rewardXp, isCustomQuest, rowCompleted, packageName, activeContainer, completedContainer
                 ));
                 TextView tvTitle = row.findViewById(R.id.tv_task_title);
                 TextView tvTarget = row.findViewById(R.id.tv_task_target);
@@ -2607,6 +2805,21 @@ public class DashboardActivity extends AppCompatActivity {
                     btnStartAvoidance.setVisibility(View.GONE);
                     btnIncrementProgress.setVisibility(View.GONE);
                     btnCompletedLabel.setVisibility(View.VISIBLE);
+                    btnCompletedLabel.setOnClickListener(v -> {
+                        new androidx.appcompat.app.AlertDialog.Builder(DashboardActivity.this, R.style.DaGoalDialogTheme)
+                                .setTitle("Undo Quest Completion?")
+                                .setMessage("Would you like to undo completing this quest? Doing so will revert its progress and refund its rewards.")
+                                .setPositiveButton("Undo", (dialog, which) -> {
+                                    SoundEffectsHelper.playButton(DashboardActivity.this);
+                                    TaskManager taskManager = new TaskManager(DashboardActivity.this);
+                                    taskManager.uncompleteTask(taskId, rewardGold, rewardXp);
+                                    updateChestBarUI();
+                                    populateQuestLists(activeContainer, completedContainer);
+                                    ToastUtils.showToast(DashboardActivity.this, "Quest un-completed. Reverted rewards.");
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                    });
                     completedContainer.addView(row);
                 } else {
                     uncompletedCount++;

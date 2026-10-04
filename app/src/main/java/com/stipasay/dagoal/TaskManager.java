@@ -362,6 +362,42 @@ public class TaskManager {
         }
     }
 
+    public String getCustomAppNamesFormatted(String packagesCsv) {
+        if (packagesCsv == null || packagesCsv.trim().isEmpty()) {
+            return getBlockedAppNamesFormatted();
+        }
+        android.content.pm.PackageManager pm = appContext.getPackageManager();
+        StringBuilder sb = new StringBuilder();
+        for (String pkg : packagesCsv.split(",")) {
+            String p = pkg.trim();
+            if (p.isEmpty()) continue;
+            try {
+                android.content.pm.ApplicationInfo appInfo = pm.getApplicationInfo(p, 0);
+                String label = pm.getApplicationLabel(appInfo).toString();
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(label);
+            } catch (Exception e) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(p);
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : getBlockedAppNamesFormatted();
+    }
+
+    public String getBlockedAppNamesFormatted() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        java.util.List<String[]> blockedApps = getBlockedApps(db);
+        if (blockedApps.isEmpty()) {
+            return "None selected";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < blockedApps.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(blockedApps.get(i)[1]);
+        }
+        return sb.toString();
+    }
+
     private ContentValues buildAvoidanceValues(java.util.List<String[]> blockedApps, double multiplier, String dateStr) {
         Random random = new Random();
         boolean useGroupQuest = random.nextBoolean();
@@ -700,6 +736,40 @@ public class TaskManager {
         return true;
     }
 
+    public void uncompleteTask(int taskId, int rewardGold, int rewardXp) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        ContentValues taskValues = new ContentValues();
+        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                taskValues,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
+
+        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
+        if (userCursor != null) {
+            if (userCursor.moveToFirst()) {
+                int currentGold = userCursor.getInt(0);
+                int currentXp = userCursor.getInt(1);
+
+                int newGold = Math.max(0, currentGold - rewardGold);
+                int newXp = Math.max(0, currentXp - rewardXp);
+
+                ContentValues userValues = new ContentValues();
+                userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
+                userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
+                db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+            }
+            userCursor.close();
+        }
+        decrementChestBarPoints(appContext);
+        syncUserProfileToFirestore(appContext);
+    }
+
     public String getActiveStreakStartDate() {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT streak, last_completed_date FROM user WHERE _id = 1", null);
@@ -852,6 +922,13 @@ public class TaskManager {
                 .apply();
     }
 
+    public static void decrementChestBarPoints(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        int current = prefs.getInt("pref_chest_bar_points", 0);
+        int updated = Math.max(0, current - 1);
+        prefs.edit().putInt("pref_chest_bar_points", updated).apply();
+    }
+
     public static void incrementChestBarPoints(Context context) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         int target = getChestBarTargetPoints(context);
@@ -990,6 +1067,7 @@ public class TaskManager {
         for (String type : loot.consumables) {
             grantConsumable(db, type, 1);
         }
+        decrementChestBarPoints(appContext);
         syncUserProfileToFirestore(appContext);
     }
 
@@ -1862,6 +1940,10 @@ public class TaskManager {
     }
 
     public boolean createCustomQuest(String title, String description, int target, String unit, int goldPicked, int level, String unitType, int repeatInterval, String repeatUnit, String repeatWeekdays, String repeatEndType, String repeatEndValue) {
+        return createCustomQuest(title, description, target, unit, goldPicked, level, unitType, repeatInterval, repeatUnit, repeatWeekdays, repeatEndType, repeatEndValue, null);
+    }
+
+    public boolean createCustomQuest(String title, String description, int target, String unit, int goldPicked, int level, String unitType, int repeatInterval, String repeatUnit, String repeatWeekdays, String repeatEndType, String repeatEndValue, String customBlockedPackagesCsv) {
         if (getRemainingCustomQuests(level) <= 0) {
             return false;
         }
@@ -1901,6 +1983,10 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE, repeatEndValue);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_START_DATE, currentDate);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_OCCURRENCES_DONE, 1);
+
+        if (customBlockedPackagesCsv != null && !customBlockedPackagesCsv.trim().isEmpty()) {
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME, customBlockedPackagesCsv.trim());
+        }
 
         db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
 

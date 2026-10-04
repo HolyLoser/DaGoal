@@ -56,6 +56,19 @@
                 android:alpha="0.7" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/btn_app_tutorial"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_circle_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="ℹ️"
+            android:textSize="18sp"
+            android:contentDescription="App Tutorial" />
+
         <ImageButton
             android:id="@+id/btn_open_settings"
             android:layout_width="36dp"

@@ -646,13 +646,18 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         addInfoRow(container, "Version", versionName, null);
-        addInfoRow(container, "Send Feedback", "Open email", () -> {
+        addInfoRow(container, "Send Feedback", "shaunocana2004@gmail.com", () -> {
             Intent intent = new Intent(Intent.ACTION_SENDTO);
-            intent.setData(android.net.Uri.parse("mailto:"));
-            intent.putExtra(Intent.EXTRA_SUBJECT, "DaGoal Feedback");
+            intent.setData(android.net.Uri.parse("mailto:shaunocana2004@gmail.com"));
+            intent.putExtra(Intent.EXTRA_SUBJECT, "DaGoal App Feedback");
+            String deviceInfo = "\n\n--- App & Device Info ---\nApp Version: 1.0" +
+                    "\nDevice: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL +
+                    "\nAndroid OS: " + android.os.Build.VERSION.RELEASE + " (API " + android.os.Build.VERSION.SDK_INT + ")";
+            intent.putExtra(Intent.EXTRA_TEXT, "Hello DaGoal Developer,\n\nI have the following feedback regarding the app:\n" + deviceInfo);
             try {
-                startActivity(intent);
-            } catch (Exception ignored) {
+                startActivity(Intent.createChooser(intent, "Send Feedback via Email"));
+            } catch (Exception e) {
+                ToastUtils.showToast(this, "No email app found on device.");
             }
         });
         addInfoRow(container, "Privacy Policy", "Not yet published", null);

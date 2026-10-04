@@ -95,6 +95,16 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Screen time avoidance quest monitoring" />
         </service>
+
+        <receiver
+            android:name=".DailyNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.stipasay.dagoal.ACTION_MIDNIGHT_QUESTS" />
+                <action android:name="com.stipasay.dagoal.ACTION_EVENING_REMINDER" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 

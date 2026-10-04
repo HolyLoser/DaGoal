@@ -52,9 +52,7 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
 
         if (tvForgotPassword != null) {
-            tvForgotPassword.setOnClickListener(v ->
-                    ToastUtils.showToast(this, "Password reset link sent to " + userEmail)
-            );
+            tvForgotPassword.setOnClickListener(v -> sendPasswordResetEmail());
         }
 
         if (editAuthPassword != null) {
@@ -97,6 +95,24 @@ public class AuthPasswordActivity extends AppCompatActivity {
                 }, 2000);
             });
         }
+    }
+
+    private void sendPasswordResetEmail() {
+        if (userEmail == null || userEmail.isEmpty() || !userEmail.contains("@")) {
+            ToastUtils.showToast(this, "Please enter a valid email address first.");
+            return;
+        }
+
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        mAuth.sendPasswordResetEmail(userEmail)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        ToastUtils.showToast(this, "Password reset email sent to " + userEmail + ". Please check your inbox!");
+                    } else {
+                        String err = task.getException() != null ? task.getException().getMessage() : "Failed to send reset email";
+                        ToastUtils.showToast(this, "Notice: " + err);
+                    }
+                });
     }
 
     private void togglePasswordVisibility() {
