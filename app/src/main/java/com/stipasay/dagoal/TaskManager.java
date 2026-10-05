@@ -2126,19 +2126,49 @@ public class TaskManager {
         db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, values, null, null);
     }
 
+    public int getShopRerollCountToday(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String lastDate = prefs.getString("pref_shop_reroll_last_date", "");
+        if (!todayDateStr.equals(lastDate)) {
+            prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr).putInt("pref_shop_reroll_count_today", 0).apply();
+            return 0;
+        }
+        return prefs.getInt("pref_shop_reroll_count_today", 0);
+    }
+
     public int getShopRefreshCost(Context context) {
         if (getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH) > 0) {
             return 0;
         }
-        return 30;
+        int count = getShopRerollCountToday(context);
+        switch (count) {
+            case 0: return 30;
+            case 1: return 35;
+            case 2: return 40;
+            case 3: return 45;
+            case 4: return 50;
+            default: return 50;
+        }
     }
 
     public boolean performShopRefresh(Context context) {
+        int count = getShopRerollCountToday(context);
+        if (count >= 5) {
+            ToastUtils.showToast(context, "Maximum daily shop refreshes reached (5/5)!");
+            return false;
+        }
+
         int cost = getShopRefreshCost(context);
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
         if (cost == 0) {
             useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
+            prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr)
+                    .putInt("pref_shop_reroll_count_today", count + 1).apply();
             OnlineShopManager.forceShopRotationRefresh(context);
-            ToastUtils.showToast(context, "Shop Refreshed using Refresh Token! 🔄");
+            ToastUtils.showToast(context, "Shop Refreshed using Token! (" + (count + 1) + "/5) 🔄");
             return true;
         } else {
             int gold = getUserGoldBalance();
@@ -2149,11 +2179,13 @@ public class TaskManager {
                 db.update("user", values, "_id = 1", null);
                 syncUserProfileToFirestore(context);
 
+                prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr)
+                        .putInt("pref_shop_reroll_count_today", count + 1).apply();
                 OnlineShopManager.forceShopRotationRefresh(context);
-                ToastUtils.showToast(context, "Shop Refreshed! (-" + cost + "g) 🔄");
+                ToastUtils.showToast(context, "Shop Refreshed! (-" + cost + "g) (" + (count + 1) + "/5) 🔄");
                 return true;
             } else {
-                ToastUtils.showToast(context, "Not enough Gold to refresh shop!");
+                ToastUtils.showToast(context, "Not enough Gold to refresh shop! Requires " + cost + "g.");
                 return false;
             }
         }

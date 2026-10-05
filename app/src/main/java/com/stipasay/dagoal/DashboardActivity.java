@@ -1481,14 +1481,22 @@ public class DashboardActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (btnRefreshShop != null) {
+                            int rerollCount = shopManager.getShopRerollCountToday(DashboardActivity.this);
                             int tokenQty = shopManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
-                            if (tokenQty > 0) {
-                                btnRefreshShop.setText("🔄 Refresh (1/" + tokenQty + ")");
+
+                            if (rerollCount >= 5) {
+                                btnRefreshShop.setText("🔄 Maxed (5/5)");
+                                btnRefreshShop.setEnabled(false);
+                                btnRefreshShop.setAlpha(0.6f);
+                            } else if (tokenQty > 0) {
+                                btnRefreshShop.setText("🔄 Refresh (1 Token) (" + rerollCount + "/5)");
                                 btnRefreshShop.setEnabled(true);
+                                btnRefreshShop.setAlpha(1.0f);
                             } else {
                                 int cost = shopManager.getShopRefreshCost(DashboardActivity.this);
-                                btnRefreshShop.setText("🔄 Refresh (" + cost + "g)");
+                                btnRefreshShop.setText("🔄 Refresh (" + cost + "g) (" + rerollCount + "/5)");
                                 btnRefreshShop.setEnabled(true);
+                                btnRefreshShop.setAlpha(1.0f);
                             }
                         }
                     }
