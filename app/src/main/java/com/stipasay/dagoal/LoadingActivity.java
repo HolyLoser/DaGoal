@@ -58,8 +58,34 @@ public class LoadingActivity extends AppCompatActivity {
         boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
         boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
 
-        // ALWAYS route to MainActivity (Sign Up / Login page) unless the user is actively logged in AND onboarding is 100% complete
-        if ((isLoggedIn || isGuestUser) && isOnboardingComplete) {
+        boolean hasUserRecordInDb = false;
+        try {
+            DatabaseHelper dbHelper = new DatabaseHelper(this);
+            android.database.sqlite.SQLiteDatabase db = dbHelper.getReadableDatabase();
+            DatabaseHelper.ensureUserTableExists(db);
+            android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM user WHERE _id = 1", null);
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    hasUserRecordInDb = cursor.getInt(0) > 0;
+                }
+                cursor.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (hasUserRecordInDb) {
+            if (!isLoggedIn && !isGuestUser) {
+                isGuestUser = true;
+                prefs.edit().putBoolean("isGuestUser", true).apply();
+            }
+            if (!isOnboardingComplete) {
+                isOnboardingComplete = true;
+                prefs.edit().putBoolean("isOnboardingComplete", true).putBoolean("isFirstRun", false).apply();
+            }
+        }
+
+        if ((isLoggedIn || isGuestUser || hasUserRecordInDb) && isOnboardingComplete) {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             String lastQuestDate = prefs.getString("last_quest_generation_date", "");
 
@@ -70,7 +96,6 @@ public class LoadingActivity extends AppCompatActivity {
             }
         }
 
-        // Default: ALWAYS launch MainActivity (Login / Sign Up landing page)
         return new Intent(this, MainActivity.class);
     }
 }
