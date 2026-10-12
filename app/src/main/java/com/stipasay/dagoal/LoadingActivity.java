@@ -36,15 +36,13 @@ public class LoadingActivity extends AppCompatActivity {
                 dbHelper.getReadableDatabase();
             }
 
-            SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-            boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
-
-            Intent nextIntent = determineNextDestination(prefs, isFirstRun);
+            Intent nextIntent = determineNextDestination();
 
             long elapsedTime = System.currentTimeMillis() - startTime;
             long delay = Math.max(0, MIN_LOADING_TIME - elapsedTime);
 
             mainHandler.postDelayed(() -> {
+                if (isFinishing() || isDestroyed()) return;
                 startActivity(nextIntent);
                 overridePendingTransition(R.anim.slide_in_bottom, R.anim.slide_out_top);
                 finish();
@@ -53,49 +51,43 @@ public class LoadingActivity extends AppCompatActivity {
         });
     }
 
-    private Intent determineNextDestination(SharedPreferences prefs, boolean isFirstRun) {
-        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
-        boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
-        boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
+    private Intent determineNextDestination() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        Class<?> destination = resolveStartupDestination(prefs, user != null, today);
 
-        boolean hasUserRecordInDb = false;
-        try {
-            DatabaseHelper dbHelper = new DatabaseHelper(this);
-            android.database.sqlite.SQLiteDatabase db = dbHelper.getReadableDatabase();
-            DatabaseHelper.ensureUserTableExists(db);
-            android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM user WHERE _id = 1", null);
-            if (cursor != null) {
-                if (cursor.moveToFirst()) {
-                    hasUserRecordInDb = cursor.getInt(0) > 0;
-                }
-                cursor.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        // Restore local session metadata from Firebase's persisted session, without a network request.
+        if (user != null && !prefs.getBoolean("isGuestUser", false)) {
+            SharedPreferences.Editor editor = prefs.edit()
+                    .putBoolean("isLoggedIn", true)
+                    .putString("user_uid", user.getUid());
+            if (user.getEmail() != null) editor.putString("user_email", user.getEmail());
+            editor.apply();
         }
-
-        if (hasUserRecordInDb) {
-            if (!isLoggedIn && !isGuestUser) {
-                isGuestUser = true;
-                prefs.edit().putBoolean("isGuestUser", true).apply();
-            }
-            if (!isOnboardingComplete) {
-                isOnboardingComplete = true;
-                prefs.edit().putBoolean("isOnboardingComplete", true).putBoolean("isFirstRun", false).apply();
-            }
+        if (destination == DashboardActivity.class || destination == DailyRevealActivity.class) {
+            // Repair returning accounts affected by older login flows that cleared this marker.
+            prefs.edit().putBoolean("isOnboardingComplete", true)
+                    .putBoolean("isFirstRun", false).apply();
         }
+        return new Intent(this, destination);
+    }
 
-        if ((isLoggedIn || isGuestUser || hasUserRecordInDb) && isOnboardingComplete) {
-            String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-            String lastQuestDate = prefs.getString("last_quest_generation_date", "");
+    static Class<?> resolveStartupDestination(SharedPreferences prefs, boolean hasFirebaseSession, String today) {
+        boolean guest = prefs.getBoolean("isGuestUser", false);
+        boolean hasSession = prefs.getBoolean("isLoggedIn", false) || guest || hasFirebaseSession;
+        if (!hasSession) return MainActivity.class;
 
-            if (!todayDateStr.equals(lastQuestDate)) {
-                return new Intent(this, DailyRevealActivity.class);
-            } else {
-                return new Intent(this, DashboardActivity.class);
-            }
+        boolean complete = prefs.getBoolean("isOnboardingComplete", false);
+        int step = prefs.getInt("pref_onboarding_step", 0);
+        // Legacy successful logins restored an avatar but omitted the onboarding-complete flag.
+        boolean returningAccount = !guest && step == 0 && prefs.contains("pref_avatar_skin");
+        if (!complete && !returningAccount) {
+            if (step >= 3) return AppSelectionActivity.class;
+            if (step == 2) return ProfilingActivity.class;
+            return AvatarCreationActivity.class;
         }
-
-        return new Intent(this, MainActivity.class);
+        return today.equals(prefs.getString("last_quest_generation_date", ""))
+                ? DashboardActivity.class : DailyRevealActivity.class;
     }
 }

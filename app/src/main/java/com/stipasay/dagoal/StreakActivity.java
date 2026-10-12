@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -57,14 +58,10 @@ public class StreakActivity extends AppCompatActivity {
         if (tvDialogStreakCount != null) {
             tvDialogStreakCount.setText(String.valueOf(streakVal));
         }
+
         populateWeeklyStreakRow(streakVal);
 
-        android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
-        if (avatarContainer != null) {
-            AvatarHelper.renderUserAvatar(this, avatarContainer);
-        }
-
-        btnStreakDialogDismiss.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnStreakDialogDismiss, v -> {
             int currentTarget = TaskManager.getStreakPredictionTarget(this);
             if (currentTarget > 0) {
                 finish();
@@ -73,13 +70,13 @@ public class StreakActivity extends AppCompatActivity {
             }
         });
 
-        if (option3 != null) option3.setOnClickListener(v -> selectOption(3));
-        if (option5 != null) option5.setOnClickListener(v -> selectOption(5));
-        if (option7 != null) option7.setOnClickListener(v -> selectOption(7));
-        if (option14 != null) option14.setOnClickListener(v -> selectOption(14));
+        if (option3 != null) DebouncedOnClickListener.setSafeOnClickListener(option3, 200L, v -> selectOption(3));
+        if (option5 != null) DebouncedOnClickListener.setSafeOnClickListener(option5, 200L, v -> selectOption(5));
+        if (option7 != null) DebouncedOnClickListener.setSafeOnClickListener(option7, 200L, v -> selectOption(7));
+        if (option14 != null) DebouncedOnClickListener.setSafeOnClickListener(option14, 200L, v -> selectOption(14));
 
         if (btnCommitGoal != null) {
-            btnCommitGoal.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnCommitGoal, v -> {
                 TaskManager.setStreakPredictionTarget(this, selectedTarget);
                 ToastUtils.showToast(this, "Committed to a " + selectedTarget + "-Day Streak Goal! 🎯");
 
@@ -106,11 +103,25 @@ public class StreakActivity extends AppCompatActivity {
 
     private void updateOptionStyle(LinearLayout optionView, boolean isSelected) {
         if (optionView == null) return;
+
+        TextView tvText = null;
+        if (optionView.getChildCount() >= 2 && optionView.getChildAt(1) instanceof TextView) {
+            tvText = (TextView) optionView.getChildAt(1);
+        }
+
         if (isSelected) {
+            optionView.setBackgroundResource(R.drawable.bg_streak_option_selected);
+            if (tvText != null) {
+                tvText.setTextColor(android.graphics.Color.WHITE);
+            }
             optionView.setAlpha(1.0f);
-            optionView.setElevation(8f);
+            optionView.setElevation(6f);
         } else {
-            optionView.setAlpha(0.6f);
+            optionView.setBackgroundResource(R.drawable.bg_streak_option_unselected);
+            if (tvText != null) {
+                tvText.setTextColor(android.graphics.Color.parseColor("#334327"));
+            }
+            optionView.setAlpha(1.0f);
             optionView.setElevation(0f);
         }
     }
@@ -141,43 +152,67 @@ public class StreakActivity extends AppCompatActivity {
 
         if (activeStartDateStr != null && !activeStartDateStr.isEmpty()) {
             try {
-                startCal.setTime(sdf.parse(activeStartDateStr));
+                Date parsedDate = sdf.parse(activeStartDateStr);
+                if (parsedDate != null) {
+                    startCal.setTime(parsedDate);
+                }
             } catch (Exception ignored) {}
         }
 
         int startDayOfWeek = startCal.get(java.util.Calendar.DAY_OF_WEEK);
 
-        containerWeeklyRow.setClipChildren(false);
-        containerWeeklyRow.setClipToPadding(false);
-
         String[] allWeekdayLabels = { "S", "M", "T", "W", "Th", "F", "S" };
         float density = getResources().getDisplayMetrics().density;
-        int chipSizePx = (int) (32 * density);
-        int marginPx = (int) (4 * density);
+        int itemWidthPx = (int) (36 * density);
+        int marginPx = (int) (2 * density);
 
         for (int i = 0; i < 7; i++) {
             int dayIndex = (startDayOfWeek - 1 + i) % 7;
             String label = allWeekdayLabels[dayIndex];
 
-            TextView chip = new TextView(this);
-            chip.setText(label);
-            chip.setGravity(android.view.Gravity.CENTER);
-            chip.setTextColor(android.graphics.Color.WHITE);
-            chip.setTextSize(14);
-            chip.setTypeface(null, android.graphics.Typeface.BOLD);
+            LinearLayout dayItem = new LinearLayout(this);
+            dayItem.setOrientation(LinearLayout.VERTICAL);
+            dayItem.setGravity(android.view.Gravity.CENTER);
 
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(chipSizePx, chipSizePx);
-            params.setMargins(marginPx, 0, marginPx, 0);
-            chip.setLayoutParams(params);
+            LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(itemWidthPx, LinearLayout.LayoutParams.WRAP_CONTENT);
+            itemParams.setMargins(marginPx, 0, marginPx, 0);
+            dayItem.setLayoutParams(itemParams);
 
             boolean isActiveStreakDay = (i < currentStreak);
+
             if (isActiveStreakDay) {
-                chip.setBackgroundResource(R.drawable.bg_calendar_active_border);
+                ImageView flameView = new ImageView(this);
+                flameView.setImageResource(R.drawable.ic_streak_flame);
+                flameView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                LinearLayout.LayoutParams flameParams = new LinearLayout.LayoutParams((int) (26 * density), (int) (26 * density));
+                flameView.setLayoutParams(flameParams);
+                dayItem.addView(flameView);
+
+                TextView tvLabel = new TextView(this);
+                tvLabel.setText(label);
+                tvLabel.setGravity(android.view.Gravity.CENTER);
+                tvLabel.setTextColor(android.graphics.Color.WHITE);
+                tvLabel.setTextSize(13);
+                tvLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+                dayItem.addView(tvLabel);
             } else {
-                chip.setBackgroundResource(0);
+                View dotView = new View(this);
+                dotView.setBackgroundResource(R.drawable.bg_streak_dot_inactive);
+                LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams((int) (10 * density), (int) (10 * density));
+                dotParams.setMargins(0, (int) (8 * density), 0, (int) (8 * density));
+                dotView.setLayoutParams(dotParams);
+                dayItem.addView(dotView);
+
+                TextView tvLabel = new TextView(this);
+                tvLabel.setText(label);
+                tvLabel.setGravity(android.view.Gravity.CENTER);
+                tvLabel.setTextColor(android.graphics.Color.parseColor("#80FFFFFF"));
+                tvLabel.setTextSize(13);
+                tvLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+                dayItem.addView(tvLabel);
             }
 
-            containerWeeklyRow.addView(chip);
+            containerWeeklyRow.addView(dayItem);
         }
     }
 }

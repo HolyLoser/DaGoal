@@ -8,9 +8,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "dagoal.db";
-    private static final int DATABASE_VERSION = 24;
+    private static final int DATABASE_VERSION = 27;
 
     private final Context appContext;
+    static final String REWARD_RECEIPTS_TABLE = "quest_reward_receipts";
+    private static final String CREATE_REWARD_RECEIPTS = "CREATE TABLE quest_reward_receipts ("
+            + "task_id INTEGER PRIMARY KEY, awarded_gold INTEGER NOT NULL, awarded_xp INTEGER NOT NULL, "
+            + "chest_point_awarded INTEGER DEFAULT 0, chest_cycle INTEGER DEFAULT -1);";
+
 
     private static final String CREATE_TABLE_USER = "CREATE TABLE user (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -24,7 +29,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "last_completed_date TEXT DEFAULT '', " +
             "longest_streak INTEGER DEFAULT 0, " +
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
-            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '', " +
+            "highest_rewarded_level INTEGER DEFAULT 1);";
 
     private static final String CREATE_TABLE_USER_IF_NOT_EXISTS = "CREATE TABLE IF NOT EXISTS user (" +
             "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -38,7 +44,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             "last_completed_date TEXT DEFAULT '', " +
             "longest_streak INTEGER DEFAULT 0, " +
             DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT + " INTEGER DEFAULT 0, " +
-            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '');";
+            DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_WEEK_START + " TEXT DEFAULT '', " +
+            "highest_rewarded_level INTEGER DEFAULT 1);";
 
     public static void ensureUserTableExists(SQLiteDatabase db) {
         if (db != null) {
@@ -97,7 +104,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_END_VALUE + " TEXT DEFAULT '', " +
             DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_START_DATE + " TEXT DEFAULT '', " +
             DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_OCCURRENCES_DONE + " INTEGER DEFAULT 0, " +
-            DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER + " TEXT DEFAULT '');";
+            DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER + " TEXT DEFAULT '', recurring_schedule_id INTEGER DEFAULT 0);";
+
+    static final String RECURRING_SCHEDULES_TABLE = "recurring_quest_schedules";
+    private static final String CREATE_RECURRING_SCHEDULES = CREATE_TABLE_DAILY_TASKS.replace(
+            "CREATE TABLE daily_tasks", "CREATE TABLE recurring_quest_schedules");
+    static final String SHUFFLE_USAGE_TABLE = "daily_shuffle_usage";
+    private static final String CREATE_SHUFFLE_USAGE = "CREATE TABLE daily_shuffle_usage ("
+            + "shuffle_date TEXT PRIMARY KEY, used_count INTEGER NOT NULL DEFAULT 0);";
 
     private static final String CREATE_TABLE_INVENTORY = "CREATE TABLE " +
             DatabaseContract.InventoryEntry.TABLE_NAME + " (" +
@@ -153,6 +167,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TABLE_USER);
         db.execSQL(CREATE_TABLE_DAILY_TASKS);
+        db.execSQL(CREATE_RECURRING_SCHEDULES);
+        db.execSQL(CREATE_SHUFFLE_USAGE);
+        db.execSQL(CREATE_REWARD_RECEIPTS);
         db.execSQL(CREATE_TABLE_INVENTORY);
         db.execSQL(CREATE_TABLE_INVENTORY_CONSUMABLES);
         db.execSQL(CREATE_TABLE_PREFERENCES);
@@ -253,28 +270,150 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS daily_tasks");
-        db.execSQL("DROP TABLE IF EXISTS task_templates");
-
-        db.execSQL("CREATE TABLE IF NOT EXISTS daily_tasks (" +
-                "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "user_id INTEGER, title TEXT, final_target INTEGER, unit TEXT, is_completed INTEGER DEFAULT 0, " +
-                "task_date TEXT, reward_gold INTEGER, reward_xp INTEGER, quest_type TEXT, current_value INTEGER DEFAULT 0, " +
-                "package_name TEXT, start_timestamp INTEGER DEFAULT 0, category_tag TEXT, ignore_stage INTEGER DEFAULT 0, " +
-                "snooze_until INTEGER DEFAULT 0, is_custom INTEGER DEFAULT 0, unit_type TEXT, repeat_interval INTEGER DEFAULT 0, " +
-                "repeat_unit TEXT, repeat_weekdays TEXT, repeat_end_type TEXT, repeat_end_value TEXT, repeat_start_date TEXT, " +
-                "repeat_occurrences_done INTEGER DEFAULT 0, difficulty_tier TEXT);");
-
-        db.execSQL("CREATE TABLE IF NOT EXISTS task_templates (" +
-                "_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, base_value INTEGER, unit TEXT, " +
-                "category_tag TEXT, sub_category TEXT, quest_type TEXT, difficulty_tier TEXT);");
-
+        // Extend existing tables in place. Older upgrades must retain quests and inventory too.
+        String[] schemas = {CREATE_TABLE_USER, CREATE_TABLE_DAILY_TASKS, CREATE_TABLE_TASK_TEMPLATES,
+                CREATE_TABLE_INVENTORY, CREATE_TABLE_INVENTORY_CONSUMABLES, CREATE_TABLE_PREFERENCES,
+                CREATE_TABLE_ACHIEVEMENTS, CREATE_TABLE_BLOCKED_APPS, CREATE_TABLE_STREAK_HISTORY,
+                CREATE_REWARD_RECEIPTS, CREATE_RECURRING_SCHEDULES, CREATE_SHUFFLE_USAGE};
+        for (String schema : schemas) ensureSchemaColumns(db, schema);
+        archiveRecurringQuestSchedules(db);
+        db.execSQL("UPDATE user SET highest_rewarded_level = MAX(COALESCE(level, 1), highest_rewarded_level)");
         ensureUserTableExists(db);
-        seedTaskTemplates(db);
+        try (android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM task_templates", null)) {
+            if (cursor.moveToFirst() && cursor.getInt(0) == 0) seedTaskTemplates(db);
+        }
+        try (android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM achievements", null)) {
+            if (cursor.moveToFirst() && cursor.getInt(0) == 0) seedAchievements(db);
+        }
+    }
 
-        if (appContext != null) {
-            android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-            prefs.edit().remove("last_quest_generation_date").apply();
+    static void archiveRecurringQuestSchedules(SQLiteDatabase db) {
+        try (android.database.Cursor cursor = db.rawQuery(
+                "SELECT * FROM daily_tasks WHERE is_custom=1 AND repeat_interval>0", null)) {
+            while (cursor.moveToNext()) {
+                ContentValues values = new ContentValues();
+                android.database.DatabaseUtils.cursorRowToContentValues(cursor, values);
+                long taskId = values.getAsLong("_id");
+                Long scheduleId = values.getAsLong("recurring_schedule_id");
+                if (scheduleId == null || scheduleId <= 0) scheduleId = taskId;
+                values.put("_id", scheduleId);
+                values.put("recurring_schedule_id", scheduleId);
+                db.insertWithOnConflict(RECURRING_SCHEDULES_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+                ContentValues link = new ContentValues();
+                link.put("recurring_schedule_id", scheduleId);
+                db.update("daily_tasks", link, "_id=?", new String[]{String.valueOf(taskId)});
+            }
+        }
+    }
+
+    private static void ensureSchemaColumns(SQLiteDatabase db, String createSql) {
+        db.execSQL(createSql.replaceFirst("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "));
+        String table = createSql.substring("CREATE TABLE ".length(), createSql.indexOf('(')).trim();
+        java.util.Set<String> columns = new java.util.HashSet<>();
+        try (android.database.Cursor cursor = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+            while (cursor.moveToNext()) columns.add(cursor.getString(1));
+        }
+        // These internal schema definitions use comma-separated columns with no comma-bearing defaults.
+        String definitions = createSql.substring(createSql.indexOf('(') + 1, createSql.lastIndexOf(')'));
+        for (String definition : definitions.split(",")) {
+            String column = definition.trim().split("\\s+", 2)[0];
+            if (!columns.contains(column)) db.execSQL("ALTER TABLE " + table + " ADD COLUMN " + definition.trim());
+        }
+    }
+
+    public static boolean resetAccountAndUserData(Context context) {
+        return resetAccountAndUserData(context, false);
+    }
+
+    public static boolean resetAccountAndUserData(Context context, boolean preserveTodayTasks) {
+        if (context == null) return false;
+        try {
+            RecurringQuestBackup.preserveBeforeReset(context);
+            android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            String todayDateStr = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
+            String lastQuestDate = prefs.getString("last_quest_generation_date", "");
+            boolean keepTodayQuests = preserveTodayTasks && todayDateStr.equals(lastQuestDate);
+
+            android.content.SharedPreferences.Editor editor = prefs.edit()
+                    .remove("isLoggedIn")
+                    .remove("isGuestUser")
+                    .remove("isOnboardingComplete")
+                    .remove("isFirstRun")
+                    .remove("pref_onboarding_step")
+                    .remove("user_email")
+                    .remove("user_uid")
+                    .remove("user_nickname")
+                    .remove("last_streak_update_date")
+                    .remove("pref_equipped_item_id")
+                    .remove("pref_equipped_glasses_id")
+                    .remove("pref_equipped_clothes_id")
+                    .remove("pref_equipped_hat_id")
+                    .remove("pref_avatar_clothes")
+                    .remove("pref_avatar_skin")
+                    .remove("pref_avatar_color")
+                    .remove("pref_avatar_nose_color")
+                    .remove("pref_avatar_mouth_color")
+                    .remove("pref_avatar_nose_shape")
+                    .remove("pref_avatar_mouth_shape")
+                    .remove("pref_avatar_eye_color")
+                    .remove("pref_avatar_eye_base")
+                    .remove("pref_avatar_cheeks")
+                    .remove("pref_avatar_hair")
+                    .remove("pref_avatar_hair_color")
+                    .remove("pref_avatar_hair_base")
+                    .remove("pref_avatar_accessory")
+                    .remove("pref_avatar_accessory_color")
+                    .remove("pref_avatar_glasses")
+                    .remove("pref_avatar_glasses_color")
+                    .remove("pref_avatar_hat")
+                    .remove("pref_avatar_hat_color");
+
+            String[] accountKeys = {"pref_xp_boost_expiration_timestamp", "pref_gold_boost_expiration_timestamp",
+                    "pref_active_xp_boost_type", "pref_active_gold_boost_type", "pref_chest_bar_points",
+                    "pref_chest_bar_current_tier", "pref_chest_bar_cycle", "pref_streak_prediction_target",
+                    "pref_streak_prediction_claimed", "pref_shop_reroll_last_date", "pref_shop_reroll_count_today",
+                    "pref_last_shop_rotation_date", "pref_shop_rotation_seed", TaskManager.PENDING_PROFILE_SYNC};
+            for (String key : accountKeys) editor.remove(key);
+            if (!keepTodayQuests) {
+                editor.remove("last_quest_generation_date");
+            }
+
+            editor.apply();
+
+            DatabaseHelper helper = new DatabaseHelper(context);
+            SQLiteDatabase db = helper.getWritableDatabase();
+            if (db != null) {
+                db.delete(RECURRING_SCHEDULES_TABLE, null, null);
+                db.delete(SHUFFLE_USAGE_TABLE, null, null);
+                if (keepTodayQuests) {
+                    db.execSQL("DELETE FROM quest_reward_receipts WHERE task_id NOT IN "
+                            + "(SELECT _id FROM daily_tasks WHERE task_date = ?)", new Object[]{todayDateStr});
+                } else {
+                    db.delete(REWARD_RECEIPTS_TABLE, null, null);
+                }
+                db.delete(DatabaseContract.InventoryEntry.TABLE_NAME, null, null);
+                if (keepTodayQuests) {
+                    db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, DatabaseContract.DailyTaskEntry.COLUMN_DATE + " != ?", new String[]{todayDateStr});
+                } else {
+                    db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
+                }
+                db.delete(DatabaseContract.InventoryConsumableEntry.TABLE_NAME, null, null);
+                db.delete("preferences", null, null);
+                db.delete(DatabaseContract.StreakHistoryEntry.TABLE_NAME, null, null);
+                db.delete(DatabaseContract.BlockedAppEntry.TABLE_NAME, null, null);
+
+                db.delete(DatabaseContract.UserEntry.TABLE_NAME, null, null);
+                ensureUserTableExists(db);
+
+                db.delete(DatabaseContract.AchievementEntry.TABLE_NAME, null, null);
+                helper.seedAchievements(db);
+            }
+
+            AvatarCompositor.clearCache();
+            return true;
+        } catch (Exception e) {
+            android.util.Log.e("DatabaseHelper", "Account data could not be reset", e);
+            return false;
         }
     }
 }

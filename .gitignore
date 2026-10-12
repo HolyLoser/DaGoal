@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+# Local release signing identity and test-device state (never commit credentials).
+/.release-private/

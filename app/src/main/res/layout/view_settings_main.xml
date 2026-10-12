@@ -1,133 +1,313 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
+    <!-- 1. Account -->
     <LinearLayout
         android:id="@+id/row_settings_account"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
         android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_settings_category_card"
         android:clickable="true"
-        android:focusable="true">
-        <TextView
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_settings_icon_badge"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings_category_account"
+                android:src="@drawable/ic_settings_account"
+                app:tint="@color/dagoal_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Account"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_category_account"
+                android:textColor="@color/dagoal_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/settings_category_account_desc"
+                android:textColor="@color/dagoal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/proceed"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/dagoal_primary_dark" />
     </LinearLayout>
 
+    <!-- 2. Notifications -->
     <LinearLayout
         android:id="@+id/row_settings_notifications"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
         android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_settings_category_card"
         android:clickable="true"
-        android:focusable="true">
-        <TextView
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_settings_icon_badge"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings_category_notifications"
+                android:src="@drawable/ic_settings_notifications"
+                app:tint="@color/dagoal_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Notifications"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_category_notifications"
+                android:textColor="@color/dagoal_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/settings_category_notifications_desc"
+                android:textColor="@color/dagoal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/proceed"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/dagoal_primary_dark" />
     </LinearLayout>
 
+    <!-- 3. Privacy and Permissions -->
     <LinearLayout
         android:id="@+id/row_settings_privacy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
         android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_settings_category_card"
         android:clickable="true"
-        android:focusable="true">
-        <TextView
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_settings_icon_badge"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings_category_privacy"
+                android:src="@drawable/ic_settings_privacy"
+                app:tint="@color/dagoal_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Privacy &amp; Permissions"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_category_privacy"
+                android:textColor="@color/dagoal_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/settings_category_privacy_desc"
+                android:textColor="@color/dagoal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/proceed"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/dagoal_primary_dark" />
     </LinearLayout>
 
+    <!-- 4. Sound and Haptics -->
     <LinearLayout
         android:id="@+id/row_settings_sound"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
         android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_settings_category_card"
         android:clickable="true"
-        android:focusable="true">
-        <TextView
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_settings_icon_badge"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings_category_sound"
+                android:src="@drawable/ic_settings_sound"
+                app:tint="@color/dagoal_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Sound &amp; Haptics"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_category_sound"
+                android:textColor="@color/dagoal_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/settings_category_sound_desc"
+                android:textColor="@color/dagoal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/proceed"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/dagoal_primary_dark" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/row_settings_appearance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
-        android:layout_marginBottom="12dp"
-        android:clickable="true"
-        android:focusable="true">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Appearance"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
+    <!-- 5. About -->
     <LinearLayout
         android:id="@+id/row_settings_about"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="18dp"
         android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_settings_category_card"
         android:clickable="true"
-        android:focusable="true">
-        <TextView
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_settings_icon_badge"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/settings_category_about"
+                android:src="@drawable/ic_settings_about"
+                app:tint="@color/dagoal_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="About"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_category_about"
+                android:textColor="@color/dagoal_text_primary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/settings_category_about_desc"
+                android:textColor="@color/dagoal_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/proceed"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/dagoal_primary_dark" />
     </LinearLayout>
 
 </LinearLayout>

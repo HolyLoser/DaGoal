@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:background="@drawable/bg_task_card"
-    android:padding="16dp"
     android:layout_marginBottom="10dp"
+    android:minHeight="56dp"
+    android:background="@drawable/bg_settings_category_card"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="14dp">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -20,30 +24,29 @@
             android:id="@+id/tv_settings_row_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Row title"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textColor="@color/dagoal_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:text="Row title" />
 
         <TextView
             android:id="@+id/tv_settings_row_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Row subtitle"
-            android:textColor="@color/dagoal_primary"
+            android:layout_marginTop="3dp"
+            android:textColor="@color/dagoal_text_secondary"
             android:textSize="12sp"
-            android:alpha="0.7"
-            android:layout_marginTop="2dp"
-            android:visibility="gone" />
+            android:visibility="gone"
+            tools:text="Row subtitle" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/tv_settings_row_value"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="@color/dagoal_secondary"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        tools:text="Value" />
 
 </LinearLayout>

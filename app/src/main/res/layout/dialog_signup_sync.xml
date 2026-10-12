@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="false">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_surface_card_full_radius"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header Icon -->
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_circle_primary"
+        android:backgroundTint="@color/dagoal_secondary">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:contentDescription="Cloud Sync"
+            android:src="@drawable/ic_settings_privacy"
+            app:tint="@color/dagoal_primary_dark" />
+    </FrameLayout>
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:gravity="center"
+        android:text="Sign Up &amp; Sync Account"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tv_dialog_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:gravity="center"
+        android:text="Convert your offline guest profile into a cloud-synced account."
+        android:textColor="@color/dagoal_text_primary"
+        android:textSize="14sp" />
+
+    <!-- Email Input Pill -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/button_height_standard"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:contentDescription="Email Icon"
+            android:src="@drawable/ic_email"
+            app:tint="@color/dagoal_primary_dark" />
+
+        <EditText
+            android:id="@+id/edit_sync_email"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:hint="Email Address"
+            android:inputType="textEmailAddress"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textColorHint="@color/dagoal_hint"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Password Input Pill -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/button_height_standard"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:contentDescription="Lock Icon"
+            android:src="@drawable/ic_lock"
+            app:tint="@color/dagoal_primary_dark" />
+
+        <EditText
+            android:id="@+id/edit_sync_password"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Password"
+            android:inputType="textPassword"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textColorHint="@color/dagoal_hint"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btn_toggle_sync_password"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:clickable="true"
+            android:contentDescription="Toggle Password Visibility"
+            android:focusable="true"
+            android:padding="@dimen/spacing_small"
+            android:src="@drawable/ic_eye_hidden"
+            app:tint="@color/dagoal_primary_dark" />
+    </LinearLayout>
+
+    <!-- Confirm Password Input Pill -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/button_height_standard"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:contentDescription="Lock Icon"
+            android:src="@drawable/ic_lock"
+            app:tint="@color/dagoal_primary_dark" />
+
+        <EditText
+            android:id="@+id/edit_sync_confirm_password"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Confirm Password"
+            android:inputType="textPassword"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textColorHint="@color/dagoal_hint"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btn_toggle_sync_confirm_password"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:clickable="true"
+            android:contentDescription="Toggle Password Visibility"
+            android:focusable="true"
+            android:padding="@dimen/spacing_small"
+            android:src="@drawable/ic_eye_hidden"
+            app:tint="@color/dagoal_primary_dark" />
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btn_sync_submit"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Sign Up &amp; Sync"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_sync_cancel"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,7 +13,12 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProfilingActivity extends AppCompatActivity {
 
@@ -27,10 +31,13 @@ public class ProfilingActivity extends AppCompatActivity {
     private TextView tvOptionText1, tvOptionText2, tvOptionText3, tvOptionText4, tvOptionText5, tvOptionText6;
     private TextView tvOptionCheck1, tvOptionCheck2, tvOptionCheck3, tvOptionCheck4, tvOptionCheck5, tvOptionCheck6;
 
-    private TextView node1, node2, node3, node4;
+    private LinearLayout layoutStepIndicator;
+    private final List<TextView> stepNodesList = new ArrayList<>();
+    private final List<View> stepLinesList = new ArrayList<>();
 
     private int currentQuestionIndex = 0;
     private boolean isAnimating = false;
+    private boolean isSubmitting = false;
 
     private final String[] categories = {
             "Adventurer Profile", "Adventurer Profile", "Adventurer Profile",
@@ -56,7 +63,7 @@ public class ProfilingActivity extends AppCompatActivity {
 
     private final String[][] optionsMatrix = {
             {"Adventurer", "Hero", "Explorer", "Achiever"},
-            {"Under 18", "18–24", "25–35", "36–50", "51–64", "65 and over"},
+            {"Under 18 (Youth)", "18–24 (Young Adult)", "25–49 (Adult)", "50+ (Senior)"},
             {"Male", "Female", "Non-Binary / Prefer not to say"},
             {"Under 2,000 steps", "2,000–5,000 steps", "5,000–8,000 steps", "More than 8,000 steps"},
             {"0 days", "1–2 days", "3–5 days", "6+ days"},
@@ -70,17 +77,28 @@ public class ProfilingActivity extends AppCompatActivity {
     };
 
     private final String[] userAnswers = new String[12];
+    private final boolean[] selectedOptionsForMultiSelect = new boolean[6];
     private DatabaseHelper dbHelper;
 
     private LinearLayout layoutNicknameInput;
     private android.widget.EditText editNicknameInput;
     private android.widget.Button btnNicknameNext;
+    private android.widget.Button btnMultiNext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_profiling_questionnaire);
+
+        View rootLayout = findViewById(R.id.root_profiling_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { handleBackClick(); }
+        });
 
         dbHelper = new DatabaseHelper(this);
 
@@ -91,7 +109,23 @@ public class ProfilingActivity extends AppCompatActivity {
 
         layoutNicknameInput = findViewById(R.id.layout_nickname_input);
         editNicknameInput = findViewById(R.id.edit_nickname_input);
+        if (editNicknameInput != null) {
+            android.text.InputFilter alphaNumericFilter = (source, start, end, dest, dstart, dend) -> {
+                for (int i = start; i < end; i++) {
+                    char c = source.charAt(i);
+                    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+                        return "";
+                    }
+                }
+                return null;
+            };
+            editNicknameInput.setFilters(new android.text.InputFilter[]{
+                    alphaNumericFilter,
+                    new android.text.InputFilter.LengthFilter(16)
+            });
+        }
         btnNicknameNext = findViewById(R.id.btn_nickname_next);
+        btnMultiNext = findViewById(R.id.btn_multi_next);
 
         cardOption1 = findViewById(R.id.option_card_1);
         cardOption2 = findViewById(R.id.option_card_2);
@@ -114,17 +148,19 @@ public class ProfilingActivity extends AppCompatActivity {
         tvOptionCheck5 = findViewById(R.id.tv_option_check_5);
         tvOptionCheck6 = findViewById(R.id.tv_option_check_6);
 
-        node1 = findViewById(R.id.tv_step_node_1);
-        node2 = findViewById(R.id.tv_step_node_2);
-        node3 = findViewById(R.id.tv_step_node_3);
-        node4 = findViewById(R.id.tv_step_node_4);
+        layoutStepIndicator = findViewById(R.id.layout_step_indicator);
+        setupDynamicStepIndicator(questions.length);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> handleBackClick());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> handleBackClick());
         }
 
         if (btnNicknameNext != null) {
-            btnNicknameNext.setOnClickListener(v -> processNicknameSubmit());
+            DebouncedOnClickListener.setSafeOnClickListener(btnNicknameNext, v -> processNicknameSubmit());
+        }
+
+        if (btnMultiNext != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnMultiNext, v -> processMultiSelectSubmit());
         }
 
         android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
@@ -132,11 +168,56 @@ public class ProfilingActivity extends AppCompatActivity {
             AvatarHelper.renderUserAvatar(this, avatarContainer);
         }
 
+        boolean startLastQuestion = getIntent().getBooleanExtra("EXTRA_START_LAST_QUESTION", false);
+        if (startLastQuestion && questions.length > 0) {
+            currentQuestionIndex = questions.length - 1;
+        }
+
         displayQuestion(currentQuestionIndex, true);
     }
 
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void setupDynamicStepIndicator(int totalQuestions) {
+        if (layoutStepIndicator == null || totalQuestions <= 0) return;
+        layoutStepIndicator.removeAllViews();
+        stepNodesList.clear();
+        stepLinesList.clear();
+
+        float density = getResources().getDisplayMetrics().density;
+        int nodeSizeDp = totalQuestions <= 6 ? 30 : 22;
+        int nodeSizePx = (int) (nodeSizeDp * density);
+        int lineHeightPx = (int) (4f * density);
+
+        for (int i = 0; i < totalQuestions; i++) {
+            TextView node = new TextView(this);
+            LinearLayout.LayoutParams nodeParams = new LinearLayout.LayoutParams(nodeSizePx, nodeSizePx);
+            node.setLayoutParams(nodeParams);
+            node.setGravity(android.view.Gravity.CENTER);
+            node.setText("");
+            node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+
+            layoutStepIndicator.addView(node);
+            stepNodesList.add(node);
+
+            if (i < totalQuestions - 1) {
+                View line = new View(this);
+                LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(0, lineHeightPx, 1.0f);
+                lineParams.setMargins(0, 0, 0, 0);
+                line.setLayoutParams(lineParams);
+                line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+                layoutStepIndicator.addView(line);
+                stepLinesList.add(line);
+            }
+        }
+    }
+
     private void processNicknameSubmit() {
-        if (isAnimating) return;
+        if (isAnimating || isSubmitting) return;
 
         try {
             android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -146,8 +227,18 @@ public class ProfilingActivity extends AppCompatActivity {
         } catch (Exception ignored) {}
 
         String typedName = "Adventurer";
-        if (editNicknameInput != null && !editNicknameInput.getText().toString().trim().isEmpty()) {
-            typedName = editNicknameInput.getText().toString().trim();
+        if (editNicknameInput != null) {
+            String rawInput = editNicknameInput.getText().toString().trim();
+            String sanitized = rawInput.replaceAll("[^a-zA-Z0-9]", "");
+            if (!sanitized.isEmpty()) {
+                typedName = sanitized;
+                if (typedName.length() > 16) {
+                    typedName = typedName.substring(0, 16);
+                }
+            } else if (!rawInput.isEmpty()) {
+                ToastUtils.showToast(this, "Nickname can only contain letters (A-Z, a-z) and numbers (0-9).");
+                return;
+            }
         }
         userAnswers[0] = typedName;
 
@@ -157,13 +248,14 @@ public class ProfilingActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        handleBackClick();
+    protected void onResume() {
+        super.onResume();
+        isAnimating = false;
+        displayQuestion(currentQuestionIndex, false);
     }
 
     private void handleBackClick() {
-        if (isAnimating) return;
+        if (isAnimating || isSubmitting) return;
         if (currentQuestionIndex > 0) {
             currentQuestionIndex--;
             displayQuestionWithAnimation(currentQuestionIndex, false);
@@ -175,6 +267,15 @@ public class ProfilingActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isMultiChoiceQuestion(int index) {
+        if (index < 0 || index >= questions.length) return false;
+        String q = questions[index];
+        return q.contains("which activities do you naturally enjoy")
+                || q.contains("completely offline")
+                || q.contains("non-screen activity archetype")
+                || q.contains("archetype you want to develop");
+    }
+
     private void displayQuestion(int index, boolean animateForward) {
         resetOptionCardStyles();
 
@@ -183,6 +284,9 @@ public class ProfilingActivity extends AppCompatActivity {
 
         if (index == 0) {
             if (layoutNicknameInput != null) layoutNicknameInput.setVisibility(View.VISIBLE);
+            if (editNicknameInput != null && userAnswers[0] != null) {
+                editNicknameInput.setText(userAnswers[0]);
+            }
             if (cardOption1 != null) cardOption1.setVisibility(View.GONE);
             if (cardOption2 != null) cardOption2.setVisibility(View.GONE);
             if (cardOption3 != null) cardOption3.setVisibility(View.GONE);
@@ -221,6 +325,34 @@ public class ProfilingActivity extends AppCompatActivity {
             } else {
                 if (cardOption6 != null) cardOption6.setVisibility(View.GONE);
             }
+
+            if (isMultiChoiceQuestion(index)) {
+                if (btnMultiNext != null) btnMultiNext.setVisibility(View.VISIBLE);
+                if (tvQuestionTitle != null) {
+                    tvQuestionTitle.setText(questions[index] + "\n(Select all that apply)");
+                }
+                java.util.Arrays.fill(selectedOptionsForMultiSelect, false);
+                String savedAnswer = userAnswers[index];
+                if (savedAnswer != null && !savedAnswer.isEmpty()) {
+                    for (int i = 0; i < options.length; i++) {
+                        if (savedAnswer.contains(options[i])) {
+                            selectedOptionsForMultiSelect[i] = true;
+                        }
+                    }
+                }
+                updateMultiSelectCardStyles();
+            } else {
+                if (btnMultiNext != null) btnMultiNext.setVisibility(View.GONE);
+                String savedAnswer = userAnswers[index];
+                if (savedAnswer != null) {
+                    for (int i = 0; i < options.length; i++) {
+                        if (savedAnswer.equals(options[i])) {
+                            highlightSelectedCard(i);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         updateStepIndicatorNodes(index);
@@ -230,10 +362,16 @@ public class ProfilingActivity extends AppCompatActivity {
         if (card == null || tvText == null) return;
         tvText.setText(optionText);
 
-        card.setOnClickListener(v -> {
-            if (isAnimating) return;
-            isAnimating = true;
+        DebouncedOnClickListener.setSafeOnClickListener(card, v -> {
+            if (isAnimating || isSubmitting) return;
 
+            if (isMultiChoiceQuestion(currentQuestionIndex)) {
+                selectedOptionsForMultiSelect[optionIndex] = !selectedOptionsForMultiSelect[optionIndex];
+                updateMultiSelectCardStyles();
+                return;
+            }
+
+            isAnimating = true;
             highlightSelectedCard(optionIndex);
             userAnswers[currentQuestionIndex] = optionText;
 
@@ -246,6 +384,57 @@ public class ProfilingActivity extends AppCompatActivity {
                 }
             }, 250);
         });
+    }
+
+    private void updateMultiSelectCardStyles() {
+        LinearLayout[] cards = new LinearLayout[]{cardOption1, cardOption2, cardOption3, cardOption4, cardOption5, cardOption6};
+        TextView[] texts = new TextView[]{tvOptionText1, tvOptionText2, tvOptionText3, tvOptionText4, tvOptionText5, tvOptionText6};
+        TextView[] checks = new TextView[]{tvOptionCheck1, tvOptionCheck2, tvOptionCheck3, tvOptionCheck4, tvOptionCheck5, tvOptionCheck6};
+
+        for (int i = 0; i < cards.length; i++) {
+            if (cards[i] != null && cards[i].getVisibility() == View.VISIBLE) {
+                boolean isSelected = selectedOptionsForMultiSelect[i];
+                if (isSelected) {
+                    cards[i].setBackgroundResource(R.drawable.bg_button_pill_secondary);
+                    if (texts[i] != null) texts[i].setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                    if (checks[i] != null) checks[i].setVisibility(View.VISIBLE);
+                } else {
+                    cards[i].setBackgroundResource(R.drawable.bg_button_pill);
+                    if (texts[i] != null) texts[i].setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                    if (checks[i] != null) checks[i].setVisibility(View.GONE);
+                }
+            }
+        }
+    }
+
+    private void processMultiSelectSubmit() {
+        if (isAnimating || isSubmitting) return;
+
+        StringBuilder sb = new StringBuilder();
+        String[] options = optionsMatrix[currentQuestionIndex];
+        for (int i = 0; i < options.length; i++) {
+            if (i < selectedOptionsForMultiSelect.length && selectedOptionsForMultiSelect[i]) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(options[i]);
+            }
+        }
+
+        if (sb.length() == 0) {
+            ToastUtils.showToast(this, "Please select at least one activity to continue.");
+            return;
+        }
+
+        userAnswers[currentQuestionIndex] = sb.toString();
+        isAnimating = true;
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestionWithAnimation(currentQuestionIndex, true);
+            } else {
+                calculateAndSaveProfilingTiers();
+            }
+        }, 250);
     }
 
     private void displayQuestionWithAnimation(int index, boolean animateForward) {
@@ -291,7 +480,7 @@ public class ProfilingActivity extends AppCompatActivity {
     private void resetSingleCardStyle(LinearLayout card, TextView tvText, TextView tvCheck) {
         if (card == null || tvText == null) return;
         card.setBackgroundResource(R.drawable.bg_button_pill);
-        tvText.setTextColor(Color.parseColor("#546B41"));
+        tvText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
         if (tvCheck != null) tvCheck.setVisibility(View.GONE);
     }
 
@@ -325,10 +514,10 @@ public class ProfilingActivity extends AppCompatActivity {
         }
 
         if (selectedCard != null) {
-            selectedCard.setBackgroundResource(R.drawable.bg_nav_item_selected);
+            selectedCard.setBackgroundResource(R.drawable.bg_button_pill_secondary);
         }
         if (selectedText != null) {
-            selectedText.setTextColor(Color.parseColor("#546B41"));
+            selectedText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
         }
         if (selectedCheck != null) {
             selectedCheck.setVisibility(View.VISIBLE);
@@ -336,38 +525,52 @@ public class ProfilingActivity extends AppCompatActivity {
     }
 
     private void updateStepIndicatorNodes(int index) {
-        int currentGroup = index / 3; // Maps 12 questions across 4 progress node groups
-        updateNodeState(node1, currentGroup >= 0, currentGroup > 0);
-        updateNodeState(node2, currentGroup >= 1, currentGroup > 1);
-        updateNodeState(node3, currentGroup >= 2, currentGroup > 2);
-        updateNodeState(node4, currentGroup >= 3, currentGroup > 3);
-    }
+        if (stepNodesList.isEmpty()) return;
 
-    private void updateNodeState(TextView node, boolean isReached, boolean isCompleted) {
-        if (node == null) return;
-        if (isCompleted) {
-            node.setText("✔");
-            node.setAlpha(1.0f);
-        } else if (isReached) {
-            node.setText("•");
-            node.setAlpha(1.0f);
-        } else {
-            node.setText("○");
-            node.setAlpha(0.4f);
+        for (int i = 0; i < stepNodesList.size(); i++) {
+            TextView node = stepNodesList.get(i);
+            if (node == null) continue;
+
+            if (i == index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_active);
+                node.setText("");
+                node.setAlpha(1.0f);
+            } else if (i < index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_completed);
+                node.setText("✔");
+                node.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                node.setAlpha(1.0f);
+            } else {
+                node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+                node.setText("");
+                node.setAlpha(1.0f);
+            }
+        }
+
+        for (int i = 0; i < stepLinesList.size(); i++) {
+            View line = stepLinesList.get(i);
+            if (line == null) continue;
+            line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+            if (i < index) {
+                line.setAlpha(1.0f);
+            } else {
+                line.setAlpha(0.85f);
+            }
         }
     }
 
     private void calculateAndSaveProfilingTiers() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
         String chosenNickname = userAnswers[0] != null ? userAnswers[0] : "Adventurer";
         String ageRangeStr = userAnswers[1] != null ? userAnswers[1] : "18–24";
 
         int ageInt = 21;
-        if (ageRangeStr.contains("Under 18")) ageInt = 16;
-        else if (ageRangeStr.contains("18–24")) ageInt = 21;
-        else if (ageRangeStr.contains("25–35")) ageInt = 30;
-        else if (ageRangeStr.contains("36–50")) ageInt = 42;
-        else if (ageRangeStr.contains("51–64")) ageInt = 57;
-        else if (ageRangeStr.contains("65")) ageInt = 68;
+        if (ageRangeStr.contains("Under 18") || ageRangeStr.contains("Youth")) ageInt = 16;
+        else if (ageRangeStr.contains("18–24") || ageRangeStr.contains("Young Adult")) ageInt = 21;
+        else if (ageRangeStr.contains("25–49") || ageRangeStr.contains("25–35") || ageRangeStr.contains("Adult")) ageInt = 35;
+        else if (ageRangeStr.contains("50+") || ageRangeStr.contains("65") || ageRangeStr.contains("Senior") || ageRangeStr.contains("Mature")) ageInt = 58;
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         DatabaseHelper.ensureUserTableExists(db);
@@ -424,6 +627,9 @@ public class ProfilingActivity extends AppCompatActivity {
         saveMetricRow(db, "Detox Duration Multiplier", String.valueOf(detoxMultiplier));
         saveMetricRow(db, "Creative Activity Multiplier", String.valueOf(creativeMultiplier));
         saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[9] != null ? userAnswers[9] : "General");
+        if (userAnswers.length > 11 && userAnswers[11] != null) {
+            saveMetricRow(db, "Secondary Activity Archetype", userAnswers[11]);
+        }
 
         prefs.edit().putBoolean("isFirstRun", false).apply();
 

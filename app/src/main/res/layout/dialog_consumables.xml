@@ -1,246 +1,271 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/bg_surface_card"
-    android:orientation="vertical"
-    android:padding="20dp">
+    android:layout_height="wrap_content">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:text="Consumables &amp; Boosts"
-        android:textColor="@color/dagoal_primary"
-        android:textSize="20sp"
-        android:textStyle="bold" />
-
-    <!-- 1.5x XP Boost Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_task_card"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="14dp">
+        android:background="@drawable/bg_surface_card_full_radius"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_large">
 
-        <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/icon_1_5x_xp" />
-
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="@dimen/spacing_normal"
+            android:text="Consumables &amp; Boosts"
+            android:textColor="@color/dagoal_primary"
+            android:textSize="@dimen/text_size_headline"
+            android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
+        <!-- 1.5x XP Boost Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_medium"
+            android:background="@drawable/bg_task_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="@dimen/icon_size_extra_large"
+                android:layout_height="@dimen/icon_size_extra_large"
+                android:scaleType="fitCenter"
+                android:src="@drawable/icon_1_5x_xp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="1.5x XP Boost"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="15sp"
+                android:layout_marginStart="@dimen/spacing_medium"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.5x XP Boost"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_subhead"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_qty_xp_boost_1_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Available: x0"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_small"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_activate_xp_boost_1_5"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="@dimen/touch_target_min_width"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingHorizontal="@dimen/spacing_medium"
+                android:text="Activate"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_small"
                 android:textStyle="bold" />
+        </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_qty_xp_boost_1_5"
-                android:layout_width="wrap_content"
+        <!-- 1.5x Gold Boost Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_medium"
+            android:background="@drawable/bg_task_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="@dimen/icon_size_extra_large"
+                android:layout_height="@dimen/icon_size_extra_large"
+                android:scaleType="fitCenter"
+                android:src="@drawable/icon_1_5x_gold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Available: x0"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="12sp"
+                android:layout_marginStart="@dimen/spacing_medium"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.5x Gold Boost"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_subhead"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_qty_gold_boost_1_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Available: x0"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_small"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_activate_gold_boost_1_5"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="@dimen/touch_target_min_width"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingHorizontal="@dimen/spacing_medium"
+                android:text="Activate"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_small"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 2x XP Boost Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_medium"
+            android:background="@drawable/bg_task_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="@dimen/icon_size_extra_large"
+                android:layout_height="@dimen/icon_size_extra_large"
+                android:scaleType="fitCenter"
+                android:src="@drawable/icon_2x_xp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_medium"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2x XP Boost"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_subhead"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_qty_xp_boost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Available: x0"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_small"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_activate_xp_boost"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="@dimen/touch_target_min_width"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingHorizontal="@dimen/spacing_medium"
+                android:text="Activate"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_small"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 2x Gold Boost Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_normal"
+            android:background="@drawable/bg_task_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="@dimen/icon_size_extra_large"
+                android:layout_height="@dimen/icon_size_extra_large"
+                android:scaleType="fitCenter"
+                android:src="@drawable/icon_2x_gold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_medium"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2x Gold Boost"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_subhead"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_qty_gold_boost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Available: x0"
+                    android:textColor="@color/dagoal_primary"
+                    android:textSize="@dimen/text_size_small"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_activate_gold_boost"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="@dimen/touch_target_min_width"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingHorizontal="@dimen/spacing_medium"
+                android:text="Activate"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_small"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <Button
-            android:id="@+id/btn_activate_xp_boost_1_5"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:backgroundTint="@color/dagoal_primary"
-            android:paddingHorizontal="12dp"
-            android:text="Activate"
+            android:id="@+id/btn_close_consumables"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Close"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="12sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
+
     </LinearLayout>
-
-    <!-- 1.5x Gold Boost Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_task_card"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="14dp">
-
-        <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/icon_1_5x_gold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1.5x Gold Boost"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_qty_gold_boost_1_5"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Available: x0"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btn_activate_gold_boost_1_5"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:backgroundTint="@color/dagoal_primary"
-            android:paddingHorizontal="12dp"
-            android:text="Activate"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- 2x XP Boost Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_task_card"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="14dp">
-
-        <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/icon_2x_xp" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2x XP Boost"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_qty_xp_boost"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Available: x0"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btn_activate_xp_boost"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:backgroundTint="@color/dagoal_primary"
-            android:paddingHorizontal="12dp"
-            android:text="Activate"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- 2x Gold Boost Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/bg_task_card"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="14dp">
-
-        <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/icon_2x_gold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2x Gold Boost"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_qty_gold_boost"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Available: x0"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btn_activate_gold_boost"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:backgroundTint="@color/dagoal_primary"
-            android:paddingHorizontal="12dp"
-            android:text="Activate"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <Button
-        android:id="@+id/btn_close_consumables"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:backgroundTint="@color/dagoal_secondary"
-        android:text="Close"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textStyle="bold" />
-
-</LinearLayout>
+</ScrollView>

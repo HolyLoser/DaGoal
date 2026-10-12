@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_surface_card_full_radius"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header Icon Badge -->
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_circle_primary"
+        android:backgroundTint="@color/dagoal_secondary">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:contentDescription="Edit Username"
+            android:src="@drawable/ic_edit_pencil"
+            app:tint="@color/dagoal_primary_dark" />
+    </FrameLayout>
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:gravity="center"
+        android:text="Edit Username"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tv_dialog_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:gravity="center"
+        android:text="Enter a new nickname for your adventurer profile."
+        android:textColor="@color/dagoal_text_primary"
+        android:textSize="14sp" />
+
+    <!-- Username Input Pill -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/button_height_standard"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_auth_pill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:contentDescription="Profile Icon"
+            android:src="@drawable/ic_settings_account"
+            app:tint="@color/dagoal_primary_dark" />
+
+        <EditText
+            android:id="@+id/edit_username_input"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            android:gravity="center"
+            android:hint="Letters &amp; numbers only (max 16)"
+            android:inputType="textVisiblePassword"
+            android:maxLength="16"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textColorHint="@color/dagoal_hint"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Action Buttons Stack -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btn_username_save"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Save"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_username_cancel"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

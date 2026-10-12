@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_loading_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dagoal_primary">
@@ -22,17 +23,17 @@
             android:adjustViewBounds="true"
             android:background="@drawable/bg_title_oval"
             android:contentDescription="@string/logo_placeholder_desc"
-            android:elevation="8dp"
-            android:padding="16dp"
+            android:elevation="@dimen/card_elevation_raised"
+            android:padding="@dimen/spacing_normal"
             android:scaleType="fitCenter"
             android:src="@drawable/logo_nobg" />
 
         <ProgressBar
             android:id="@+id/loading_indicator"
             style="?android:attr/progressBarStyle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="32dp"
+            android:layout_width="@dimen/icon_size_giant"
+            android:layout_height="@dimen/icon_size_giant"
+            android:layout_marginTop="@dimen/spacing_huge"
             android:indeterminateTint="@color/dagoal_background_light" />
 
     </LinearLayout>

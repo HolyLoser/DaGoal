@@ -78,51 +78,61 @@ public class TaskManager {
 
         checkAndUpdateStreak(db, currentDate);
 
-        Cursor checkCringe = db.rawQuery("SELECT COUNT(*) FROM daily_tasks WHERE is_custom = 0", null);
-        boolean hasCringeTasks = false;
-        if (checkCringe != null) {
-            if (checkCringe.moveToFirst() && checkCringe.getInt(0) == 0) {
-                hasCringeTasks = true;
+        android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        if (areTasksAlreadyGenerated(db, currentDate)
+                || currentDate.equals(prefs.getString("last_quest_generation_date", ""))) return;
+
+        db.beginTransaction();
+        try {
+            DatabaseHelper.archiveRecurringQuestSchedules(db);
+            java.util.List<ContentValues> dueRecurringQuests = collectDueRecurringCustomQuests(db, currentDate);
+
+            db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
+            db.delete(DatabaseHelper.REWARD_RECEIPTS_TABLE, null, null);
+
+            for (ContentValues recurringValues : dueRecurringQuests) {
+                db.insertOrThrow(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, recurringValues);
+                ContentValues schedule = new ContentValues(recurringValues);
+                schedule.put("_id", recurringValues.getAsLong("recurring_schedule_id"));
+                db.insertWithOnConflict(DatabaseHelper.RECURRING_SCHEDULES_TABLE, null, schedule, SQLiteDatabase.CONFLICT_REPLACE);
             }
-            checkCringe.close();
+
+            int currentLevel = getCurrentUserLevelInternal(db);
+            int totalSlots = getDailyQuestSlotCount(currentLevel);
+            int usedSlots = dueRecurringQuests.size();
+
+            boolean avoidanceInserted = false;
+            java.util.List<String[]> blockedApps = getBlockedApps(db);
+
+            if (!blockedApps.isEmpty() && new Random().nextBoolean() && usedSlots < totalSlots) {
+                double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
+                ContentValues values = buildAvoidanceValues(blockedApps, detoxMult, currentDate);
+                db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+                avoidanceInserted = true;
+                usedSlots++;
+            }
+
+            int remainingSlots = Math.max(totalSlots - usedSlots, 0);
+            insertRandomAdditionalTasks(db, currentDate, remainingSlots);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
+    }
 
-        if (areTasksAlreadyGenerated(db, currentDate) && !hasCringeTasks) {
-            return;
+    void fillRestoredDailySlots(SQLiteDatabase db, String date) {
+        int existing;
+        try (Cursor cursor=db.rawQuery("SELECT COUNT(*) FROM daily_tasks WHERE task_date=?",new String[]{date})) {
+            existing=cursor.moveToFirst()?cursor.getInt(0):0;
         }
-
-        java.util.List<ContentValues> dueRecurringQuests = collectDueRecurringCustomQuests(db, currentDate);
-
-        db.delete(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, null);
-
-        for (ContentValues recurringValues : dueRecurringQuests) {
-            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, recurringValues);
-        }
-
-        int currentLevel = getCurrentUserLevelInternal(db);
-        int totalSlots = getDailyQuestSlotCount(currentLevel);
-        int usedSlots = dueRecurringQuests.size();
-
-        boolean avoidanceInserted = false;
-        java.util.List<String[]> blockedApps = getBlockedApps(db);
-
-        if (!blockedApps.isEmpty() && new Random().nextBoolean() && usedSlots < totalSlots) {
-            double detoxMult = getMultiplier(db, "Detox Duration Multiplier");
-            ContentValues values = buildAvoidanceValues(blockedApps, detoxMult, currentDate);
-            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
-            avoidanceInserted = true;
-            usedSlots++;
-        }
-
-        int remainingSlots = Math.max(totalSlots - usedSlots, 0);
-        insertRandomAdditionalTasks(db, currentDate, remainingSlots);
+        insertRandomAdditionalTasks(db,date,Math.max(0,getDailyQuestSlotCount(getCurrentUserLevelInternal(db))-existing));
     }
 
     private java.util.List<ContentValues> collectDueRecurringCustomQuests(SQLiteDatabase db, String currentDate) {
         java.util.List<ContentValues> result = new java.util.ArrayList<>();
 
         Cursor cursor = db.query(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                DatabaseHelper.RECURRING_SCHEDULES_TABLE,
                 null,
                 DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM + " = 1 AND " +
                         DatabaseContract.DailyTaskEntry.COLUMN_REPEAT_INTERVAL + " > 0",
@@ -134,6 +144,8 @@ public class TaskManager {
         }
 
         while (cursor.moveToNext()) {
+            String lastOccurrence = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_DATE));
+            if (lastOccurrence != null && currentDate.compareTo(lastOccurrence) <= 0) continue;
             String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_TITLE));
             int target = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE));
             String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_UNIT));
@@ -153,7 +165,7 @@ public class TaskManager {
                 continue;
             }
 
-            if ("COUNT".equals(repeatEndType) && !repeatEndValue.isEmpty()) {
+            if ("COUNT".equals(repeatEndType) && repeatEndValue != null && !repeatEndValue.isEmpty()) {
                 try {
                     int maxOccurrences = Integer.parseInt(repeatEndValue);
                     if (occurrencesDone >= maxOccurrences) {
@@ -163,7 +175,7 @@ public class TaskManager {
                 }
             }
 
-            if ("DATE".equals(repeatEndType) && !repeatEndValue.isEmpty()) {
+            if ("DATE".equals(repeatEndType) && repeatEndValue != null && !repeatEndValue.isEmpty()) {
                 if (currentDate.compareTo(normalizeDateString(repeatEndValue)) > 0) {
                     continue;
                 }
@@ -174,6 +186,16 @@ public class TaskManager {
             }
 
             ContentValues values = new ContentValues();
+            values.put("recurring_schedule_id", cursor.getLong(cursor.getColumnIndexOrThrow("_id")));
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER,
+                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_DIFFICULTY_TIER)));
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME,
+                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME)));
+            if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+            } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, (long) StepTrackingService.getStepsToday(appContext));
+            }
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, title);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, target);
@@ -282,6 +304,29 @@ public class TaskManager {
             return hours + "h";
         }
         return hours + "h " + mins + "m";
+    }
+
+    public static String formatDurationSeconds(long totalSeconds) {
+        if (totalSeconds <= 0) {
+            return "0s";
+        }
+        long hours = totalSeconds / 3600;
+        long mins = (totalSeconds % 3600) / 60;
+        long secs = totalSeconds % 60;
+
+        if (hours > 0) {
+            if (secs > 0) {
+                return String.format(Locale.getDefault(), "%dh %02dm %02ds", hours, mins, secs);
+            } else if (mins > 0) {
+                return String.format(Locale.getDefault(), "%dh %02dm", hours, mins);
+            } else {
+                return String.format(Locale.getDefault(), "%dh", hours);
+            }
+        } else if (mins > 0) {
+            return String.format(Locale.getDefault(), "%dm %02ds", mins, secs);
+        } else {
+            return String.format(Locale.getDefault(), "%ds", secs);
+        }
     }
 
     private int[] computeScaledQuestReward(int baseGold, int baseXp, int userLevel, float scaleMultiplier) {
@@ -472,6 +517,48 @@ public class TaskManager {
         return exists;
     }
 
+    private int freeShufflesUsed(SQLiteDatabase db, String date) {
+        try (Cursor cursor = db.rawQuery("SELECT used_count FROM daily_shuffle_usage WHERE shuffle_date=?", new String[]{date})) {
+            return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+        }
+    }
+
+    public int getRemainingDailyShuffles() {
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        int free = Math.max(0, getDailyQuestSlotCount(getCurrentUserLevelInternal(db)) - freeShufflesUsed(db, date));
+        return free + getConsumableQuantity(db, DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
+    }
+
+    public boolean shuffleDailyQuest(int taskId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        db.beginTransaction();
+        try {
+            try (Cursor task = db.rawQuery("SELECT is_completed FROM daily_tasks WHERE _id=? AND task_date=?",
+                    new String[]{String.valueOf(taskId), date})) {
+                if (!task.moveToFirst() || task.getInt(0) != 0) return false;
+            }
+            int used = freeShufflesUsed(db, date);
+            boolean free = used < getDailyQuestSlotCount(getCurrentUserLevelInternal(db));
+            if (!free && getConsumableQuantity(db, DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH) <= 0) return false;
+            if (!shuffleQuest(taskId)) return false;
+            if (free) {
+                ContentValues values = new ContentValues();
+                values.put("shuffle_date", date);
+                values.put("used_count", used + 1);
+                db.insertWithOnConflict(DatabaseHelper.SHUFFLE_USAGE_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            } else {
+                useConsumable(db, DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        syncUserProfileToFirestore(appContext);
+        return true;
+    }
+
     public boolean shuffleQuest(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
@@ -556,11 +643,12 @@ public class TaskManager {
             ContentValues values = new ContentValues();
 
             if (lastCompleted == null || lastCompleted.isEmpty()) {
-                values.put("streak", 1);
+                int initialStreak = Math.max(1, currentStreak);
+                values.put("streak", initialStreak);
                 values.put("last_completed_date", currentDateStr);
                 db.update("user", values, "_id = 1", null);
-                recordStreakHistory(db, currentDateStr, 1);
-                updateLongestStreak(db, 1);
+                recordStreakHistory(db, currentDateStr, initialStreak);
+                updateLongestStreak(db, initialStreak);
                 return;
             }
 
@@ -685,89 +773,82 @@ public class TaskManager {
 
     public boolean claimChest(String dateStr) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        Cursor cursor = db.query(
-                DatabaseContract.StreakHistoryEntry.TABLE_NAME,
-                new String[]{ DatabaseContract.StreakHistoryEntry.COLUMN_STREAK_VALUE, DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED },
-                DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " = ?",
-                new String[]{ dateStr },
-                null, null, null
-        );
-
-        int streakValue = 0;
-        int claimed = 0;
-        if (cursor != null) {
-            if (cursor.moveToFirst()) {
-                streakValue = cursor.getInt(0);
-                claimed = cursor.getInt(1);
+        db.beginTransaction();
+        try {
+            try (Cursor cursor = db.rawQuery("SELECT streak_value,chest_claimed FROM streak_history WHERE history_date=?",
+                    new String[]{dateStr})) {
+                if (!cursor.moveToFirst() || cursor.getInt(0) <= 0 || cursor.getInt(0) % 3 != 0 || cursor.getInt(1) != 0) return false;
             }
-            cursor.close();
-        }
-
-        if (streakValue <= 0 || streakValue % 3 != 0 || claimed == 1) {
+            ContentValues values = new ContentValues();
+            values.put("chest_claimed", 1);
+            if (db.update("streak_history", values, "history_date=? AND chest_claimed=0", new String[]{dateStr}) != 1) return false;
+            addUserRewards(db, 50, 40);
+            db.setTransactionSuccessful();
+        } catch (android.database.sqlite.SQLiteException error) {
+            Log.e("TaskManager", "Streak chest reward could not be saved", error);
             return false;
+        } finally {
+            db.endTransaction();
         }
-
-        ContentValues values = new ContentValues();
-        values.put(DatabaseContract.StreakHistoryEntry.COLUMN_CHEST_CLAIMED, 1);
-        db.update(
-                DatabaseContract.StreakHistoryEntry.TABLE_NAME,
-                values,
-                DatabaseContract.StreakHistoryEntry.COLUMN_DATE + " = ?",
-                new String[]{ dateStr }
-        );
-
-        ContentValues userValues = new ContentValues();
-        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
-        int currentGold = 0;
-        int currentXp = 0;
-        if (userCursor != null && userCursor.moveToFirst()) {
-            currentGold = userCursor.getInt(0);
-            currentXp = userCursor.getInt(1);
-            userCursor.close();
-        }
-        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + 50);
-        userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + 40);
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
         syncUserProfileToFirestore(appContext);
-
         SoundEffectsHelper.playChestClaim(appContext);
-
         return true;
     }
 
     public void uncompleteTask(int taskId, int rewardGold, int rewardXp) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        ContentValues taskValues = new ContentValues();
-        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
-        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
-        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, 0L);
-        db.update(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                taskValues,
-                DatabaseContract.DailyTaskEntry._ID + " = ?",
-                new String[]{ String.valueOf(taskId) }
-        );
-
-        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
-        if (userCursor != null) {
-            if (userCursor.moveToFirst()) {
-                int currentGold = userCursor.getInt(0);
-                int currentXp = userCursor.getInt(1);
-
-                int newGold = Math.max(0, currentGold - rewardGold);
-                int newXp = Math.max(0, currentXp - rewardXp);
-
-                ContentValues userValues = new ContentValues();
-                userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
-                userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
-                db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        boolean undone = false;
+        boolean removeChestPoint = false;
+        db.beginTransaction();
+        try {
+            String[] args = {String.valueOf(taskId)};
+            try (Cursor task = db.rawQuery("SELECT is_completed, reward_gold, reward_xp FROM daily_tasks WHERE _id = ?", args)) {
+                if (!task.moveToFirst() || task.getInt(0) != 1) return;
+                // Older completions have no receipt; retain their stored base rewards as a safe fallback.
+                rewardGold = task.getInt(1);
+                rewardXp = task.getInt(2);
             }
-            userCursor.close();
+            try (Cursor receipt = db.rawQuery("SELECT awarded_gold, awarded_xp, chest_point_awarded, chest_cycle "
+                    + "FROM quest_reward_receipts WHERE task_id = ?", args)) {
+                if (receipt.moveToFirst()) {
+                    rewardGold = receipt.getInt(0);
+                    rewardXp = receipt.getInt(1);
+                    removeChestPoint = receipt.getInt(2) != 0 && receipt.getInt(3) == getChestCycle(appContext);
+                }
+            }
+            int gold;
+            int xp;
+            int level;
+            try (Cursor user = db.rawQuery("SELECT gold, xp, level FROM user WHERE _id = 1", null)) {
+                if (!user.moveToFirst()) return;
+                gold = Math.max(0, user.getInt(0) - rewardGold);
+                xp = user.getInt(1) - rewardXp;
+                level = Math.max(1, user.getInt(2));
+            }
+            while (xp < 0 && level > 1) {
+                level--;
+                xp += getRequiredXpForLevel(level);
+            }
+            ContentValues userValues = new ContentValues();
+            userValues.put("gold", gold);
+            userValues.put("xp", Math.max(0, xp));
+            userValues.put("level", level);
+            db.update("user", userValues, "_id = 1", null);
+            ContentValues taskValues = new ContentValues();
+            taskValues.put("is_completed", 0);
+            taskValues.put("current_value", 0);
+            taskValues.put("start_timestamp", 0L);
+            db.update("daily_tasks", taskValues, "_id = ? AND is_completed = 1", args);
+            db.delete(DatabaseHelper.REWARD_RECEIPTS_TABLE, "task_id = ?", args);
+            db.setTransactionSuccessful();
+            undone = true;
+        } finally {
+            db.endTransaction();
         }
-        decrementChestBarPoints(appContext);
-        syncUserProfileToFirestore(appContext);
+        if (undone) {
+            if (removeChestPoint) decrementChestBarPoints(appContext);
+            syncUserProfileToFirestore(appContext);
+        }
     }
 
     public String getActiveStreakStartDate() {
@@ -834,7 +915,7 @@ public class TaskManager {
         return streak >= target;
     }
 
-    public static boolean checkAndClaimStreakPredictionReward(Context context, int currentStreak) {
+    public static synchronized boolean checkAndClaimStreakPredictionReward(Context context, int currentStreak) {
         int target = getStreakPredictionTarget(context);
         if (target <= 0 || isStreakPredictionClaimed(context)) {
             return false;
@@ -862,24 +943,15 @@ public class TaskManager {
                 consumableType = DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST;
             }
 
-            Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
-            int currentGold = 0;
-            int currentXp = 0;
-            if (userCursor != null && userCursor.moveToFirst()) {
-                currentGold = userCursor.getInt(0);
-                currentXp = userCursor.getInt(1);
-                userCursor.close();
+            db.beginTransaction();
+            try {
+                tm.addUserRewards(db, bonusGold, bonusXp);
+                if (consumableType != null) tm.grantConsumable(db, consumableType, 1);
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
             }
-
-            ContentValues userValues = new ContentValues();
-            userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + bonusGold);
-            userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + bonusXp);
-            db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
             tm.syncUserProfileToFirestore(context);
-
-            if (consumableType != null) {
-                tm.grantConsumable(db, consumableType, 1);
-            }
 
             android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
             prefs.edit()
@@ -912,12 +984,17 @@ public class TaskManager {
         return prefs.getInt("pref_chest_bar_points", 0);
     }
 
+    private static int getChestCycle(Context context) {
+        return context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE).getInt("pref_chest_bar_cycle", 0);
+    }
+
     public static void advanceToNextChestTier(Context context) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         int currentTier = prefs.getInt("pref_chest_bar_current_tier", 1);
         int nextTier = Math.min(currentTier + 1, 4);
         prefs.edit()
                 .putInt("pref_chest_bar_current_tier", nextTier)
+                .putInt("pref_chest_bar_cycle", getChestCycle(context) + 1)
                 .putInt("pref_chest_bar_points", 0)
                 .apply();
     }
@@ -938,52 +1015,23 @@ public class TaskManager {
     }
 
     public static boolean claimChestTier(Context context, int tier) {
+        return claimChestLoot(context, tier) != null;
+    }
+
+    public static synchronized ChestLootResult claimChestLoot(Context context, int tier) {
+        if (tier != getChestBarCurrentTier(context)
+                || getChestBarPoints(context) < getChestBarTargetPoints(context)) return null;
+        ChestLootResult loot = generateRandomChestLoot(context, tier);
         TaskManager tm = new TaskManager(context);
-        SQLiteDatabase db = tm.dbHelper.getWritableDatabase();
-
-        int bonusGold = 30;
-        int bonusXp = 20;
-        String consumableType = null;
-
-        if (tier == 2) {
-            bonusGold = 80;
-            bonusXp = 60;
-            consumableType = DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST;
-        } else if (tier >= 3) {
-            bonusGold = 200;
-            bonusXp = 150;
-            consumableType = DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST;
-        }
-
-        Cursor userCursor = db.rawQuery("SELECT gold, xp FROM user WHERE _id = 1", null);
-        int currentGold = 0;
-        int currentXp = 0;
-        if (userCursor != null && userCursor.moveToFirst()) {
-            currentGold = userCursor.getInt(0);
-            currentXp = userCursor.getInt(1);
-            userCursor.close();
-        }
-
-        ContentValues userValues = new ContentValues();
-        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold + bonusGold);
-        userValues.put(DatabaseContract.UserEntry.COLUMN_XP, currentXp + bonusXp);
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
-        tm.syncUserProfileToFirestore(context);
-
-        if (consumableType != null) {
-            tm.grantConsumable(db, consumableType, 1);
-        }
-
-        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        prefs.edit()
+        tm.awardChestLoot(loot);
+        context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE).edit()
                 .putInt("pref_chest_bar_current_tier", 1)
                 .putInt("pref_chest_bar_points", 0)
-                .apply();
-
+                .putInt("pref_chest_bar_cycle", getChestCycle(context) + 1).apply();
         SoundEffectsHelper.playChestClaim(context);
-        OnlineShopManager.logChestClaimOnline(context, tier, bonusGold, bonusXp, consumableType);
-        ToastUtils.showToast(context, "🎁 Chest Opened! +" + bonusGold + " Gold, +" + bonusXp + " XP Granted!");
-        return true;
+        OnlineShopManager.logChestClaimOnline(context, tier, loot.gold, loot.xp,
+                loot.consumables.isEmpty() ? null : String.join(",", loot.consumables));
+        return loot;
     }
 
     private boolean areTasksAlreadyGenerated(SQLiteDatabase db, String dateStr) {
@@ -1038,37 +1086,41 @@ public class TaskManager {
     public void awardChestLoot(ChestLootResult loot) {
         if (loot == null) return;
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        Cursor cursor = db.rawQuery("SELECT gold, xp, level FROM user WHERE _id = 1", null);
-        int gold = 0, xp = 0, level = 1;
-        if (cursor != null && cursor.moveToFirst()) {
-            gold = cursor.getInt(0);
-            xp = cursor.getInt(1);
-            level = cursor.getInt(2);
-            cursor.close();
+        db.beginTransaction();
+        try {
+            addUserRewards(db, loot.gold, loot.xp);
+            for (String type : loot.consumables) grantConsumable(db, type, 1);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
-
-        int newGold = gold + loot.gold;
-        int newXp = xp + loot.xp;
-        int maxXp = getRequiredXpForLevel(level);
-
-        while (newXp >= maxXp) {
-            newXp -= maxXp;
-            level++;
-            maxXp = getRequiredXpForLevel(level);
-        }
-
-        ContentValues userValues = new ContentValues();
-        userValues.put("gold", newGold);
-        userValues.put("xp", newXp);
-        userValues.put("level", level);
-        db.update("user", userValues, "_id = 1", null);
-
-        for (String type : loot.consumables) {
-            grantConsumable(db, type, 1);
-        }
-        decrementChestBarPoints(appContext);
         syncUserProfileToFirestore(appContext);
+    }
+
+    // Apply the same progression rules to chest and streak rewards as to quests.
+    private void addUserRewards(SQLiteDatabase db, int gold, int xp) {
+        int level;
+        int highest;
+        int balance;
+        try (Cursor user = db.rawQuery("SELECT gold,xp,level,highest_rewarded_level FROM user WHERE _id=1", null)) {
+            if (!user.moveToFirst()) throw new IllegalStateException("User profile missing");
+            balance = user.getInt(0) + gold;
+            xp += user.getInt(1);
+            level = Math.max(1, user.getInt(2));
+            highest = Math.max(level, user.getInt(3));
+        }
+        while (xp >= getRequiredXpForLevel(level)) {
+            xp -= getRequiredXpForLevel(level);
+            level++;
+        }
+        ContentValues values = new ContentValues();
+        values.put("gold", balance);
+        values.put("xp", xp);
+        values.put("level", level);
+        values.put("highest_rewarded_level", Math.max(highest, level));
+        db.update("user", values, "_id=1", null);
+        for (int reached = highest + 1; reached <= level; reached++) grantLevelUpRewards(db, reached);
+        updateCounterAchievementValue(db, "CHARACTER_LEVEL_RANK", level);
     }
 
     public static String getConsumableDisplayName(String type) {
@@ -1143,104 +1195,81 @@ public class TaskManager {
 
     public void completeTask(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        String selection = DatabaseContract.DailyTaskEntry._ID + " = ?";
-        String[] selectionArgs = { String.valueOf(taskId) };
-
-        int rewardGold = 10;
-        int rewardXp = 15;
-        boolean isCustom = false;
-
-        Cursor taskCursor = db.query(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                new String[]{
-                        DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM,
-                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
-                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
-                },
-                selection, selectionArgs, null, null, null
-        );
-
-        if (taskCursor != null && taskCursor.moveToFirst()) {
-            isCustom = taskCursor.getInt(0) == 1;
-            rewardGold = taskCursor.getInt(1);
-            rewardXp = taskCursor.getInt(2);
-            taskCursor.close();
-        }
-
-        String currentDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        if (isGoldBoostActive(appContext)) {
-            String activeType = prefs.getString("pref_active_gold_boost_type", "");
-            if (DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST_1_5.equals(activeType)) {
-                rewardGold = (int) Math.round(rewardGold * 1.5);
-            } else {
-                rewardGold *= 2;
+        boolean awarded = false;
+        boolean levelledUp = false;
+        db.beginTransaction();
+        try {
+            String[] args = {String.valueOf(taskId)};
+            int rewardGold;
+            int rewardXp;
+            boolean isCustom;
+            try (Cursor task = db.rawQuery("SELECT is_completed, is_custom, reward_gold, reward_xp "
+                    + "FROM daily_tasks WHERE _id = ?", args)) {
+                if (!task.moveToFirst() || task.getInt(0) != 0) return;
+                isCustom = task.getInt(1) == 1;
+                rewardGold = task.getInt(2);
+                rewardXp = task.getInt(3);
             }
-        }
-        if (isXpBoostActive(appContext)) {
-            String activeType = prefs.getString("pref_active_xp_boost_type", "");
-            if (DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST_1_5.equals(activeType)) {
-                rewardXp = (int) Math.round(rewardXp * 1.5);
-            } else {
-                rewardXp *= 2;
+            android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            if (isGoldBoostActive(appContext)) {
+                rewardGold = DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST_1_5.equals(
+                        prefs.getString("pref_active_gold_boost_type", ""))
+                        ? (int) Math.round(rewardGold * 1.5) : rewardGold * 2;
             }
+            if (isXpBoostActive(appContext)) {
+                rewardXp = DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST_1_5.equals(
+                        prefs.getString("pref_active_xp_boost_type", ""))
+                        ? (int) Math.round(rewardXp * 1.5) : rewardXp * 2;
+            }
+            int gold;
+            int xp;
+            int level;
+            int highestRewardedLevel;
+            try (Cursor user = db.rawQuery("SELECT gold, xp, level, highest_rewarded_level FROM user WHERE _id = 1", null)) {
+                if (!user.moveToFirst()) return;
+                gold = user.getInt(0);
+                xp = user.getInt(1) + rewardXp;
+                level = Math.max(1, user.getInt(2));
+                highestRewardedLevel = Math.max(level, user.getInt(3));
+            }
+            int previousLevel = level;
+            while (xp >= getRequiredXpForLevel(level)) {
+                xp -= getRequiredXpForLevel(level);
+                level++;
+            }
+            ContentValues taskValues = new ContentValues();
+            taskValues.put("is_completed", 1);
+            if (db.update("daily_tasks", taskValues, "_id = ? AND is_completed = 0", args) != 1) return;
+            ContentValues receipt = new ContentValues();
+            receipt.put("task_id", taskId);
+            receipt.put("awarded_gold", rewardGold);
+            receipt.put("awarded_xp", rewardXp);
+            receipt.put("chest_point_awarded", getChestBarPoints(appContext) < getChestBarTargetPoints(appContext) ? 1 : 0);
+            receipt.put("chest_cycle", getChestCycle(appContext));
+            db.insertOrThrow(DatabaseHelper.REWARD_RECEIPTS_TABLE, null, receipt);
+            ContentValues userValues = new ContentValues();
+            userValues.put("gold", gold + rewardGold);
+            userValues.put("xp", xp);
+            userValues.put("level", level);
+            userValues.put("highest_rewarded_level", Math.max(highestRewardedLevel, level));
+            db.update("user", userValues, "_id = 1", null);
+            // Undo can lower the visible level, but each level's consumable gift is awarded only once.
+            for (int reached = highestRewardedLevel + 1; reached <= level; reached++) grantLevelUpRewards(db, reached);
+            incrementCounterAchievements(db, "QUEST_COUNT");
+            updateCounterAchievementValue(db, "CHARACTER_LEVEL_RANK", level);
+            if (isCustom) incrementCounterAchievements(db, "CUSTOM_QUEST_COUNT");
+            db.setTransactionSuccessful();
+            awarded = true;
+            levelledUp = level > previousLevel;
+        } finally {
+            db.endTransaction();
         }
-
-        ContentValues taskValues = new ContentValues();
-        taskValues.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 1);
-        db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, taskValues, selection, selectionArgs);
-
-        Cursor userCursor = db.rawQuery("SELECT gold, xp, streak FROM user WHERE _id = 1", null);
-        int currentGold = 1000;
-        int currentXp = 0;
-
-        if (userCursor != null && userCursor.moveToFirst()) {
-            currentGold = userCursor.getInt(0);
-            currentXp = userCursor.getInt(1);
-            userCursor.close();
+        if (awarded) {
+            incrementChestBarPoints(appContext);
+            syncUserProfileToFirestore(appContext);
+            if (levelledUp) SoundEffectsHelper.playLevelUp(appContext);
+            else SoundEffectsHelper.playQuestComplete(appContext);
         }
-
-        int newGold = currentGold + rewardGold;
-        int newXp = currentXp + rewardXp;
-        int currentLevel = 1;
-
-        Cursor levelCursor = db.rawQuery("SELECT level FROM user WHERE _id = 1", null);
-        if (levelCursor != null && levelCursor.moveToFirst()) {
-            currentLevel = levelCursor.getInt(0);
-            levelCursor.close();
-        }
-
-        int levelBeforeThisCompletion = currentLevel;
-        int maxXp = getRequiredXpForLevel(currentLevel);
-
-        while (newXp >= maxXp) {
-            newXp -= maxXp;
-            currentLevel++;
-            maxXp = getRequiredXpForLevel(currentLevel);
-        }
-
-        ContentValues userValues = new ContentValues();
-        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
-        userValues.put(DatabaseContract.UserEntry.COLUMN_XP, newXp);
-        userValues.put("level", currentLevel);
-
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
-        syncUserProfileToFirestore(appContext);
-
-        if (currentLevel > levelBeforeThisCompletion) {
-            grantLevelUpRewards(db, currentLevel);
-            SoundEffectsHelper.playLevelUp(appContext);
-        } else {
-            SoundEffectsHelper.playQuestComplete(appContext);
-        }
-
-        incrementCounterAchievements(db, "QUEST_COUNT");
-        updateCounterAchievementValue(db, "CHARACTER_LEVEL_RANK", currentLevel);
-        if (isCustom) {
-            incrementCounterAchievements(db, "CUSTOM_QUEST_COUNT");
-        }
-        incrementChestBarPoints(appContext);
     }
 
     private void grantLevelUpRewards(SQLiteDatabase db, int newLevel) {
@@ -1306,6 +1335,27 @@ public class TaskManager {
             return "Gold Boost";
         }
         return type;
+    }
+
+    public java.util.Map<String, Integer> getAllConsumablesMap() {
+        java.util.Map<String, Integer> map = new java.util.HashMap<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.query(
+                DatabaseContract.InventoryConsumableEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE, DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY },
+                null, null, null, null, null
+        );
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                String type = cursor.getString(0);
+                int qty = cursor.getInt(1);
+                if (type != null && !type.isEmpty() && qty > 0) {
+                    map.put(type, qty);
+                }
+            }
+            cursor.close();
+        }
+        return map;
     }
 
     public int getConsumableQuantity(String type) {
@@ -1397,6 +1447,7 @@ public class TaskManager {
                     .putLong("pref_xp_boost_expiration_timestamp", expiration)
                     .putString("pref_active_xp_boost_type", boostType)
                     .apply();
+            syncUserProfileToFirestore(context);
             return true;
         }
         return false;
@@ -1418,6 +1469,7 @@ public class TaskManager {
                     .putLong("pref_gold_boost_expiration_timestamp", expiration)
                     .putString("pref_active_gold_boost_type", boostType)
                     .apply();
+            syncUserProfileToFirestore(context);
             return true;
         }
         return false;
@@ -1590,7 +1642,9 @@ public class TaskManager {
         String[] projection = {
                 DatabaseContract.DailyTaskEntry._ID,
                 DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
-                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM
         };
 
         String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
@@ -1607,12 +1661,32 @@ public class TaskManager {
                 int taskId = cursor.getInt(0);
                 int targetValue = cursor.getInt(1);
                 int isCompleted = cursor.getInt(2);
+                long startStepBaseline = cursor.getLong(3);
+                int isCustom = cursor.getInt(4);
 
                 if (isCompleted == 1) {
                     continue;
                 }
 
-                int clampedValue = Math.min(newValue, targetValue);
+                int taskProgress;
+                if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType) && isCustom == 1) {
+                    if (startStepBaseline <= 0 && newValue > 0) {
+                        startStepBaseline = newValue;
+                        ContentValues initValues = new ContentValues();
+                        initValues.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, startStepBaseline);
+                        db.update(
+                                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                                initValues,
+                                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                                new String[]{ String.valueOf(taskId) }
+                        );
+                    }
+                    taskProgress = (int) Math.max(0, newValue - startStepBaseline);
+                } else {
+                    taskProgress = newValue;
+                }
+
+                int clampedValue = Math.min(taskProgress, targetValue);
 
                 ContentValues progressValues = new ContentValues();
                 progressValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, clampedValue);
@@ -1685,7 +1759,7 @@ public class TaskManager {
         );
     }
 
-    public void checkAndCompleteAvoidanceQuests() {
+    public boolean checkAndCompleteAvoidanceQuests() {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
@@ -1705,6 +1779,7 @@ public class TaskManager {
                 projection, selection, selectionArgs, null, null, null
         );
 
+        boolean completedAny = false;
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 int taskId = cursor.getInt(0);
@@ -1729,16 +1804,33 @@ public class TaskManager {
 
                 if (clampedElapsed >= targetMinutes) {
                     completeTask(taskId);
+                    completedAny = true;
                 }
             }
             cursor.close();
         }
+        return completedAny;
     }
 
     public static class ActiveAvoidanceQuest {
         public int taskId;
         public String title;
         public java.util.List<String> targetPackages;
+        public int targetValue;
+        public long startTimestamp;
+
+        public long getRemainingSeconds() {
+            if (startTimestamp <= 0) {
+                return targetValue * 60L;
+            }
+            long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - startTimestamp) / 1000L);
+            return Math.max(0, (targetValue * 60L) - elapsedSeconds);
+        }
+
+        public String getRemainingTimeFormatted() {
+            long secs = getRemainingSeconds();
+            return TaskManager.formatDurationSeconds(secs) + " remaining";
+        }
     }
 
     public java.util.List<ActiveAvoidanceQuest> getStartedAvoidanceQuests() {
@@ -1749,7 +1841,9 @@ public class TaskManager {
         String[] projection = {
                 DatabaseContract.DailyTaskEntry._ID,
                 DatabaseContract.DailyTaskEntry.COLUMN_TITLE,
-                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME
+                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME,
+                DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP
         };
 
         String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
@@ -1769,10 +1863,18 @@ public class TaskManager {
                 quest.taskId = cursor.getInt(0);
                 quest.title = cursor.getString(1);
                 String packageName = cursor.getString(2);
+                quest.targetValue = cursor.getInt(3);
+                quest.startTimestamp = cursor.getLong(4);
 
                 quest.targetPackages = new java.util.ArrayList<>();
-                if (packageName != null && !packageName.isEmpty()) {
-                    quest.targetPackages.add(packageName);
+                if (packageName != null && !packageName.trim().isEmpty()) {
+                    String[] pkgs = packageName.split(",");
+                    for (String p : pkgs) {
+                        String trimmed = p.trim();
+                        if (!trimmed.isEmpty()) {
+                            quest.targetPackages.add(trimmed);
+                        }
+                    }
                 } else {
                     java.util.List<String[]> blockedApps = getBlockedApps(db);
                     for (String[] app : blockedApps) {
@@ -1829,19 +1931,55 @@ public class TaskManager {
     public int handleIgnorePressed(int taskId) {
         SoundEffectsHelper.playPause(appContext);
         int stage = getIgnoreStage(taskId);
-        if (stage >= 3) {
-            resetAvoidanceQuest(taskId);
-            return -1;
-        }
 
         int newStage = stage + 1;
-        int minutes = newStage == 1 ? 5 : (newStage == 2 ? 10 : 15);
+        int minutes = 5;
         long snoozeUntil = System.currentTimeMillis() + (long) minutes * 60000L;
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
+                },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        long currentStartTimestamp = System.currentTimeMillis();
+        int rewardGold = 0;
+        int rewardXp = 0;
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                currentStartTimestamp = cursor.getLong(0);
+                rewardGold = cursor.getInt(1);
+                rewardXp = cursor.getInt(2);
+            }
+            cursor.close();
+        }
+
+        // Pause timer by shifting startTimestamp forward by the ignored duration (minutes)
+        long baseTimestamp = currentStartTimestamp > 0 ? currentStartTimestamp : System.currentTimeMillis();
+        long newStartTimestamp = baseTimestamp + (long) minutes * 60000L;
+
+        // Deduct 25% penalty from quest rewards
+        int goldPenalty = Math.max(1, (int) Math.round(rewardGold * 0.25));
+        int xpPenalty = Math.max(1, (int) Math.round(rewardXp * 0.25));
+        int newRewardGold = Math.max(0, rewardGold - goldPenalty);
+        int newRewardXp = Math.max(0, rewardXp - xpPenalty);
+
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, newStage);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, newStartTimestamp);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, newRewardGold);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, newRewardXp);
+
         db.update(
                 DatabaseContract.DailyTaskEntry.TABLE_NAME,
                 values,
@@ -1849,7 +1987,57 @@ public class TaskManager {
                 new String[]{ String.valueOf(taskId) }
         );
 
+        ToastUtils.showToast(appContext, "Timer paused for " + minutes + "m. Quest reward reduced (-" + goldPenalty + " Gold, -" + xpPenalty + " XP)");
+
         return minutes;
+    }
+
+    public void cancelSnoozeAndResumeTimer(int taskId, long unusedMs) {
+        if (unusedMs <= 0) return;
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        long currentStartTimestamp = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                currentStartTimestamp = cursor.getLong(0);
+            }
+            cursor.close();
+        }
+
+        if (currentStartTimestamp > 0) {
+            long newStartTimestamp = Math.max(0, currentStartTimestamp - unusedMs);
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, newStartTimestamp);
+
+            db.update(
+                    DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                    values,
+                    DatabaseContract.DailyTaskEntry._ID + " = ?",
+                    new String[]{ String.valueOf(taskId) }
+            );
+        }
+    }
+
+    public void snoozeAvoidanceQuestSeconds(int taskId, int seconds) {
+        long snoozeUntil = System.currentTimeMillis() + (long) seconds * 1000L;
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
     }
 
     public void resetAvoidanceQuest(int taskId) {
@@ -1867,14 +2055,37 @@ public class TaskManager {
         );
     }
 
-    public void removeQuest(int taskId) {
-        SoundEffectsHelper.playCancel(appContext);
+    public static final int QUEST_DELETE_GOLD_COST = 1;
+
+    public boolean removeQuest(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.delete(
-                DatabaseContract.DailyTaskEntry.TABLE_NAME,
-                DatabaseContract.DailyTaskEntry._ID + " = ?",
-                new String[]{ String.valueOf(taskId) }
-        );
+        db.beginTransaction();
+        try {
+            String[] args = {String.valueOf(taskId)};
+            long scheduleId;
+            try (Cursor task = db.rawQuery("SELECT is_completed,recurring_schedule_id FROM daily_tasks WHERE _id=?", args)) {
+                if (!task.moveToFirst() || task.getInt(0) != 0) return false;
+                scheduleId = task.getLong(1);
+            }
+            try (Cursor user = db.rawQuery("SELECT gold FROM user WHERE _id=1", null)) {
+                if (!user.moveToFirst() || user.getInt(0) < QUEST_DELETE_GOLD_COST) return false;
+                ContentValues values = new ContentValues();
+                values.put("gold", user.getInt(0) - QUEST_DELETE_GOLD_COST);
+                db.update("user", values, "_id=1", null);
+            }
+            if (db.delete("daily_tasks", "_id=? AND is_completed=0", args) != 1) return false;
+            db.delete(DatabaseHelper.REWARD_RECEIPTS_TABLE, "task_id=?", args);
+            if (scheduleId > 0) db.delete(DatabaseHelper.RECURRING_SCHEDULES_TABLE, "_id=?", new String[]{String.valueOf(scheduleId)});
+            db.setTransactionSuccessful();
+        } catch (android.database.sqlite.SQLiteException error) {
+            Log.e("TaskManager", "Quest deletion could not be saved", error);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        syncUserProfileToFirestore(appContext);
+        SoundEffectsHelper.playCancel(appContext);
+        return true;
     }
 
     public static final int CUSTOM_QUEST_GOLD_MIN = 5;
@@ -1944,10 +2155,6 @@ public class TaskManager {
     }
 
     public boolean createCustomQuest(String title, String description, int target, String unit, int goldPicked, int level, String unitType, int repeatInterval, String repeatUnit, String repeatWeekdays, String repeatEndType, String repeatEndValue, String customBlockedPackagesCsv) {
-        if (getRemainingCustomQuests(level) <= 0) {
-            return false;
-        }
-
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         int xpReward = computeCustomQuestXp(goldPicked, level);
@@ -1971,6 +2178,12 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, currentDate);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
+            int currentSteps = StepTrackingService.getStepsToday(appContext);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, (long) currentSteps);
+        }
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Custom");
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, goldPicked);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, xpReward);
@@ -1988,20 +2201,27 @@ public class TaskManager {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME, customBlockedPackagesCsv.trim());
         }
 
-        db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
-
-        ContentValues userValues = new ContentValues();
-        userValues.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT, getCustomQuestsUsedThisWeek() + 1);
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        db.beginTransaction();
+        try {
+            if (getRemainingCustomQuests(level) <= 0) return false;
+            db.insertOrThrow(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
+            ContentValues userValues = new ContentValues();
+            userValues.put(DatabaseContract.UserEntry.COLUMN_CUSTOM_QUEST_COUNT, getCustomQuestsUsedThisWeek() + 1);
+            if (db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null) != 1)
+                throw new android.database.sqlite.SQLiteException("User profile missing");
+            DatabaseHelper.archiveRecurringQuestSchedules(db);
+            db.setTransactionSuccessful();
+        } catch (android.database.sqlite.SQLiteException error) {
+            Log.e("TaskManager", "Custom quest could not be saved", error);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        syncUserProfileToFirestore(appContext);
 
         if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType) && appContext != null) {
             try {
-                android.content.Intent stepServiceIntent = new android.content.Intent(appContext, StepTrackingService.class);
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    appContext.startForegroundService(stepServiceIntent);
-                } else {
-                    appContext.startService(stepServiceIntent);
-                }
+                StepTrackingService.start(appContext);
             } catch (Exception ignored) {}
         }
 
@@ -2165,6 +2385,7 @@ public class TaskManager {
 
         if (cost == 0) {
             useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
+            syncUserProfileToFirestore(context);
             prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr)
                     .putInt("pref_shop_reroll_count_today", count + 1).apply();
             OnlineShopManager.forceShopRotationRefresh(context);
@@ -2192,29 +2413,36 @@ public class TaskManager {
     }
 
     public boolean purchaseShopItem(ShopItem item) {
+        if (item == null) return false;
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        int currentGold = getUserGoldBalance();
-        if (currentGold < item.getPrice()) {
+        db.beginTransaction();
+        try {
+            try (Cursor owned = db.rawQuery("SELECT _id FROM inventory WHERE item_id = ?",
+                    new String[]{String.valueOf(item.getId())})) {
+                if (owned.moveToFirst()) return false;
+            }
+            int currentGold = getUserGoldBalance();
+            if (currentGold < item.getPrice()) return false;
+            ContentValues userValues = new ContentValues();
+            userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, currentGold - item.getPrice());
+            if (db.update("user", userValues, "_id = 1", null) != 1) return false;
+            ContentValues inventoryValues = new ContentValues();
+            inventoryValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_ID, item.getId());
+            inventoryValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_NAME, item.getName());
+            inventoryValues.put(DatabaseContract.InventoryEntry.COLUMN_CATEGORY, item.getCategory());
+            inventoryValues.put(DatabaseContract.InventoryEntry.COLUMN_RES_NAME, item.getResName());
+            db.insertOrThrow(DatabaseContract.InventoryEntry.TABLE_NAME, null, inventoryValues);
+            incrementCounterAchievements(db, "CLOTHING_COLLECTION_COUNT");
+            db.setTransactionSuccessful();
+        } catch (android.database.sqlite.SQLiteException error) {
+            Log.e("TaskManager", "Purchase could not be saved", error);
             return false;
+        } finally {
+            db.endTransaction();
         }
-
-        int newGold = currentGold - item.getPrice();
-        ContentValues userValues = new ContentValues();
-        userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
-        db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+        // Publish the committed balance and owned item together.
         syncUserProfileToFirestore(appContext);
-
-        ContentValues invValues = new ContentValues();
-        invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_ID, item.getId());
-        invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_NAME, item.getName());
-        invValues.put(DatabaseContract.InventoryEntry.COLUMN_CATEGORY, item.getCategory());
-        invValues.put(DatabaseContract.InventoryEntry.COLUMN_RES_NAME, item.getResName());
-        db.insert(DatabaseContract.InventoryEntry.TABLE_NAME, null, invValues);
-
-        incrementCounterAchievements(db, "CLOTHING_COLLECTION_COUNT");
         SoundEffectsHelper.playPurchaseItem(appContext);
-
         return true;
     }
 
@@ -2267,10 +2495,43 @@ public class TaskManager {
         return false;
     }
 
+    static final String PENDING_PROFILE_SYNC = "pref_pending_profile_sync";
+    private static final java.util.Set<String> IN_FLIGHT_PROFILE_SYNCS = new java.util.HashSet<>();
+
+    static String markProfileSyncPending(android.content.SharedPreferences prefs) {
+        synchronized (TaskManager.class) {
+            String revision = java.util.UUID.randomUUID().toString();
+            prefs.edit().putString(PENDING_PROFILE_SYNC, revision).apply();
+            return revision;
+        }
+    }
+
+    static void acknowledgeProfileSync(android.content.SharedPreferences prefs, String revision) {
+        synchronized (TaskManager.class) {
+            if (revision.equals(prefs.getString(PENDING_PROFILE_SYNC, ""))) {
+                prefs.edit().remove(PENDING_PROFILE_SYNC).apply();
+            }
+        }
+    }
+
     public void syncUserProfileToFirestore(Context context) {
+        syncUserProfileToFirestore(context, true);
+    }
+
+    void retryPendingProfileSync(Context context) {
+        syncUserProfileToFirestore(context, false);
+    }
+
+    private void syncUserProfileToFirestore(Context context, boolean changed) {
         if (context == null) return;
+        String pendingRevision = null;
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            boolean isGuest = prefs.getBoolean("isGuestUser", false);
+            boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+            if (isGuest || !isLoggedIn) {
+                return;
+            }
             String uid = prefs.getString("user_uid", null);
             if (uid == null || uid.isEmpty()) {
                 com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
@@ -2281,7 +2542,16 @@ public class TaskManager {
             }
             if (uid == null || uid.isEmpty()) return;
 
-            if (!OnlineShopManager.isNetworkAvailable(context)) return;
+            pendingRevision = changed ? markProfileSyncPending(prefs) : prefs.getString(PENDING_PROFILE_SYNC, "");
+            if (pendingRevision.isEmpty()) return;
+            if (!OnlineShopManager.isNetworkAvailable(context)) {
+                RecurringQuestBackup.saveLocal(context, uid, RecurringQuestBackup.exportSchedules(context), pendingRevision);
+                return;
+            }
+            final String revision = pendingRevision;
+            synchronized (TaskManager.class) {
+                if (!IN_FLIGHT_PROFILE_SYNCS.add(revision)) return;
+            }
 
             Cursor cursor = getUserProfile();
             if (cursor != null && cursor.moveToFirst()) {
@@ -2299,15 +2569,160 @@ public class TaskManager {
                 map.put("gold", gold);
                 map.put("xp", xp);
                 map.put("streak", streak);
+                try (Cursor rewardLevel = dbHelper.getReadableDatabase().rawQuery(
+                        "SELECT highest_rewarded_level FROM user WHERE _id = 1", null)) {
+                    if (rewardLevel.moveToFirst()) map.put("highest_rewarded_level", rewardLevel.getInt(0));
+                }
+                try (Cursor streakMetadata = dbHelper.getReadableDatabase().rawQuery(
+                        "SELECT last_completed_date,longest_streak,custom_quest_count,custom_quest_week_start FROM user WHERE _id=1", null)) {
+                    if (streakMetadata.moveToFirst()) {
+                        map.put("last_completed_date", streakMetadata.getString(0));
+                        map.put("longest_streak", streakMetadata.getInt(1));
+                        map.put("custom_quest_count", streakMetadata.getInt(2));
+                        map.put("custom_quest_week_start", streakMetadata.getString(3));
+                    }
+                }
+                java.util.List<java.util.Map<String, Object>> schedules = RecurringQuestBackup.exportSchedules(context);
+                map.put(RecurringQuestBackup.CLOUD_FIELD, schedules);
+                RecurringQuestBackup.saveLocal(context, uid, schedules, revision);
                 map.put("last_synced", new java.util.Date());
 
+                java.util.List<java.util.Map<String, Object>> inventoryList = new java.util.ArrayList<>();
+                for (ShopItem owned : getOwnedItems()) {
+                    java.util.Map<String, Object> itemMap = new java.util.HashMap<>();
+                    itemMap.put("id", owned.getId());
+                    itemMap.put("name", owned.getName() != null ? owned.getName() : "");
+                    itemMap.put("category", owned.getCategory() != null ? owned.getCategory() : "");
+                    itemMap.put("res_name", owned.getResName() != null ? owned.getResName() : "");
+                    inventoryList.add(itemMap);
+                }
+                map.put("inventory_items", inventoryList);
+
+                map.put("equipped_clothes_id", prefs.getInt("pref_equipped_clothes_id", -1));
+                map.put("equipped_glasses_id", prefs.getInt("pref_equipped_glasses_id", -1));
+                map.put("equipped_hat_id", prefs.getInt("pref_equipped_hat_id", -1));
+                map.put("equipped_item_id", prefs.getInt("pref_equipped_item_id", -1));
+
+                java.util.Map<String, Integer> cMap = getAllConsumablesMap();
+                map.put("inventory_consumables", cMap != null ? cMap : new java.util.HashMap<String, Integer>());
+
+                final String backupUid = uid;
                 firestore.collection("users").document(uid)
-                        .set(map, com.google.firebase.firestore.SetOptions.merge())
-                        .addOnSuccessListener(aVoid -> Log.i("TaskManager", "User profile synced to Firestore: Lvl " + level + " Gold " + gold))
-                        .addOnFailureListener(e -> Log.e("TaskManager", "Failed to sync user profile to Firestore", e));
+                        .set(map, com.google.firebase.firestore.SetOptions.mergeFields(new java.util.ArrayList<>(map.keySet())))
+                        .addOnSuccessListener(aVoid -> {
+                            synchronized (TaskManager.class) { IN_FLIGHT_PROFILE_SYNCS.remove(revision); }
+                            acknowledgeProfileSync(prefs, revision);
+                            RecurringQuestBackup.acknowledge(context, backupUid, revision);
+                            Log.i("TaskManager", "User profile synced to Firestore: Lvl " + level + " Gold " + gold);
+                        })
+                        .addOnFailureListener(e -> {
+                            synchronized (TaskManager.class) { IN_FLIGHT_PROFILE_SYNCS.remove(revision); }
+                            Log.e("TaskManager", "Failed to sync user profile to Firestore", e);
+                        });
+            } else {
+                if (cursor != null) cursor.close();
+                synchronized (TaskManager.class) { IN_FLIGHT_PROFILE_SYNCS.remove(pendingRevision); }
             }
         } catch (Exception e) {
+            synchronized (TaskManager.class) { IN_FLIGHT_PROFILE_SYNCS.remove(pendingRevision); }
             Log.e("TaskManager", "Firestore sync exception", e);
+        }
+    }
+
+    public static void restoreUserInventoryAndEquippedFromFirestoreDoc(com.google.firebase.firestore.DocumentSnapshot doc, Context context) {
+        if (doc == null || !doc.exists() || context == null) return;
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+
+            if (doc.contains("equipped_clothes_id")) {
+                Long val = doc.getLong("equipped_clothes_id");
+                if (val != null) editor.putInt("pref_equipped_clothes_id", val > 0 ? val.intValue() : -1);
+            }
+            if (doc.contains("equipped_glasses_id")) {
+                Long val = doc.getLong("equipped_glasses_id");
+                if (val != null) editor.putInt("pref_equipped_glasses_id", val > 0 ? val.intValue() : -1);
+            }
+            if (doc.contains("equipped_hat_id")) {
+                Long val = doc.getLong("equipped_hat_id");
+                if (val != null) editor.putInt("pref_equipped_hat_id", val > 0 ? val.intValue() : -1);
+            }
+            if (doc.contains("equipped_item_id")) {
+                Long val = doc.getLong("equipped_item_id");
+                if (val != null) editor.putInt("pref_equipped_item_id", val > 0 ? val.intValue() : -1);
+            }
+            editor.apply();
+
+            if (doc.contains("inventory_items")) {
+                Object obj = doc.get("inventory_items");
+                if (obj instanceof java.util.List) {
+                    java.util.List<?> rawList = (java.util.List<?>) obj;
+                    DatabaseHelper dbHelper = new DatabaseHelper(context);
+                    SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+                    for (Object itemObj : rawList) {
+                        if (itemObj instanceof java.util.Map) {
+                            java.util.Map<?, ?> itemMap = (java.util.Map<?, ?>) itemObj;
+                            Object idObj = itemMap.get("id");
+                            Object nameObj = itemMap.get("name");
+                            Object catObj = itemMap.get("category");
+                            Object resObj = itemMap.get("res_name");
+
+                            int id = idObj instanceof Number ? ((Number) idObj).intValue() : -1;
+                            if (id <= 0) continue;
+
+                            String name = nameObj != null ? nameObj.toString() : "";
+                            String cat = catObj != null ? catObj.toString() : "";
+                            String resName = resObj != null ? resObj.toString() : "";
+
+                            Cursor cursor = db.rawQuery("SELECT _id FROM inventory WHERE item_id = ?", new String[]{String.valueOf(id)});
+                            boolean exists = cursor != null && cursor.moveToFirst();
+                            if (cursor != null) cursor.close();
+
+                            if (!exists) {
+                                ContentValues invValues = new ContentValues();
+                                invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_ID, id);
+                                invValues.put(DatabaseContract.InventoryEntry.COLUMN_ITEM_NAME, name);
+                                invValues.put(DatabaseContract.InventoryEntry.COLUMN_CATEGORY, cat);
+                                invValues.put(DatabaseContract.InventoryEntry.COLUMN_RES_NAME, resName);
+                                db.insert(DatabaseContract.InventoryEntry.TABLE_NAME, null, invValues);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (doc.contains("inventory_consumables") && doc.get("inventory_consumables") instanceof java.util.Map) {
+                restoreConsumablesFromSnapshot((java.util.Map<?, ?>) doc.get("inventory_consumables"), context);
+            }
+
+            AvatarCompositor.clearCache();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    static void restoreConsumablesFromSnapshot(java.util.Map<?, ?> quantities, Context context) {
+        for (java.util.Map.Entry<?, ?> entry : quantities.entrySet()) {
+            if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof Number)) return;
+        }
+        try (DatabaseHelper helper = new DatabaseHelper(context)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+            db.beginTransaction();
+            try {
+                db.delete(DatabaseContract.InventoryConsumableEntry.TABLE_NAME, null, null);
+                for (java.util.Map.Entry<?, ?> entry : quantities.entrySet()) {
+                    int qty = ((Number) entry.getValue()).intValue();
+                    if (qty <= 0 || ((String) entry.getKey()).isEmpty()) continue;
+                    ContentValues values = new ContentValues();
+                    values.put(DatabaseContract.InventoryConsumableEntry.COLUMN_TYPE, (String) entry.getKey());
+                    values.put(DatabaseContract.InventoryConsumableEntry.COLUMN_QUANTITY, qty);
+                    db.insertOrThrow(DatabaseContract.InventoryConsumableEntry.TABLE_NAME, null, values);
+                }
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
         }
     }
 
@@ -2372,7 +2787,7 @@ public class TaskManager {
 
         if (item == null) {
             editor.remove("pref_equipped_item_id")
-                    .remove("pref_equipped_clothes_id")
+                    .putInt("pref_equipped_clothes_id", -1)
                     .remove("pref_equipped_glasses_id")
                     .remove("pref_equipped_hat_id")
                     .remove("pref_avatar_accessory")
@@ -2394,6 +2809,7 @@ public class TaskManager {
             Log.d("AvatarDebug", "setEquippedItem: slot=" + slotType + " itemId=" + item.getId() + " resName=" + item.getResName());
         }
         AvatarCompositor.clearCache();
+        new TaskManager(context).syncUserProfileToFirestore(context);
     }
 
     public static void unequipItemInSlot(Context context, String slotType) {
@@ -2401,13 +2817,15 @@ public class TaskManager {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
         android.content.SharedPreferences.Editor editor = prefs.edit();
         if ("clothes".equals(slotType)) {
-            editor.remove("pref_equipped_clothes_id").putString("pref_avatar_clothes", "tank_top");
+            editor.putInt("pref_equipped_clothes_id", -1).putString("pref_avatar_clothes", "tank_top");
         } else if ("hat".equals(slotType)) {
             editor.remove("pref_equipped_hat_id");
         } else {
             editor.remove("pref_equipped_glasses_id");
         }
         editor.apply();
+        AvatarCompositor.clearCache();
+        new TaskManager(context).syncUserProfileToFirestore(context);
         AvatarCompositor.clearCache();
     }
 }

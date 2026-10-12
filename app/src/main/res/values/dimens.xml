@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default Phones (sw < 600dp) -->
+
+    <!-- Margins and Paddings -->
+    <dimen name="spacing_micro">2dp</dimen>
+    <dimen name="spacing_tiny">4dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">12dp</dimen>
+    <dimen name="spacing_normal">16dp</dimen>
+    <dimen name="spacing_large">20dp</dimen>
+    <dimen name="spacing_extra_large">24dp</dimen>
+    <dimen name="spacing_huge">32dp</dimen>
+    <dimen name="spacing_giant">48dp</dimen>
+
+    <!-- Text Sizes -->
+    <dimen name="text_size_micro">10sp</dimen>
+    <dimen name="text_size_small">12sp</dimen>
+    <dimen name="text_size_caption">13sp</dimen>
+    <dimen name="text_size_body">14sp</dimen>
+    <dimen name="text_size_subhead">15sp</dimen>
+    <dimen name="text_size_title">16sp</dimen>
+    <dimen name="text_size_header">18sp</dimen>
+    <dimen name="text_size_headline">20sp</dimen>
+    <dimen name="text_size_display">22sp</dimen>
+    <dimen name="text_size_large_display">24sp</dimen>
+    <dimen name="text_size_giant_display">42sp</dimen>
+    <dimen name="text_size_hero">80sp</dimen>
+
+    <!-- Interactive Touch Targets -->
+    <dimen name="touch_target_min_height">48dp</dimen>
+    <dimen name="touch_target_min_width">48dp</dimen>
+    <dimen name="button_height_standard">54dp</dimen>
+    <dimen name="button_height_large">58dp</dimen>
+    <dimen name="button_height_small">48dp</dimen>
+    <dimen name="icon_button_size">48dp</dimen>
+    <dimen name="icon_button_size_small">48dp</dimen>
+    <dimen name="nav_item_height">64dp</dimen>
+
+    <!-- Common Image / Asset Dimensions -->
+    <dimen name="logo_width_large">220dp</dimen>
+    <dimen name="logo_height_large">140dp</dimen>
+    <dimen name="logo_width_medium">200dp</dimen>
+    <dimen name="logo_height_medium">100dp</dimen>
+
+    <dimen name="avatar_preview_square_size">320dp</dimen>
+    <dimen name="avatar_host_height_medium">180dp</dimen>
+    <dimen name="avatar_host_height_large">220dp</dimen>
+    <dimen name="avatar_host_size_small">84dp</dimen>
+    <dimen name="avatar_host_size_medium">100dp</dimen>
+    <dimen name="avatar_host_size_large">160dp</dimen>
+
+    <dimen name="icon_size_tiny">16dp</dimen>
+    <dimen name="icon_size_small">20dp</dimen>
+    <dimen name="icon_size_medium">24dp</dimen>
+    <dimen name="icon_size_large">28dp</dimen>
+    <dimen name="icon_size_extra_large">36dp</dimen>
+    <dimen name="icon_size_giant">48dp</dimen>
+    <dimen name="icon_size_shop">52dp</dimen>
+    <dimen name="badge_bg_size">72dp</dimen>
+
+    <!-- Surface and Card Heights/Widths -->
+    <dimen name="collapsed_surface_anchor_margin">300dp</dimen>
+    <dimen name="chest_bar_width">48dp</dimen>
+    <dimen name="chest_bar_track_width">16dp</dimen>
+    <dimen name="chest_bar_track_height">140dp</dimen>
+    <dimen name="wardrobe_sidebar_width">60dp</dimen>
+    <dimen name="wardrobe_category_sidebar_width">72dp</dimen>
+    <dimen name="wardrobe_sidebar_button_size">60dp</dimen>
+    <dimen name="xp_badge_width">130dp</dimen>
+    <dimen name="xp_badge_height">42dp</dimen>
+
+    <dimen name="progress_bar_height_thin">8dp</dimen>
+    <dimen name="progress_bar_height_medium">10dp</dimen>
+    <dimen name="progress_bar_height_large">28dp</dimen>
+
+    <dimen name="card_elevation">4dp</dimen>
+    <dimen name="card_elevation_raised">8dp</dimen>
+    <dimen name="card_elevation_modal">10dp</dimen>
+    <dimen name="card_corner_radius">16dp</dimen>
+</resources>

@@ -27,9 +27,14 @@ public class DailyNotificationReceiver extends BroadcastReceiver {
         if (intent == null) return;
         String action = intent.getAction();
 
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+            android.content.SharedPreferences prefs=context.getSharedPreferences("DaGoalPrefs",Context.MODE_PRIVATE);
+            if(prefs.getBoolean("isLoggedIn",false) || prefs.getBoolean("isGuestUser",false)) DailyReminderScheduler.schedule(context);
+            return;
+        }
         createNotificationChannel(context);
 
-        if (ACTION_MIDNIGHT_QUESTS.equals(action) || Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+        if (ACTION_MIDNIGHT_QUESTS.equals(action)) {
             sendNotification(context, NOTIF_MIDNIGHT_ID,
                     "New Daily Quests Available! 📜",
                     "Your new daily quests are ready! Open DaGoal to reveal your quests for today.");
@@ -67,7 +72,9 @@ public class DailyNotificationReceiver extends BroadcastReceiver {
     }
 
     private void sendNotification(Context context, int notificationId, String title, String body) {
-        Intent intent = new Intent(context, DashboardActivity.class);
+        if (Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(context,
+                android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+        Intent intent = new Intent(context, LoadingActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, notificationId, intent,

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="false">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_surface_card_full_radius"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header Icon -->
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_circle_primary"
+        android:backgroundTint="@color/dagoal_secondary">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:contentDescription="Permissions"
+            android:src="@drawable/ic_settings_privacy"
+            app:tint="@color/dagoal_primary_dark" />
+    </FrameLayout>
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tv_perm_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:gravity="center"
+        android:text="System Permissions"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tv_perm_dialog_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:gravity="center"
+        android:text="Grant these permissions for step tracking, app avoidance, and background quests."
+        android:textColor="@color/dagoal_text_primary"
+        android:textSize="14sp" />
+
+    <!-- 1. Usage Access Row -->
+    <LinearLayout
+        android:id="@+id/row_perm_usage"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min_height"
+        android:layout_marginBottom="@dimen/spacing_small"
+        android:background="@drawable/bg_button_pill"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Usage Access"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_status_usage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Not granted"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_body"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 2. Display Over Other Apps Row -->
+    <LinearLayout
+        android:id="@+id/row_perm_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min_height"
+        android:layout_marginBottom="@dimen/spacing_small"
+        android:background="@drawable/bg_button_pill"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Display Over Other Apps"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_status_overlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Not granted"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_body"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 3. Battery Optimization Row -->
+    <LinearLayout
+        android:id="@+id/row_perm_battery"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min_height"
+        android:layout_marginBottom="@dimen/spacing_small"
+        android:background="@drawable/bg_button_pill"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Battery Optimization"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_status_battery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Not exempted"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_body"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 4. Activity Recognition (Steps) Row -->
+    <LinearLayout
+        android:id="@+id/row_perm_activity"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min_height"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_button_pill"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Activity Recognition (Steps)"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_subhead"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_status_activity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Not granted"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_body"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Action Button -->
+    <Button
+        android:id="@+id/btn_perm_continue"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="Continue to Dashboard"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+</LinearLayout>
+
+</ScrollView>

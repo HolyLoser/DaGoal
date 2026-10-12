@@ -16,7 +16,7 @@
         <shape>
             <stroke
                 android:width="2dp"
-                android:color="#3F5231" />
+                android:color="@color/dagoal_primary_dark" />
             <corners android:radius="26dp" />
         </shape>
     </item>

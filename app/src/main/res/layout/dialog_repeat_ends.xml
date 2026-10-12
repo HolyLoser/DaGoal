@@ -1,86 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_surface_card_full_radius"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="20dp">
 
+    <!-- Title Header -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quest Ends 📅"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Choose when this repeating quest should stop"
+        android:textColor="@color/dagoal_text_secondary"
+        android:textSize="12sp" />
+
+    <!-- Tabs Container -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_height="44dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_input_pill"
         android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:orientation="horizontal"
+        android:padding="4dp">
 
         <TextView
             android:id="@+id/tab_end_by_date"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="End by date"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="#556B43"
             android:gravity="center"
-            android:padding="8dp" />
+            android:text="End by date"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tab_end_by_count"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="End by count"
-            android:textSize="15sp"
-            android:textColor="#A0AEC0"
             android:gravity="center"
-            android:padding="8dp" />
+            android:text="End by count"
+            android:textColor="@color/dagoal_text_secondary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <CalendarView
         android:id="@+id/calendar_repeat_end_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:visibility="visible" />
 
     <NumberPicker
         android:id="@+id/picker_repeat_end_count"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="140dp"
+        android:layout_marginBottom="16dp"
+        android:solidColor="@color/dagoal_background_light"
         android:visibility="gone" />
 
+    <!-- Action Buttons Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:layout_marginTop="16dp">
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/btn_repeat_ends_clear"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="Clear"
-            android:textColor="#E53E3E"
-            android:background="@android:color/transparent"
-            android:layout_marginEnd="12dp" />
+            android:textAllCaps="false"
+            android:textColor="@color/dagoal_red"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btn_repeat_ends_cancel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="Cancel"
-            android:textColor="#4B5563"
-            android:background="@android:color/transparent"
-            android:layout_marginEnd="12dp" />
+            android:textAllCaps="false"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btn_repeat_ends_ok"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="OK"
-            android:textColor="#556B43"
-            android:textStyle="bold"
-            android:background="@android:color/transparent" />
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Apply"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </LinearLayout>

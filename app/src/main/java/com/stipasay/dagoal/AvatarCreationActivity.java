@@ -1,7 +1,9 @@
 package com.stipasay.dagoal;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,6 +12,7 @@ import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -21,13 +24,14 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 public class AvatarCreationActivity extends AppCompatActivity {
 
+    private static final int AVATAR_REDESIGN_COIN_COST = 50;
+    private AvatarConfig initialConfigOnEntry;
+
     private Button btnSaveAvatar;
+    private Button btnBackBottom;
     private ImageButton tabHair, tabEyes, tabNose, tabMouth, tabCheeks, tabSkin;
     private GridLayout gridAssets;
 
@@ -35,16 +39,16 @@ public class AvatarCreationActivity extends AppCompatActivity {
     private ImageView ivLayerHairBack, ivLayerHairFront, ivLayerHairAcc, ivLayerEyeLeft, ivLayerEyeRight, ivLayerNose, ivLayerMouth, ivLayerCheekLeft, ivLayerCheekRight;
 
     private String activeCategory = "Skin";
-    private String selectedColorName = "peach"; // black, brown, darkred, orange, peach
-    private String selectedNoseColorName = "black";
-    private String selectedMouthColorName = "peach";
+    private String selectedColorName = "orange"; // white, black, brown, darkred, orange, peach
+    private String selectedNoseColorName = "orange";
+    private String selectedMouthColorName = "brown";
     private String selectedNoseShape = "triangle_nose"; // triangle_nose, square_nose, oblong_nose
     private String selectedMouthShape = "smile_01"; // smile_01, smile_02, w_01, w_02
-    private int selectedEyeColor = Color.parseColor("#1E90FF");
+    private int selectedEyeColor = Color.parseColor("#1E1E1E");
     private String selectedEyeBase = "bigeye";
 
-    private int selectedHairColor = Color.parseColor("#3B2219"); // Dark Brown default
-    private String selectedHairBase = "01"; // "01" .. "10"
+    private int selectedHairColor = Color.parseColor("#1E1E1E"); // Black default
+    private String selectedHairBase = "01"; // "01" .. "30"
     private String selectedClothesAssetId = "tank_top";
 
     private int selectedHairIndex = 0;
@@ -83,13 +87,31 @@ public class AvatarCreationActivity extends AppCompatActivity {
             "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"
     };
 
+    private static final int[] SKIN_TONE_MAIN_COLORS = new int[]{
+            Color.parseColor("#FFF0E5"), // 1: Very Fair
+            Color.parseColor("#FDDFD0"), // 2: Fair Warm
+            Color.parseColor("#F5CBA7"), // 3: Peach
+            Color.parseColor("#E5B898"), // 4: Warm Beige
+            Color.parseColor("#D4A373"), // 5: Golden Olive
+            Color.parseColor("#C68B59"), // 6: Bronze
+            Color.parseColor("#A0653B"), // 7: Warm Chestnut
+            Color.parseColor("#834A29"), // 8: Deep Caramel
+            Color.parseColor("#63381B"), // 9: Rich Espresso
+            Color.parseColor("#48250F"), // 10: Dark Umber
+            Color.parseColor("#2E1405")  // 11: Deep Ebony
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_avatar_creation);
 
-        btnSaveAvatar = findViewById(R.id.btn_save_avatar);
+        btnSaveAvatar = findViewById(R.id.btn_apply_avatar);
+        btnBackBottom = findViewById(R.id.btn_back_bottom);
+        if (btnBackBottom != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnBackBottom, v -> handleBackRequest());
+        }
         tabHair = findViewById(R.id.tab_hair);
         tabEyes = findViewById(R.id.tab_eyes);
         tabNose = findViewById(R.id.tab_nose);
@@ -102,15 +124,19 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
         ImageButton btnBack = findViewById(R.id.btn_back_avatar);
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> handleBackRequest());
         }
 
-        View rootLayout = findViewById(android.R.id.content);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBackRequest();
+            }
         });
+
+        View rootLayout = findViewById(R.id.root_avatar_creation_layout);
+        if (rootLayout == null) rootLayout = findViewById(android.R.id.content);
+        AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
 
         // Left Color Bar Swatches
         View swatchBlack = findViewById(R.id.color_swatch_black);
@@ -118,30 +144,32 @@ public class AvatarCreationActivity extends AppCompatActivity {
         View swatchDarkRed = findViewById(R.id.color_swatch_darkred);
         View swatchOrange = findViewById(R.id.color_swatch_orange);
         View swatchPeach = findViewById(R.id.color_swatch_peach);
+        View swatchWhite = findViewById(R.id.color_swatch_white);
         TextView swatchEyePicker = findViewById(R.id.color_swatch_eye_picker);
         TextView swatchHairPicker = findViewById(R.id.color_swatch_hair_picker);
 
-        if (swatchBlack != null) swatchBlack.setOnClickListener(v -> selectColor("black"));
-        if (swatchBrown != null) swatchBrown.setOnClickListener(v -> selectColor("brown"));
-        if (swatchDarkRed != null) swatchDarkRed.setOnClickListener(v -> selectColor("darkred"));
-        if (swatchOrange != null) swatchOrange.setOnClickListener(v -> selectColor("orange"));
-        if (swatchPeach != null) swatchPeach.setOnClickListener(v -> selectColor("peach"));
-        if (swatchEyePicker != null) swatchEyePicker.setOnClickListener(v -> showEyeColorPickerDialog());
-        if (swatchHairPicker != null) swatchHairPicker.setOnClickListener(v -> showHairColorPickerDialog());
+        if (swatchBlack != null) DebouncedOnClickListener.setSafeOnClickListener(swatchBlack, 200L, v -> selectColor("black"));
+        if (swatchBrown != null) DebouncedOnClickListener.setSafeOnClickListener(swatchBrown, 200L, v -> selectColor("brown"));
+        if (swatchDarkRed != null) DebouncedOnClickListener.setSafeOnClickListener(swatchDarkRed, 200L, v -> selectColor("darkred"));
+        if (swatchOrange != null) DebouncedOnClickListener.setSafeOnClickListener(swatchOrange, 200L, v -> selectColor("orange"));
+        if (swatchPeach != null) DebouncedOnClickListener.setSafeOnClickListener(swatchPeach, 200L, v -> selectColor("peach"));
+        if (swatchWhite != null) DebouncedOnClickListener.setSafeOnClickListener(swatchWhite, 200L, v -> selectColor("white"));
+        if (swatchEyePicker != null) DebouncedOnClickListener.setSafeOnClickListener(swatchEyePicker, v -> showEyeColorPickerDialog());
+        if (swatchHairPicker != null) DebouncedOnClickListener.setSafeOnClickListener(swatchHairPicker, v -> showHairColorPickerDialog());
 
         // Right Sidebar Category Tabs
-        tabHair.setOnClickListener(v -> switchTab("Hair", tabHair));
-        tabEyes.setOnClickListener(v -> switchTab("Eyes", tabEyes));
-        tabNose.setOnClickListener(v -> switchTab("Nose", tabNose));
-        tabMouth.setOnClickListener(v -> switchTab("Mouth", tabMouth));
-        if (tabCheeks != null) tabCheeks.setOnClickListener(v -> switchTab("Cheeks", tabCheeks));
-        if (tabSkin != null) tabSkin.setOnClickListener(v -> switchTab("Skin", tabSkin));
+        DebouncedOnClickListener.setSafeOnClickListener(tabHair, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Hair", tabHair); });
+        DebouncedOnClickListener.setSafeOnClickListener(tabEyes, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Eyes", tabEyes); });
+        DebouncedOnClickListener.setSafeOnClickListener(tabNose, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Nose", tabNose); });
+        DebouncedOnClickListener.setSafeOnClickListener(tabMouth, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Mouth", tabMouth); });
+        if (tabCheeks != null) DebouncedOnClickListener.setSafeOnClickListener(tabCheeks, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Cheeks", tabCheeks); });
+        if (tabSkin != null) DebouncedOnClickListener.setSafeOnClickListener(tabSkin, 200L, v -> { SoundEffectsHelper.playHighlight(this); switchTab("Skin", tabSkin); });
 
         // Pre-load saved preferences if editing existing avatar
         AvatarConfig savedConfig = AvatarConfig.loadFromPreferences(this);
         this.selectedSkinIndex = savedConfig.skinIndex;
-        this.selectedColorName = savedConfig.selectedColorName;
-        this.selectedNoseColorName = savedConfig.selectedNoseColorName;
+        this.selectedColorName = "white".equalsIgnoreCase(savedConfig.selectedColorName) ? "peach" : savedConfig.selectedColorName;
+        this.selectedNoseColorName = "white".equalsIgnoreCase(savedConfig.selectedNoseColorName) ? "orange" : savedConfig.selectedNoseColorName;
         this.selectedMouthColorName = savedConfig.selectedMouthColorName;
         this.selectedNoseShape = savedConfig.selectedNoseShape;
         this.selectedMouthShape = savedConfig.selectedMouthShape;
@@ -172,11 +200,6 @@ public class AvatarCreationActivity extends AppCompatActivity {
             }
         }
 
-        boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
-        if (isEditMode && btnSaveAvatar != null) {
-            btnSaveAvatar.setText("Save Changes");
-        }
-
         // Apply saved features on live preview canvas
         updateEyeLayers();
         updateHairLayers();
@@ -194,7 +217,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
             switchTab("Hair", tabHair);
         }
 
-        btnSaveAvatar.setOnClickListener(v -> saveCustomizationAndProceed());
+        initialConfigOnEntry = buildCurrentConfig();
+        checkAndUpdateSaveButtonState();
+        DebouncedOnClickListener.setSafeOnClickListener(btnSaveAvatar, v -> handleSaveAvatarClick());
     }
 
     private void selectColor(String colorName) {
@@ -203,25 +228,57 @@ public class AvatarCreationActivity extends AppCompatActivity {
             this.selectedNoseColorName = colorName;
         } else if ("Mouth".equals(categoryForSelectColor())) {
             this.selectedMouthColorName = colorName;
+        } else if ("Cheeks".equals(activeCategory)) {
+            this.selectedColorName = colorName;
+            updateBlushLayers();
         } else {
             this.selectedColorName = colorName;
         }
 
+        renderLiveAvatarPreview();
+
         // Refresh category grid and live feature layer preview
         ImageButton currentTab = getTabButton(activeCategory);
         switchTab(activeCategory, currentTab);
-
-        if ("Cheeks".equals(activeCategory)) {
-            updateBlushLayers();
-        } else {
-            int activeIndex = "Nose".equals(activeCategory) ? selectedNoseIndex : ("Mouth".equals(activeCategory) ? selectedMouthIndex : 0);
-            applyAssetSelection(activeCategory, activeIndex);
-        }
     }
 
     private String categoryForSelectColor() {
         return activeCategory;
     }
+
+    private boolean isLightColor(int color) {
+        double darkness = 1.0 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0;
+        return darkness < 0.35; // Returns true for White, Platinum, Light Gray, Blonde, Pink, etc.
+    }
+
+    private void applyItemHolderBackground(View itemImage, int assetColor, boolean isSelected) {
+        if (itemImage == null) return;
+        GradientDrawable gd = new GradientDrawable();
+        gd.setCornerRadius(dpToPx(16.0f));
+
+        boolean lightAsset = isLightColor(assetColor);
+
+        if (lightAsset) {
+            // Dark Forest Green container background for white & light assets
+            gd.setColor(Color.parseColor("#2E3A23"));
+            if (isSelected) {
+                gd.setStroke(dpToPx(3), Color.parseColor("#FFD700")); // Gold stroke for selected
+            } else {
+                gd.setStroke(dpToPx(2), Color.parseColor("#8EA27A"));
+            }
+        } else {
+            // Light Cream surface container for dark & medium assets
+            gd.setColor(Color.parseColor("#FFFDF5"));
+            if (isSelected) {
+                gd.setStroke(dpToPx(3), Color.parseColor("#FFD700")); // Gold stroke for selected
+            } else {
+                gd.setStroke(dpToPx(2), Color.parseColor("#546B41"));
+            }
+        }
+        itemImage.setBackground(gd);
+    }
+
+    private int tempSelectedEyeColor;
 
     private void showEyeColorPickerDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -234,69 +291,116 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
 
         View preview = dialogView.findViewById(R.id.view_eye_color_preview);
-        SeekBar sbRed = dialogView.findViewById(R.id.sb_eye_red);
-        SeekBar sbGreen = dialogView.findViewById(R.id.sb_eye_green);
-        SeekBar sbBlue = dialogView.findViewById(R.id.sb_eye_blue);
-        TextView tvRed = dialogView.findViewById(R.id.tv_eye_red_val);
-        TextView tvGreen = dialogView.findViewById(R.id.tv_eye_green_val);
-        TextView tvBlue = dialogView.findViewById(R.id.tv_eye_blue_val);
+        TextView tvColorName = dialogView.findViewById(R.id.tv_eye_color_name);
+        TextView tvHex = dialogView.findViewById(R.id.tv_eye_hex_val);
         Button btnApply = dialogView.findViewById(R.id.btn_apply_eye_color);
 
-        int initR = Color.red(selectedEyeColor);
-        int initG = Color.green(selectedEyeColor);
-        int initB = Color.blue(selectedEyeColor);
+        final int[] irisColors = new int[]{
+                Color.parseColor("#1E1E1E"), // Deep Black
+                Color.parseColor("#4A2E1B"), // Dark Brown
+                Color.parseColor("#8B4513"), // Chestnut Brown
+                Color.parseColor("#DAA520"), // Hazel
+                Color.parseColor("#C5832B"), // Amber Gold
+                Color.parseColor("#2E8B57"), // Emerald Green
+                Color.parseColor("#00CED1"), // Turquoise
+                Color.parseColor("#1E90FF"), // Sapphire Blue
+                Color.parseColor("#70C1FF"), // Sky Blue
+                Color.parseColor("#808080"), // Steel Gray
+                Color.parseColor("#8A2BE2"), // Purple
+                Color.parseColor("#DC143C")  // Ruby Red
+        };
 
-        if (sbRed != null) sbRed.setProgress(initR);
-        if (sbGreen != null) sbGreen.setProgress(initG);
-        if (sbBlue != null) sbBlue.setProgress(initB);
+        final String[] irisColorNames = new String[]{
+                "Deep Black",
+                "Dark Brown",
+                "Chestnut Brown",
+                "Hazel",
+                "Amber Gold",
+                "Emerald Green",
+                "Turquoise",
+                "Sapphire Blue",
+                "Sky Blue",
+                "Steel Gray",
+                "Amethyst Purple",
+                "Ruby Red"
+        };
 
-        Runnable updatePreview = () -> {
-            int r = (sbRed != null) ? sbRed.getProgress() : 30;
-            int g = (sbGreen != null) ? sbGreen.getProgress() : 144;
-            int b = (sbBlue != null) ? sbBlue.getProgress() : 255;
+        final int[] presetViewIds = new int[]{
+                R.id.preset_iris_black,
+                R.id.preset_iris_darkbrown,
+                R.id.preset_iris_brown,
+                R.id.preset_iris_hazel,
+                R.id.preset_iris_amber,
+                R.id.preset_iris_green,
+                R.id.preset_iris_turquoise,
+                R.id.preset_iris_sapphire,
+                R.id.preset_iris_skyblue,
+                R.id.preset_iris_gray,
+                R.id.preset_iris_purple,
+                R.id.preset_iris_crimson
+        };
 
-            if (tvRed != null) tvRed.setText(String.valueOf(r));
-            if (tvGreen != null) tvGreen.setText(String.valueOf(g));
-            if (tvBlue != null) tvBlue.setText(String.valueOf(b));
+        tempSelectedEyeColor = selectedEyeColor;
 
-            int c = Color.rgb(r, g, b);
+        Runnable updateSelectionUI = () -> {
             if (preview != null) {
-                preview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(c));
+                preview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tempSelectedEyeColor));
+            }
+            if (tvHex != null) {
+                tvHex.setText(String.format("#%06X", (0xFFFFFF & tempSelectedEyeColor)));
+            }
+
+            String colorName = "Custom Color";
+            for (int i = 0; i < irisColors.length; i++) {
+                if (irisColors[i] == tempSelectedEyeColor) {
+                    colorName = irisColorNames[i];
+                    break;
+                }
+            }
+            if (tvColorName != null) {
+                tvColorName.setText(colorName);
+            }
+
+            for (int i = 0; i < presetViewIds.length; i++) {
+                View presetView = dialogView.findViewById(presetViewIds[i]);
+                if (presetView != null) {
+                    GradientDrawable gd = new GradientDrawable();
+                    gd.setShape(GradientDrawable.OVAL);
+                    gd.setColor(irisColors[i]);
+                    if (irisColors[i] == tempSelectedEyeColor) {
+                        gd.setStroke(dpToPx(3), Color.parseColor("#FFD700")); // Gold highlight ring for selected
+                    } else {
+                        gd.setStroke(dpToPx(1), Color.parseColor("#CCCCCC"));
+                    }
+                    presetView.setBackground(gd);
+                }
             }
         };
 
-        SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) { updatePreview.run(); }
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        };
+        for (int i = 0; i < presetViewIds.length; i++) {
+            final int color = irisColors[i];
+            View presetView = dialogView.findViewById(presetViewIds[i]);
+            if (presetView != null) {
+                presetView.setOnClickListener(v -> {
+                    SoundEffectsHelper.playHighlight(this);
+                    tempSelectedEyeColor = color;
+                    selectedEyeColor = color;
+                    updateSelectionUI.run();
+                    updateEyeLayers();
+                    renderLiveAvatarPreview();
+                    ImageButton currentTab = getTabButton(activeCategory);
+                    switchTab(activeCategory, currentTab);
+                });
+            }
+        }
 
-        if (sbRed != null) sbRed.setOnSeekBarChangeListener(listener);
-        if (sbGreen != null) sbGreen.setOnSeekBarChangeListener(listener);
-        if (sbBlue != null) sbBlue.setOnSeekBarChangeListener(listener);
-
-        setupPresetColor(dialogView, R.id.preset_blue, Color.parseColor("#1E90FF"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_green, Color.parseColor("#2E8B57"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_brown, Color.parseColor("#8B4513"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_hazel, Color.parseColor("#DAA520"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_purple, Color.parseColor("#8A2BE2"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_crimson, Color.parseColor("#DC143C"), sbRed, sbGreen, sbBlue, updatePreview);
-
-        updatePreview.run();
+        updateSelectionUI.run();
 
         if (btnApply != null) {
             btnApply.setOnClickListener(v -> {
-                int r = (sbRed != null) ? sbRed.getProgress() : 30;
-                int g = (sbGreen != null) ? sbGreen.getProgress() : 144;
-                int b = (sbBlue != null) ? sbBlue.getProgress() : 255;
-                selectedEyeColor = Color.rgb(r, g, b);
-
+                selectedEyeColor = tempSelectedEyeColor;
                 updateEyeLayers();
 
-                // Refresh grid thumbnails to show tinted eyes
                 ImageButton currentTab = getTabButton(activeCategory);
                 switchTab(activeCategory, currentTab);
 
@@ -318,6 +422,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
 
         View preview = dialogView.findViewById(R.id.view_hair_color_preview);
+        TextView tvHex = dialogView.findViewById(R.id.tv_hair_hex_val);
         SeekBar sbRed = dialogView.findViewById(R.id.sb_hair_red);
         SeekBar sbGreen = dialogView.findViewById(R.id.sb_hair_green);
         SeekBar sbBlue = dialogView.findViewById(R.id.sb_hair_blue);
@@ -335,18 +440,28 @@ public class AvatarCreationActivity extends AppCompatActivity {
         if (sbBlue != null) sbBlue.setProgress(initB);
 
         Runnable updatePreview = () -> {
-            int r = (sbRed != null) ? sbRed.getProgress() : 59;
-            int g = (sbGreen != null) ? sbGreen.getProgress() : 34;
-            int b = (sbBlue != null) ? sbBlue.getProgress() : 25;
+            int r = (sbRed != null) ? sbRed.getProgress() : 30;
+            int g = (sbGreen != null) ? sbGreen.getProgress() : 30;
+            int b = (sbBlue != null) ? sbBlue.getProgress() : 30;
 
             if (tvRed != null) tvRed.setText(String.valueOf(r));
             if (tvGreen != null) tvGreen.setText(String.valueOf(g));
             if (tvBlue != null) tvBlue.setText(String.valueOf(b));
 
             int c = Color.rgb(r, g, b);
+            if (tvHex != null) {
+                tvHex.setText(String.format("#%06X", (0xFFFFFF & c)));
+            }
             if (preview != null) {
                 preview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(c));
             }
+
+            // Realtime update on canvas and grid thumbnails without resetting hair style
+            selectedHairColor = c;
+            updateHairLayers();
+            renderLiveAvatarPreview();
+            ImageButton currentTab = getTabButton(activeCategory);
+            switchTab(activeCategory, currentTab);
         };
 
         SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
@@ -362,12 +477,16 @@ public class AvatarCreationActivity extends AppCompatActivity {
         if (sbGreen != null) sbGreen.setOnSeekBarChangeListener(listener);
         if (sbBlue != null) sbBlue.setOnSeekBarChangeListener(listener);
 
+        setupPresetColor(dialogView, R.id.preset_hair_white, Color.parseColor("#FFFFFF"), sbRed, sbGreen, sbBlue, updatePreview);
+        setupPresetColor(dialogView, R.id.preset_hair_silver, Color.parseColor("#D3D3D3"), sbRed, sbGreen, sbBlue, updatePreview);
         setupPresetColor(dialogView, R.id.preset_hair_black, Color.parseColor("#1E1E1E"), sbRed, sbGreen, sbBlue, updatePreview);
         setupPresetColor(dialogView, R.id.preset_hair_brown, Color.parseColor("#3B2219"), sbRed, sbGreen, sbBlue, updatePreview);
         setupPresetColor(dialogView, R.id.preset_hair_blonde, Color.parseColor("#E6BE75"), sbRed, sbGreen, sbBlue, updatePreview);
         setupPresetColor(dialogView, R.id.preset_hair_auburn, Color.parseColor("#A52A2A"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_hair_silver, Color.parseColor("#D3D3D3"), sbRed, sbGreen, sbBlue, updatePreview);
         setupPresetColor(dialogView, R.id.preset_hair_pink, Color.parseColor("#FFB6C1"), sbRed, sbGreen, sbBlue, updatePreview);
+        setupPresetColor(dialogView, R.id.preset_hair_skyblue, Color.parseColor("#87CEEB"), sbRed, sbGreen, sbBlue, updatePreview);
+        setupPresetColor(dialogView, R.id.preset_hair_emerald, Color.parseColor("#2E8B57"), sbRed, sbGreen, sbBlue, updatePreview);
+        setupPresetColor(dialogView, R.id.preset_hair_purple, Color.parseColor("#9370DB"), sbRed, sbGreen, sbBlue, updatePreview);
 
         updatePreview.run();
 
@@ -380,7 +499,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
                 updateHairLayers();
 
-                // Refresh grid thumbnails
+                // Refresh grid thumbnails with dynamic contrast
                 ImageButton currentTab = getTabButton(activeCategory);
                 switchTab(activeCategory, currentTab);
 
@@ -583,20 +702,43 @@ public class AvatarCreationActivity extends AppCompatActivity {
     }
 
     private int getSwatchColorInt(String colorName) {
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#FFFFFF");
         if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#1E1E1E");
-        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#5C3A21");
-        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
-        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7F50");
-        return Color.parseColor("#FF8A8A"); // Peach / Flush default
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#800000");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7A38");
+        return Color.parseColor("#FFC2B4"); // Soft Nude / Peach default
     }
 
     private int getBlushColorInt(String colorName) {
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#FFFFFF");
         if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
         if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF8C00");
         return Color.parseColor("#FF8A8A"); // Peach / Rosy default
     }
 
+    private int getFrecklesColorInt(String colorName) {
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#7A2424");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#B86B28");
+        if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#4A3728");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#C4A484");
+        return Color.parseColor("#8B5A2B");
+    }
+
+    private int getSkinToneColorInt(int index) {
+        if (index >= 0 && index < SKIN_TONE_MAIN_COLORS.length) {
+            return SKIN_TONE_MAIN_COLORS[index];
+        }
+        return Color.parseColor("#F5CBA7");
+    }
+
     private Bitmap generateBlushBitmap(int colorInt, int styleIndex) {
+        if (styleIndex == 4) { // Freckles
+            int freckleColor = getFrecklesColorInt(selectedColorName);
+            return getTintedEyeBitmap(R.drawable.blush_freckles, freckleColor);
+        }
+
         int widthPx = 110;
         int heightPx = 75;
         float featherFactor = 0.75f;
@@ -660,14 +802,25 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
         layoutCheeksContainer.setVisibility(View.VISIBLE);
 
-        int colorInt = getBlushColorInt(selectedColorName);
-        Bitmap blushBitmap = generateBlushBitmap(colorInt, selectedCheeksIndex - 1);
+        int styleIndex = selectedCheeksIndex - 1;
+        int colorInt = (styleIndex == 4) ? getFrecklesColorInt(selectedColorName) : getBlushColorInt(selectedColorName);
+        Bitmap blushBitmap = generateBlushBitmap(colorInt, styleIndex);
 
-        if (ivLayerCheekLeft != null) {
-            ivLayerCheekLeft.setImageBitmap(blushBitmap);
-        }
-        if (ivLayerCheekRight != null) {
-            ivLayerCheekRight.setImageBitmap(blushBitmap);
+        if (styleIndex == 4) {
+            if (ivLayerCheekLeft != null) {
+                ivLayerCheekLeft.setImageBitmap(blushBitmap);
+                ivLayerCheekLeft.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            }
+            if (ivLayerCheekRight != null) {
+                ivLayerCheekRight.setImageBitmap(null);
+            }
+        } else {
+            if (ivLayerCheekLeft != null) {
+                ivLayerCheekLeft.setImageBitmap(blushBitmap);
+            }
+            if (ivLayerCheekRight != null) {
+                ivLayerCheekRight.setImageBitmap(blushBitmap);
+            }
         }
     }
 
@@ -682,7 +835,6 @@ public class AvatarCreationActivity extends AppCompatActivity {
     }
 
     private void switchTab(String category, ImageButton selectedTab) {
-        SoundEffectsHelper.playHighlight(this);
         this.activeCategory = category;
 
         View sidebarColors = findViewById(R.id.sidebar_colors);
@@ -691,14 +843,32 @@ public class AvatarCreationActivity extends AppCompatActivity {
         View swatchDarkRed = findViewById(R.id.color_swatch_darkred);
         View swatchOrange = findViewById(R.id.color_swatch_orange);
         View swatchPeach = findViewById(R.id.color_swatch_peach);
-        View swatchEyePicker = findViewById(R.id.color_swatch_eye_picker);
-        View swatchHairPicker = findViewById(R.id.color_swatch_hair_picker);
+        View swatchWhite = findViewById(R.id.color_swatch_white);
+        TextView swatchEyePicker = findViewById(R.id.color_swatch_eye_picker);
+        TextView swatchHairPicker = findViewById(R.id.color_swatch_hair_picker);
+
+        // Dynamically update Eye & Hair color swatches on left sidebar
+        if (swatchEyePicker != null) {
+            GradientDrawable gd = new GradientDrawable();
+            gd.setShape(GradientDrawable.OVAL);
+            gd.setColor(selectedEyeColor);
+            gd.setStroke(dpToPx(2), Color.parseColor("#546B41"));
+            swatchEyePicker.setBackground(gd);
+        }
+        if (swatchHairPicker != null) {
+            GradientDrawable gd = new GradientDrawable();
+            gd.setShape(GradientDrawable.OVAL);
+            gd.setColor(selectedHairColor);
+            gd.setStroke(dpToPx(2), Color.parseColor("#546B41"));
+            swatchHairPicker.setBackground(gd);
+        }
 
         if (sidebarColors != null) {
             boolean hasColors = "Nose".equals(category) || "Mouth".equals(category) || "Eyes".equals(category) || "Cheeks".equals(category) || "Hair".equals(category);
             sidebarColors.setVisibility(hasColors ? View.VISIBLE : View.GONE);
 
             if ("Eyes".equals(category)) {
+                if (swatchWhite != null) swatchWhite.setVisibility(View.GONE);
                 if (swatchBlack != null) swatchBlack.setVisibility(View.GONE);
                 if (swatchBrown != null) swatchBrown.setVisibility(View.GONE);
                 if (swatchDarkRed != null) swatchDarkRed.setVisibility(View.GONE);
@@ -707,6 +877,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 if (swatchHairPicker != null) swatchHairPicker.setVisibility(View.GONE);
                 if (swatchEyePicker != null) swatchEyePicker.setVisibility(View.VISIBLE);
             } else if ("Hair".equals(category)) {
+                if (swatchWhite != null) swatchWhite.setVisibility(View.GONE);
                 if (swatchBlack != null) swatchBlack.setVisibility(View.GONE);
                 if (swatchBrown != null) swatchBrown.setVisibility(View.GONE);
                 if (swatchDarkRed != null) swatchDarkRed.setVisibility(View.GONE);
@@ -717,21 +888,36 @@ public class AvatarCreationActivity extends AppCompatActivity {
             } else {
                 if (swatchEyePicker != null) swatchEyePicker.setVisibility(View.GONE);
                 if (swatchHairPicker != null) swatchHairPicker.setVisibility(View.GONE);
-                if ("Nose".equals(category) || "Cheeks".equals(category)) {
+                if ("Nose".equals(category)) {
+                    if (swatchWhite != null) swatchWhite.setVisibility(View.GONE);
                     if (swatchBlack != null) swatchBlack.setVisibility(View.GONE);
                     if (swatchBrown != null) swatchBrown.setVisibility(View.GONE);
                     if (swatchDarkRed != null) swatchDarkRed.setVisibility(View.VISIBLE);
                     if (swatchOrange != null) swatchOrange.setVisibility(View.VISIBLE);
                     if (swatchPeach != null) swatchPeach.setVisibility(View.VISIBLE);
-                    if ("black".equals(selectedColorName) || "brown".equals(selectedColorName)) {
-                        selectedColorName = "peach";
+                    if ("white".equalsIgnoreCase(selectedNoseColorName)) {
+                        selectedNoseColorName = "orange";
                     }
-                } else if ("Mouth".equals(category)) {
-                    if (swatchBlack != null) swatchBlack.setVisibility(View.VISIBLE);
-                    if (swatchBrown != null) swatchBrown.setVisibility(View.VISIBLE);
+                } else if ("Cheeks".equals(category)) {
+                    if (swatchWhite != null) swatchWhite.setVisibility(View.GONE);
+                    if (swatchBlack != null) swatchBlack.setVisibility(View.GONE);
+                    if (swatchBrown != null) swatchBrown.setVisibility(View.GONE);
                     if (swatchDarkRed != null) swatchDarkRed.setVisibility(View.VISIBLE);
                     if (swatchOrange != null) swatchOrange.setVisibility(View.VISIBLE);
                     if (swatchPeach != null) swatchPeach.setVisibility(View.VISIBLE);
+                    if ("white".equalsIgnoreCase(selectedColorName)) {
+                        selectedColorName = "peach";
+                    }
+                } else if ("Mouth".equals(category)) {
+                    if (swatchWhite != null) swatchWhite.setVisibility(View.GONE);
+                    if (swatchBrown != null) swatchBrown.setVisibility(View.VISIBLE);
+                    if (swatchBlack != null) swatchBlack.setVisibility(View.VISIBLE);
+                    if (swatchPeach != null) swatchPeach.setVisibility(View.VISIBLE);
+                    if (swatchOrange != null) swatchOrange.setVisibility(View.VISIBLE);
+                    if (swatchDarkRed != null) swatchDarkRed.setVisibility(View.VISIBLE);
+                    if ("white".equals(selectedMouthColorName)) {
+                        selectedMouthColorName = "brown";
+                    }
                 }
             }
         }
@@ -764,17 +950,19 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+
+                boolean isSelected = (selectedHairIndex == i);
 
                 if (i == 0) {
                     itemImage.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
                     itemImage.setColorFilter(Color.parseColor("#888888"));
+                    applyItemHolderBackground(itemImage, Color.parseColor("#1E1E1E"), isSelected);
                 } else {
                     String baseNum = availableHairstyles.get(i - 1);
                     int cRes = getResources().getIdentifier("hairstyle_" + baseNum + "c", "drawable", getPackageName());
@@ -787,6 +975,8 @@ public class AvatarCreationActivity extends AppCompatActivity {
                     itemImage.clearColorFilter();
                     if (tintedHair != null) itemImage.setImageBitmap(tintedHair);
                     else itemImage.setImageResource(previewRes);
+
+                    applyItemHolderBackground(itemImage, selectedHairColor, isSelected);
                 }
 
                 int finalIndex = i;
@@ -797,6 +987,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         selectedHairBase = availableHairstyles.get(finalIndex - 1);
                     }
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
@@ -830,12 +1021,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
 
                 Bitmap tintedEye = getTintedEyeBitmap(eyeRes, selectedEyeColor);
@@ -846,11 +1036,15 @@ public class AvatarCreationActivity extends AppCompatActivity {
                     itemImage.setImageResource(eyeRes);
                 }
 
+                boolean isSelected = eyeBase.equalsIgnoreCase(selectedEyeBase);
+                applyItemHolderBackground(itemImage, selectedEyeColor, isSelected);
+
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
                     SoundEffectsHelper.playHighlight(this);
                     selectedEyeBase = eyeBase;
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
@@ -868,12 +1062,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 boolean isSmallNose = "square_nose".equals(shapeName);
                 int paddingDp = isSmallNose ? 14 : 8;
                 itemImage.setPadding(dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp), dpToPx(paddingDp));
@@ -886,11 +1079,15 @@ public class AvatarCreationActivity extends AppCompatActivity {
                     itemImage.setImageResource(shapeRes);
                 }
 
+                boolean isSelected = shapeName.equalsIgnoreCase(selectedNoseShape);
+                applyItemHolderBackground(itemImage, tintColor, isSelected);
+
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
                     SoundEffectsHelper.playHighlight(this);
                     selectedNoseShape = shapeName;
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
@@ -908,12 +1105,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
 
                 Bitmap tintedMouth = getTintedEyeBitmap(mouthRes, tintColor);
@@ -924,39 +1120,46 @@ public class AvatarCreationActivity extends AppCompatActivity {
                     itemImage.setImageResource(mouthRes);
                 }
 
+                boolean isSelected = mouthShapeName.equalsIgnoreCase(selectedMouthShape);
+                applyItemHolderBackground(itemImage, tintColor, isSelected);
+
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
                     SoundEffectsHelper.playHighlight(this);
                     selectedMouthShape = mouthShapeName;
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
             }
         } else if ("Cheeks".equals(category)) {
-            // Render 5 blush style choices (None, Soft Airbrush, Matte Oval, Cute Round, Sun-Kissed)
+            // Render 6 blush style choices (None, Soft Airbrush, Matte Oval, Cute Round, Sun-Kissed, Freckles)
             int colorInt = getBlushColorInt(selectedColorName);
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 6; i++) {
                 ImageView itemImage = new ImageView(this);
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+
+                boolean isSelected = (selectedCheeksIndex == i);
 
                 if (i == 0) {
                     itemImage.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
                     itemImage.setColorFilter(Color.parseColor("#888888"));
+                    applyItemHolderBackground(itemImage, Color.parseColor("#1E1E1E"), isSelected);
                 } else {
                     Bitmap previewBlush = generateBlushBitmap(colorInt, i - 1);
                     itemImage.clearColorFilter();
                     itemImage.setImageBitmap(previewBlush);
+                    applyItemHolderBackground(itemImage, colorInt, isSelected);
                 }
 
                 int finalIndex = i;
@@ -964,6 +1167,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
                     SoundEffectsHelper.playHighlight(this);
                     selectedCheeksIndex = finalIndex;
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
@@ -978,26 +1182,30 @@ public class AvatarCreationActivity extends AppCompatActivity {
                         GridLayout.spec(i / 3),
                         GridLayout.spec(i % 3)
                 );
-                params.width = dpToPx(85);
-                params.height = dpToPx(85);
+                params.width = ResponsiveLayoutHelper.avatarCellSize(gridAssets);
+                params.height = params.width;
                 params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
                 params.setGravity(android.view.Gravity.CENTER);
                 itemImage.setLayoutParams(params);
-                itemImage.setBackgroundResource(R.drawable.bg_avatar_asset_item);
                 itemImage.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
 
                 if ("Skin".equals(category)) {
                     int skinRes = getSkinDrawableRes(i);
                     itemImage.setImageResource(skinRes);
                     itemImage.clearColorFilter();
+                    boolean isSelected = (selectedSkinIndex == i);
+                    int skinColor = getSkinToneColorInt(i);
+                    applyItemHolderBackground(itemImage, skinColor, isSelected);
                 } else {
                     itemImage.setImageResource(iconRes);
+                    applyItemHolderBackground(itemImage, Color.parseColor("#1E1E1E"), false);
                 }
 
                 int finalIndex = i;
                 itemImage.setOnClickListener(v -> {
                     SoundEffectsHelper.playHighlight(this);
                     applyAssetSelection(category, finalIndex);
+                    switchTab(category, getTabButton(category));
                 });
 
                 gridAssets.addView(itemImage);
@@ -1057,6 +1265,29 @@ public class AvatarCreationActivity extends AppCompatActivity {
         );
     }
 
+    private void checkAndUpdateSaveButtonState() {
+        boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
+        if (!isEditMode) {
+            if (btnSaveAvatar != null) {
+                btnSaveAvatar.setText("Create Avatar");
+                btnSaveAvatar.setVisibility(View.VISIBLE);
+            }
+            if (btnBackBottom != null) {
+                btnBackBottom.setVisibility(View.GONE);
+            }
+        } else {
+            if (btnBackBottom != null) {
+                btnBackBottom.setVisibility(View.VISIBLE);
+            }
+            AvatarConfig currentConfig = buildCurrentConfig();
+            boolean hasChanged = hasAvatarConfigChanged(initialConfigOnEntry, currentConfig);
+            if (btnSaveAvatar != null) {
+                btnSaveAvatar.setText("Apply");
+                btnSaveAvatar.setVisibility(hasChanged ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
     private void renderLiveAvatarPreview() {
         if (ivCompositedAvatarPreview == null) {
             ivCompositedAvatarPreview = findViewById(R.id.iv_composited_avatar_preview);
@@ -1068,6 +1299,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
         if (compositedBitmap != null && !compositedBitmap.isRecycled()) {
             ivCompositedAvatarPreview.setImageBitmap(compositedBitmap);
         }
+        checkAndUpdateSaveButtonState();
     }
 
     private void applyAssetSelection(String category, int index) {
@@ -1097,6 +1329,235 @@ public class AvatarCreationActivity extends AppCompatActivity {
             selectedSkinIndex = index;
         }
         renderLiveAvatarPreview();
+    }
+
+    private void handleSaveAvatarClick() {
+        boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
+        if (!isEditMode) {
+            saveCustomizationAndProceed();
+            return;
+        }
+
+        AvatarConfig currentConfig = buildCurrentConfig();
+        boolean hasChanged = hasAvatarConfigChanged(initialConfigOnEntry, currentConfig);
+
+        if (!hasChanged) {
+            finishBackNavigation();
+            return;
+        }
+
+        TaskManager taskManager = new TaskManager(this);
+        int currentGold = taskManager.getUserGoldBalance();
+
+        if (currentGold < AVATAR_REDESIGN_COIN_COST) {
+            showInsufficientGoldDialog(currentGold);
+        } else {
+            showConfirmRedesignDialog(currentGold);
+        }
+    }
+
+    private void handleBackRequest() {
+        boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
+        if (!isEditMode) {
+            finishBackNavigation();
+            return;
+        }
+
+        AvatarConfig currentConfig = buildCurrentConfig();
+        boolean hasChanged = hasAvatarConfigChanged(initialConfigOnEntry, currentConfig);
+
+        if (hasChanged) {
+            showDiscardChangesDialog();
+        } else {
+            finishBackNavigation();
+        }
+    }
+
+    private void finishBackNavigation() {
+        boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);
+        if (isEditMode) {
+            finish();
+        } else {
+            Intent intent = new Intent(AvatarCreationActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    private void showDiscardChangesDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FEF3C7")));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(R.drawable.ic_info_circle);
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.dagoal_primary_dark)));
+        }
+
+        if (tvTitle != null) tvTitle.setText("Discard Changes?");
+        if (tvMessage != null) {
+            tvMessage.setText("You have unsaved changes to your avatar. Are you sure you want to go back without saving?");
+        }
+
+        if (btnNeg != null) btnNeg.setText("Keep Editing");
+        if (btnPos != null) {
+            btnPos.setText("Discard");
+            btnPos.setBackgroundResource(R.drawable.bg_button_pill_danger);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnNeg != null) DebouncedOnClickListener.setSafeOnClickListener(btnNeg, v -> dialog.dismiss());
+        if (btnPos != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPos, v -> {
+                dialog.dismiss();
+                finishBackNavigation();
+            });
+        }
+
+        dialog.show();
+    }
+
+    private boolean safeEquals(String s1, String s2) {
+        if (s1 == null && s2 == null) return true;
+        if (s1 == null || s2 == null) return false;
+        return s1.equalsIgnoreCase(s2);
+    }
+
+    private boolean hasAvatarConfigChanged(AvatarConfig c1, AvatarConfig c2) {
+        if (c1 == null || c2 == null) return true;
+        return c1.skinIndex != c2.skinIndex ||
+                !safeEquals(c1.selectedColorName, c2.selectedColorName) ||
+                !safeEquals(c1.selectedNoseColorName, c2.selectedNoseColorName) ||
+                !safeEquals(c1.selectedMouthColorName, c2.selectedMouthColorName) ||
+                !safeEquals(c1.selectedNoseShape, c2.selectedNoseShape) ||
+                !safeEquals(c1.selectedMouthShape, c2.selectedMouthShape) ||
+                c1.selectedEyeColor != c2.selectedEyeColor ||
+                !safeEquals(c1.selectedEyeBase, c2.selectedEyeBase) ||
+                c1.cheeksIndex != c2.cheeksIndex ||
+                c1.hairIndex != c2.hairIndex ||
+                c1.selectedHairColor != c2.selectedHairColor ||
+                !safeEquals(c1.selectedHairBase, c2.selectedHairBase) ||
+                !safeEquals(c1.clothesAssetId, c2.clothesAssetId);
+    }
+
+    private void showInsufficientGoldDialog(int currentGold) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FEF3C7")));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(R.drawable.coins_icon);
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, null);
+        }
+
+        if (tvTitle != null) tvTitle.setText("Not Enough Coins");
+        if (tvMessage != null) {
+            tvMessage.setText("Redesigning your avatar costs " + AVATAR_REDESIGN_COIN_COST + " Coins.\nYou currently have " + AppearanceHelper.formatCompactNumber(currentGold) + " Coins.");
+        }
+
+        if (btnNeg != null) btnNeg.setVisibility(View.GONE);
+        if (btnPos != null) {
+            btnPos.setText("Got it");
+            btnPos.setBackgroundResource(R.drawable.bg_button_primary_pill);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnPos != null) DebouncedOnClickListener.setSafeOnClickListener(btnPos, v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private void showConfirmRedesignDialog(int currentGold) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FEF3C7")));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(R.drawable.coins_icon);
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, null);
+        }
+
+        if (tvTitle != null) tvTitle.setText("Confirm Avatar Redesign");
+        if (tvMessage != null) {
+            tvMessage.setText("Saving your updated avatar look costs " + AVATAR_REDESIGN_COIN_COST + " Coins.\nYour balance after purchase: " + AppearanceHelper.formatCompactNumber(currentGold - AVATAR_REDESIGN_COIN_COST) + " Coins.");
+        }
+
+        if (btnNeg != null) btnNeg.setText("Cancel");
+        if (btnPos != null) {
+            btnPos.setText("Confirm (-" + AVATAR_REDESIGN_COIN_COST + " Coins)");
+            btnPos.setBackgroundResource(R.drawable.bg_button_primary_pill);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnNeg != null) DebouncedOnClickListener.setSafeOnClickListener(btnNeg, v -> dialog.dismiss());
+        if (btnPos != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPos, v -> {
+                dialog.dismiss();
+                deductCoinsAndSaveAvatar(currentGold);
+            });
+        }
+
+        dialog.show();
+    }
+
+    private void deductCoinsAndSaveAvatar(int currentGold) {
+        int newGold = Math.max(0, currentGold - AVATAR_REDESIGN_COIN_COST);
+        SQLiteDatabase db = new DatabaseHelper(this).getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.UserEntry.COLUMN_GOLD, newGold);
+        db.update(DatabaseContract.UserEntry.TABLE_NAME, values, "_id = 1", null);
+
+        TaskManager tm = new TaskManager(this);
+        tm.syncUserProfileToFirestore(this);
+
+        SoundEffectsHelper.playPurchaseItem(this);
+        ToastUtils.showToast(this, "Avatar updated! (-" + AVATAR_REDESIGN_COIN_COST + " Coins)");
+
+        saveCustomizationAndProceed();
     }
 
     private void saveCustomizationAndProceed() {
@@ -1129,21 +1590,7 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
         String uid = prefs.getString("user_uid", null);
         if (uid != null && !uid.isEmpty()) {
-            try {
-                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-                java.util.Map<String, Object> map = new java.util.HashMap<>();
-                map.put("avatar_skin_index", selectedSkinIndex);
-                map.put("avatar_color_name", selectedColorName);
-                map.put("avatar_nose_shape", selectedNoseShape);
-                map.put("avatar_mouth_shape", selectedMouthShape);
-                map.put("avatar_eye_color", selectedEyeColor);
-                map.put("avatar_eye_base", selectedEyeBase);
-                map.put("avatar_cheeks_index", selectedCheeksIndex);
-                map.put("avatar_hair_index", selectedHairIndex);
-                map.put("avatar_hair_color", selectedHairColor);
-                map.put("avatar_hair_base", selectedHairBase);
-                firestore.collection("users").document(uid).set(map, com.google.firebase.firestore.SetOptions.merge());
-            } catch (Exception ignored) {}
+            config.saveToFirestore(uid);
         }
 
         boolean isEditMode = getIntent().getBooleanExtra("extra_edit_mode", false);

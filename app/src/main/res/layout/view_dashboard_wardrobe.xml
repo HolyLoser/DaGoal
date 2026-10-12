@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_surface_card"
     android:orientation="vertical"
     android:paddingLeft="16dp"
-    android:paddingRight="16dp"
-    android:paddingBottom="16dp">
+    android:paddingRight="16dp">
 
     <LinearLayout
         android:id="@+id/drag_handle_touch_area"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="28dp"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center">
@@ -22,30 +22,75 @@
             android:background="@drawable/bg_drag_handle" />
     </LinearLayout>
 
-    <FrameLayout
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_wardrobe_tab"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp">
+        android:layout_height="match_parent"
+        android:overScrollMode="never"
+        android:scrollbars="none">
 
-        <GridView
-            android:id="@+id/grid_wardrobe_items"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:horizontalSpacing="16dp"
-            android:numColumns="3"
-            android:stretchMode="columnWidth"
-            android:verticalSpacing="16dp" />
-    </FrameLayout>
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
 
-    <Button
-        android:id="@+id/btn_wardrobe_action"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="#546B41"
-        android:text="@string/equip_item"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textStyle="bold" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp">
+
+                <GridView
+                    android:id="@+id/grid_wardrobe_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:horizontalSpacing="16dp"
+                    android:nestedScrollingEnabled="false"
+                    android:numColumns="3"
+                    android:stretchMode="columnWidth"
+                    android:verticalSpacing="16dp" />
+
+                <LinearLayout
+                    android:id="@+id/container_wardrobe_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/iv_wardrobe_empty_icon"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/wardrobe_icon"
+                        app:tint="@color/dagoal_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_wardrobe_empty_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/wardrobe_empty_title"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_wardrobe_empty_desc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.1"
+                        android:text="@string/wardrobe_empty_desc"
+                        android:textColor="@color/dagoal_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </FrameLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

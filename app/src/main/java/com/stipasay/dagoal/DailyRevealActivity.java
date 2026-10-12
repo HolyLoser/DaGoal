@@ -33,6 +33,7 @@ public class DailyRevealActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_daily_reveal);
 
         dbHelper = new DatabaseHelper(this);
@@ -41,35 +42,25 @@ public class DailyRevealActivity extends AppCompatActivity {
         btnAcceptTasks = findViewById(R.id.btn_accept_tasks);
 
         View rootLayout = findViewById(R.id.root_reveal_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
-        });
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         TaskManager taskManager = new TaskManager(this);
         taskManager.generateDailyTasks();
 
-        Cursor userCursor = dbHelper.getReadableDatabase().rawQuery("SELECT level FROM user WHERE _id = 1", null);
-        int userLevel = 1;
-        if (userCursor != null && userCursor.moveToFirst()) {
-            userLevel = userCursor.getInt(0);
-            userCursor.close();
-        }
-        int baseSlots = TaskManager.getDailyQuestSlotCount(userLevel);
-        int tokensOwned = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
-        availableShuffles = baseSlots + tokensOwned;
+        availableShuffles = taskManager.getRemainingDailyShuffles();
 
         tvShuffleCounter.setText("Available Shuffles today: " + availableShuffles);
         loadDailyTasksFromDatabase();
-        loadDailyTasksFromDatabase();
 
-        btnAcceptTasks.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnAcceptTasks, v -> {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             prefs.edit().putString("last_quest_generation_date", todayDateStr).apply();
 
             Intent intent = new Intent(DailyRevealActivity.this, DashboardActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             finish();
         });
@@ -126,7 +117,7 @@ public class DailyRevealActivity extends AppCompatActivity {
                 if (btnCardShuffle != null) {
                     btnCardShuffle.setVisibility(View.VISIBLE);
                     btnCardShuffle.setImageResource(R.drawable.shuffle_icon);
-                    btnCardShuffle.setOnClickListener(v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                    DebouncedOnClickListener.setSafeOnClickListener(btnCardShuffle, v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
                 }
 
                 if (btnShuffle != null) btnShuffle.setVisibility(View.GONE);
@@ -138,22 +129,18 @@ public class DailyRevealActivity extends AppCompatActivity {
     }
 
     private void handleTaskShuffle(int taskId, TextView tvTitle, TextView tvTarget) {
+        availableShuffles = new TaskManager(this).getRemainingDailyShuffles();
         if (availableShuffles <= 0) {
             ToastUtils.showToast(this, "No shuffles remaining for today!");
             return;
         }
 
         TaskManager taskManager = new TaskManager(this);
-        boolean success = taskManager.shuffleQuest(taskId);
+        boolean success = taskManager.shuffleDailyQuest(taskId);
 
         if (!success) {
             ToastUtils.showToast(this, "No alternative tasks found!");
             return;
-        }
-
-        int tokensOwned = taskManager.getConsumableQuantity(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
-        if (tokensOwned > 0) {
-            taskManager.useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_QUEST_REFRESH);
         }
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();
@@ -179,8 +166,8 @@ public class DailyRevealActivity extends AppCompatActivity {
             tvTarget.setText(formatTargetText(newTarget, newUnit));
         }
 
-        availableShuffles--;
-        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
+        availableShuffles = taskManager.getRemainingDailyShuffles();
+        tvShuffleCounter.setText("Available Shuffles today: " + availableShuffles);
         ToastUtils.showToast(this, "Task shuffled successfully!");
     }
 }

@@ -16,6 +16,8 @@ import androidx.core.content.ContextCompat;
 
 public class AvatarCompositor {
 
+    private static final LruCache<Integer, Float> sOutfitTorsoCenters = new LruCache<>(32);
+
     private static final int MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB LruCache
     private static final LruCache<String, Bitmap> sBitmapCache = new LruCache<String, Bitmap>(MAX_CACHE_SIZE_BYTES) {
         @Override
@@ -165,20 +167,30 @@ public class AvatarCompositor {
         drawDrawableFittingCanvas(canvas, context, R.drawable.shorts, paint, outputSizePx, 0, topPaddingPx);
 
         // 1.5 Layer 1.5: Clothes / Wardrobe Upper Body Outfit
-        boolean isTankTop = config.clothesAssetId == null || config.clothesAssetId.isEmpty() || "tank_top".equals(config.clothesAssetId);
-        int clothesRes = context.getResources().getIdentifier(config.clothesAssetId, "drawable", context.getPackageName());
-        if (clothesRes == 0) clothesRes = R.drawable.tank_top;
+        int clothesRes = 0;
+        if (config.clothesAssetId != null && !config.clothesAssetId.isEmpty()) {
+            clothesRes = context.getResources().getIdentifier(config.clothesAssetId, "drawable", context.getPackageName());
+        }
+        if (clothesRes == 0) {
+            clothesRes = R.drawable.tank_top;
+        }
 
-        if (isTankTop || clothesRes == R.drawable.tank_top) {
-            drawDrawableFittingCanvas(canvas, context, R.drawable.tank_top, paint, outputSizePx, 0, topPaddingPx);
+        if (clothesRes == R.drawable.tank_top) {
+            // The default top is already registered to the body canvas.
+            drawDrawableFittingCanvas(canvas, context, clothesRes, paint, outputSizePx, 0, topPaddingPx);
         } else {
-            float clothesScale = 0.70f;
-            float scaledClothesSize = outputSizePx * clothesScale;
-            float clothesOffsetX = (outputSizePx - scaledClothesSize) / 2.0f;
-            float clothesOffsetY = topPaddingPx + (outputSizePx - scaledClothesSize) / 2.0f + dpToPx(70.0f, density) * scale;
-            RectF clothesRect = new RectF(clothesOffsetX, clothesOffsetY, clothesOffsetX + scaledClothesSize, clothesOffsetY + scaledClothesSize);
-
-            drawDrawableInRect(canvas, context, clothesRes, clothesRect, paint);
+            // Shop outfits share a 1080px template with the neckline near y=275.
+            // Scale and register that template to the body's neckline near y=595.
+            float outfitHeight = outputSizePx * 0.70f;
+            float outfitWidth = outputSizePx * 0.71f;
+            // Register each asset's torso center to the body, including off-center shirt drawings.
+            // A small horizontal allowance covers the tapered torso without a skin seam.
+            float torsoCenter = outputSizePx * (536.0f / 1080.0f);
+            float outfitLeft = torsoCenter - outfitWidth * getOutfitTorsoCenter(context, clothesRes);
+            float outfitTop = topPaddingPx + outputSizePx * (400.0f / 1080.0f);
+            RectF outfitRect = new RectF(outfitLeft, outfitTop,
+                    outfitLeft + outfitWidth, outfitTop + outfitHeight);
+            drawDrawableInRect(canvas, context, clothesRes, outfitRect, paint);
         }
 
         // 2. Layer 2: Eyes (Paired Left _a & Right _b)
@@ -223,23 +235,35 @@ public class AvatarCompositor {
             float cheeksBoxWidthPx = dpToPx(176.0f, density) * scale;
             float cheeksBoxHeightPx = dpToPx(40.0f, density) * scale;
             float cheeksBottomMarginPx = dpToPx(35.0f, density) * scale;
-            float cheekWidthPx = dpToPx(50.0f, density) * scale;
-            float cheekHeightPx = dpToPx(35.0f, density) * scale;
 
             float cheeksBoxLeft = (outputSizePx - cheeksBoxWidthPx) / 2.0f;
             float cheeksBoxTop = topPaddingPx + (outputSizePx - cheeksBoxHeightPx) / 2.0f - cheeksBottomMarginPx;
 
-            int blushColor = getBlushColorInt(config.selectedColorName);
-            Bitmap blushBitmap = generateBlushBitmap(blushColor, config.cheeksIndex - 1);
+            int styleIndex = config.cheeksIndex - 1;
+            int blushColor = (styleIndex == 4) ? getFrecklesColorInt(config.selectedColorName) : getBlushColorInt(config.selectedColorName);
+
+            Bitmap blushBitmap = generateBlushBitmap(context, blushColor, styleIndex);
 
             if (blushBitmap != null) {
-                RectF cLeftRect = new RectF(cheeksBoxLeft, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
-                        cheeksBoxLeft + cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
-                RectF cRightRect = new RectF(cheeksBoxLeft + cheeksBoxWidthPx - cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
-                        cheeksBoxLeft + cheeksBoxWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+                if (styleIndex == 4) { // Freckles bounds: wider horizontally and higher vertically
+                    float frecklesWidthPx = dpToPx(170.0f, density) * scale;
+                    float frecklesHeightPx = dpToPx(140.0f, density) * scale;
+                    float frecklesLeft = (outputSizePx - frecklesWidthPx) / 2.0f;
+                    float frecklesTop = topPaddingPx + (outputSizePx - frecklesHeightPx) / 2.0f - dpToPx(38.0f, density) * scale;
+                    RectF centerFrecklesRect = new RectF(frecklesLeft, frecklesTop, frecklesLeft + frecklesWidthPx, frecklesTop + frecklesHeightPx);
+                    canvas.drawBitmap(blushBitmap, null, centerFrecklesRect, paint);
+                } else {
+                    float cheekWidthPx = dpToPx(50.0f, density) * scale;
+                    float cheekHeightPx = dpToPx(35.0f, density) * scale;
 
-                canvas.drawBitmap(blushBitmap, null, cLeftRect, paint);
-                canvas.drawBitmap(blushBitmap, null, cRightRect, paint);
+                    RectF cLeftRect = new RectF(cheeksBoxLeft, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+                    RectF cRightRect = new RectF(cheeksBoxLeft + cheeksBoxWidthPx - cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheeksBoxWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+
+                    canvas.drawBitmap(blushBitmap, null, cLeftRect, paint);
+                    canvas.drawBitmap(blushBitmap, null, cRightRect, paint);
+                }
             }
         }
 
@@ -283,8 +307,14 @@ public class AvatarCompositor {
 
         // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
         String glassesAsset = (config.glassesAssetId != null && !config.glassesAssetId.isEmpty()) ? config.glassesAssetId : config.accessoryAssetId;
-        if (glassesAsset != null && !glassesAsset.isEmpty() && (glassesAsset.contains("glasses") || glassesAsset.contains("sunglasses"))) {
+        if (glassesAsset != null && !glassesAsset.isEmpty()) {
             int accessoryRes = context.getResources().getIdentifier(glassesAsset, "drawable", context.getPackageName());
+            if (accessoryRes == 0 && glassesAsset.startsWith("accessory_")) {
+                int lastUnderscore = glassesAsset.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    accessoryRes = context.getResources().getIdentifier(glassesAsset.substring(0, lastUnderscore), "drawable", context.getPackageName());
+                }
+            }
             if (accessoryRes != 0) {
                 int color = config.glassesColor != 0 ? config.glassesColor : config.accessoryColor;
                 Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, color);
@@ -314,31 +344,37 @@ public class AvatarCompositor {
         }
 
         // 6.5 & 7. Layer 6.5 / 7: Head & Hat Accessories (Hair Bow, Flowers, Butterfly, Hats)
-        String hatAsset = (config.hatAssetId != null && !config.hatAssetId.isEmpty()) ? config.hatAssetId : config.accessoryAssetId;
+        String hatAsset = config.hatAssetId;
+        // Legacy accessory aliases may point to glasses; only headwear belongs in this layer.
+        if ((hatAsset == null || hatAsset.isEmpty()) && config.accessoryAssetId != null
+                && (config.accessoryAssetId.contains("hat") || config.accessoryAssetId.contains("hair"))) {
+            hatAsset = config.accessoryAssetId;
+        }
         if (hatAsset != null && !hatAsset.isEmpty()) {
             int color = config.hatColor != 0 ? config.hatColor : config.accessoryColor;
-            if (hatAsset.contains("hair")) {
-                int hairAccRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
-                if (hairAccRes != 0) {
-                    Bitmap hairAccBitmap = generateAccessoryBitmap(context, hairAccRes, color);
+            int hatRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
+            if (hatRes == 0 && hatAsset.startsWith("accessory_")) {
+                int lastUnderscore = hatAsset.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    hatRes = context.getResources().getIdentifier(hatAsset.substring(0, lastUnderscore), "drawable", context.getPackageName());
+                }
+            }
 
+            if (hatRes != 0) {
+                Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, color);
+                if (hatAsset.contains("hair")) {
                     float hairAccScale = 0.65f;
                     float scaledHairAccSize = outputSizePx * hairAccScale;
                     float hairAccOffsetX = (outputSizePx - scaledHairAccSize) / 150.0f + hairTranslationX + dpToPx(130.0f, density) * scale;
                     float hairAccOffsetY = hairTranslationY - dpToPx(0.75f, density) * scale;
                     RectF hairAccRect = new RectF(hairAccOffsetX, hairAccOffsetY, hairAccOffsetX + scaledHairAccSize, hairAccOffsetY + scaledHairAccSize);
 
-                    if (hairAccBitmap != null) {
-                        canvas.drawBitmap(hairAccBitmap, null, hairAccRect, paint);
+                    if (hatBitmap != null) {
+                        canvas.drawBitmap(hatBitmap, null, hairAccRect, paint);
                     } else {
-                        drawDrawableInRect(canvas, context, hairAccRes, hairAccRect, paint);
+                        drawDrawableInRect(canvas, context, hatRes, hairAccRect, paint);
                     }
-                }
-            } else if (hatAsset.contains("hat")) {
-                int hatRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
-                if (hatRes != 0) {
-                    Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, color);
-
+                } else {
                     float hatScale = 1.40f;
                     float scaledHatSize = outputSizePx * hatScale;
                     float hatOffsetX = (outputSizePx - scaledHatSize) / 2.0f + hairTranslationX;
@@ -519,6 +555,48 @@ public class AvatarCompositor {
         return bitmap;
     }
 
+    public static Bitmap cropTransparentBitmap(Bitmap src) {
+        if (src == null) return null;
+        int width = src.getWidth();
+        int height = src.getHeight();
+        if (width <= 0 || height <= 0) return src;
+
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        int[] pixels = new int[width * height];
+        src.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int y = 0; y < height; y++) {
+            int rowOffset = y * width;
+            for (int x = 0; x < width; x++) {
+                int alpha = (pixels[rowOffset + x] >> 24) & 0xff;
+                if (alpha > 20) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            return src;
+        }
+
+        minX = Math.max(0, minX - 2);
+        minY = Math.max(0, minY - 2);
+        maxX = Math.min(width - 1, maxX + 2);
+        maxY = Math.min(height - 1, maxY + 2);
+
+        int cropWidth = maxX - minX + 1;
+        int cropHeight = maxY - minY + 1;
+
+        try {
+            return Bitmap.createBitmap(src, minX, minY, cropWidth, cropHeight);
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
     private static void drawHairLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY, float hairScale) {
         float scaledWidth = outputSizePx * hairScale;
         float scaledHeight = outputSizePx * hairScale;
@@ -540,6 +618,27 @@ public class AvatarCompositor {
         } else {
             drawDrawableInRect(canvas, context, drawableRes, rect, paint);
         }
+    }
+
+    private static float getOutfitTorsoCenter(Context context, int drawableRes) {
+        Float cached = sOutfitTorsoCenters.get(drawableRes);
+        if (cached != null) return cached;
+        float center = 0.5f;
+        Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
+        if (drawable instanceof BitmapDrawable) {
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            int width = bitmap.getWidth();
+            int y = Math.min(bitmap.getHeight() - 1, Math.round(bitmap.getHeight() * (600.0f / 1080.0f)));
+            int left = width / 2;
+            int right = left;
+            if (Color.alpha(bitmap.getPixel(left, y)) > 200) {
+                while (left > 0 && Color.alpha(bitmap.getPixel(left - 1, y)) > 200) left--;
+                while (right < width - 1 && Color.alpha(bitmap.getPixel(right + 1, y)) > 200) right++;
+                center = (left + right + 1) / (2.0f * width);
+            }
+        }
+        sOutfitTorsoCenters.put(drawableRes, center);
+        return center;
     }
 
     private static void drawDrawableFittingCanvas(Canvas canvas, Context context, int drawableRes, Paint paint, int outputSizePx, float transX, float transY) {
@@ -619,9 +718,14 @@ public class AvatarCompositor {
         return 132;
     }
 
-    private static Bitmap generateBlushBitmap(int colorInt, int styleIndex) {
+    private static Bitmap generateBlushBitmap(Context context, int colorInt, int styleIndex) {
         int widthPx = 110;
         int heightPx = 75;
+
+        if (styleIndex == 4) { // Freckles
+            return generateTintedBitmap(context, R.drawable.blush_freckles, colorInt);
+        }
+
         float featherFactor = 0.75f;
         int alpha = 180;
 
@@ -674,17 +778,27 @@ public class AvatarCompositor {
     }
 
     private static int getSwatchColorInt(String colorName) {
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#FFFFFF");
         if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#1E1E1E");
-        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#5C3A21");
-        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
-        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7F50");
-        return Color.parseColor("#FF8A8A");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#800000");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7A38");
+        return Color.parseColor("#FFC2B4"); // Soft Nude / Peach
     }
 
     private static int getBlushColorInt(String colorName) {
         if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
         if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF8C00");
         return Color.parseColor("#FF8A8A");
+    }
+
+    private static int getFrecklesColorInt(String colorName) {
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#7A2424");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#B86B28");
+        if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#4A3728");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#C4A484");
+        return Color.parseColor("#8B5A2B");
     }
 
     private static float dpToPx(float dp, float density) {

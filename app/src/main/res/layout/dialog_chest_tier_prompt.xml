@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_surface_card"
+    android:background="@drawable/bg_surface_card_full_radius"
+    android:gravity="center_horizontal"
     android:orientation="vertical"
     android:padding="24dp">
 
@@ -12,10 +14,21 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="12dp"
+        android:gravity="center"
         android:text="🪵 Tier 1 Wooden Chest Ready!"
-        android:textColor="@color/dagoal_primary"
+        android:textColor="@color/dagoal_primary_dark"
         android:textSize="20sp"
         android:textStyle="bold" />
+
+    <ImageView
+        android:id="@+id/iv_chest_dialog_icon"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="Chest"
+        android:scaleType="fitCenter"
+        android:src="@drawable/chest_wood" />
 
     <TextView
         android:id="@+id/tv_chest_dialog_loot"
@@ -24,8 +37,8 @@
         android:layout_marginBottom="24dp"
         android:gravity="center"
         android:lineSpacingMultiplier="1.2"
-        android:text="Unlock now for +30 Gold and +20 XP, or keep completing quests to reach higher chest tiers!"
-        android:textColor="@color/dagoal_primary"
+        android:text="You can choose to unlock it now, or keep completing quests for better rewards."
+        android:textColor="@color/dagoal_primary_dark"
         android:textSize="14sp" />
 
     <Button
@@ -33,7 +46,10 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:layout_marginBottom="12dp"
-        android:backgroundTint="@color/dagoal_primary"
+        android:background="@drawable/bg_button_pill_dark"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:text="Unlock Chest Now"
         android:textAllCaps="false"
         android:textColor="@color/white"
@@ -43,12 +59,15 @@
     <Button
         android:id="@+id/btn_keep_completing_quests"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:backgroundTint="@color/dagoal_secondary"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:text="Keep Completing Quests"
         android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="14sp"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="15sp"
         android:textStyle="bold" />
 
 </LinearLayout>

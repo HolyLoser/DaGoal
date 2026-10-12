@@ -27,16 +27,16 @@ public class AvatarConfig {
 
     public AvatarConfig() {
         this.skinIndex = 0;
-        this.selectedColorName = "peach";
-        this.selectedNoseColorName = "black";
-        this.selectedMouthColorName = "peach";
+        this.selectedColorName = "orange";
+        this.selectedNoseColorName = "orange";
+        this.selectedMouthColorName = "brown";
         this.selectedNoseShape = "triangle_nose";
         this.selectedMouthShape = "smile_01";
-        this.selectedEyeColor = Color.parseColor("#1E90FF");
+        this.selectedEyeColor = Color.parseColor("#1E1E1E");
         this.selectedEyeBase = "bigeye";
         this.cheeksIndex = 0;
         this.hairIndex = 0;
-        this.selectedHairColor = Color.parseColor("#3B2219");
+        this.selectedHairColor = Color.parseColor("#1E1E1E");
         this.selectedHairBase = "01";
         this.clothesAssetId = "tank_top";
         this.accessoryAssetId = "";
@@ -52,9 +52,9 @@ public class AvatarConfig {
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId, String glassesAssetId, int glassesColor, String hatAssetId, int hatColor) {
         this.skinIndex = skinIndex;
-        this.selectedColorName = selectedColorName != null ? selectedColorName : "peach";
-        this.selectedNoseColorName = selectedNoseColorName != null ? selectedNoseColorName : "black";
-        this.selectedMouthColorName = selectedMouthColorName != null ? selectedMouthColorName : "peach";
+        this.selectedColorName = selectedColorName != null ? selectedColorName : "orange";
+        this.selectedNoseColorName = selectedNoseColorName != null ? selectedNoseColorName : "orange";
+        this.selectedMouthColorName = selectedMouthColorName != null ? selectedMouthColorName : "brown";
         this.selectedNoseShape = selectedNoseShape != null ? selectedNoseShape : "triangle_nose";
         this.selectedMouthShape = selectedMouthShape != null ? selectedMouthShape : "smile_01";
         this.selectedEyeColor = selectedEyeColor;
@@ -101,14 +101,14 @@ public class AvatarConfig {
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId) {
-        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, "orange", "brown", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, "", Color.parseColor("#1E1E1E"));
     }
 
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase) {
-        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, "orange", "brown", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, "tank_top", "", Color.parseColor("#1E1E1E"));
     }
 
@@ -129,18 +129,27 @@ public class AvatarConfig {
         SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
 
         int skinIndex = prefs.getInt("pref_avatar_skin", 0);
-        String selectedColorName = prefs.getString("pref_avatar_color", "peach");
-        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "black");
-        String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", selectedColorName);
+        String selectedColorName = prefs.getString("pref_avatar_color", "orange");
+        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "orange");
+        String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", "brown");
         String selectedNoseShape = prefs.getString("pref_avatar_nose_shape", "triangle_nose");
         String selectedMouthShape = prefs.getString("pref_avatar_mouth_shape", "smile_01");
-        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E90FF"));
+        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E1E1E"));
         String selectedEyeBase = prefs.getString("pref_avatar_eye_base", "bigeye");
         int cheeksIndex = prefs.getInt("pref_avatar_cheeks", 0);
         int hairIndex = prefs.getInt("pref_avatar_hair", 0);
-        int selectedHairColor = prefs.getInt("pref_avatar_hair_color", Color.parseColor("#3B2219"));
+        int selectedHairColor = prefs.getInt("pref_avatar_hair_color", Color.parseColor("#1E1E1E"));
         String selectedHairBase = prefs.getString("pref_avatar_hair_base", "01");
         String clothesAssetId = prefs.getString("pref_avatar_clothes", "tank_top");
+
+        // Equipped inventory is authoritative; a cloud avatar snapshot may contain older clothes.
+        ShopItem equippedClothes = TaskManager.getEquippedItemForSlot(context, "clothes");
+        if (equippedClothes != null && equippedClothes.getResName() != null
+                && !equippedClothes.getResName().isEmpty()) {
+            clothesAssetId = equippedClothes.getResName();
+        } else if (prefs.contains("pref_equipped_clothes_id")) {
+            clothesAssetId = "tank_top";
+        }
 
         // Read equipped items for all 3 independent slots
         String glassesAssetId = "";
@@ -208,5 +217,113 @@ public class AvatarConfig {
                 + selectedMouthShape + "_" + selectedEyeColor + "_" + selectedEyeBase + "_"
                 + cheeksIndex + "_" + hairIndex + "_" + selectedHairColor + "_" + selectedHairBase + "_"
                 + clothesAssetId + "_" + glassesAssetId + "_" + glassesColor + "_" + hatAssetId + "_" + hatColor + "_" + outputSizePx;
+    }
+
+    public static boolean hasAvatarDataInFirestoreDoc(com.google.firebase.firestore.DocumentSnapshot doc) {
+        if (doc == null || !doc.exists()) return false;
+        return doc.contains("avatar_skin_index") || doc.contains("avatar_color_name") || doc.contains("avatar_hair_base");
+    }
+
+    public static void saveUserAvatarToFirestore(Context context, String uid) {
+        if (context == null || uid == null || uid.isEmpty()) return;
+        SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        boolean isGuest = prefs.getBoolean("isGuestUser", false);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        if (isGuest || !isLoggedIn) {
+            return;
+        }
+        AvatarConfig config = loadFromPreferences(context);
+        config.saveToFirestore(uid);
+    }
+
+    public void saveToFirestore(String uid) {
+        if (uid == null || uid.isEmpty()) return;
+        try {
+            com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("avatar_skin_index", skinIndex);
+            map.put("avatar_color_name", selectedColorName != null ? selectedColorName : "orange");
+            map.put("avatar_nose_color", selectedNoseColorName != null ? selectedNoseColorName : "orange");
+            map.put("avatar_mouth_color", selectedMouthColorName != null ? selectedMouthColorName : "brown");
+            map.put("avatar_nose_shape", selectedNoseShape != null ? selectedNoseShape : "triangle_nose");
+            map.put("avatar_mouth_shape", selectedMouthShape != null ? selectedMouthShape : "smile_01");
+            map.put("avatar_eye_color", selectedEyeColor);
+            map.put("avatar_eye_base", selectedEyeBase != null ? selectedEyeBase : "bigeye");
+            map.put("avatar_cheeks_index", cheeksIndex);
+            map.put("avatar_hair_index", hairIndex);
+            map.put("avatar_hair_color", selectedHairColor);
+            map.put("avatar_hair_base", selectedHairBase != null ? selectedHairBase : "01");
+            map.put("avatar_clothes", clothesAssetId != null ? clothesAssetId : "tank_top");
+
+            firestore.collection("users").document(uid).set(map, com.google.firebase.firestore.SetOptions.merge());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void restoreUserAvatarFromFirestoreDoc(com.google.firebase.firestore.DocumentSnapshot doc, Context context) {
+        if (doc == null || !doc.exists() || context == null) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            if (doc.contains("avatar_skin_index")) {
+                Long val = doc.getLong("avatar_skin_index");
+                if (val != null) editor.putInt("pref_avatar_skin", val.intValue());
+            }
+            if (doc.contains("avatar_color_name")) {
+                String val = doc.getString("avatar_color_name");
+                if (val != null) editor.putString("pref_avatar_color", val);
+            }
+            if (doc.contains("avatar_nose_color")) {
+                String val = doc.getString("avatar_nose_color");
+                if (val != null) editor.putString("pref_avatar_nose_color", val);
+            }
+            if (doc.contains("avatar_mouth_color")) {
+                String val = doc.getString("avatar_mouth_color");
+                if (val != null) editor.putString("pref_avatar_mouth_color", val);
+            }
+            if (doc.contains("avatar_nose_shape")) {
+                String val = doc.getString("avatar_nose_shape");
+                if (val != null) editor.putString("pref_avatar_nose_shape", val);
+            }
+            if (doc.contains("avatar_mouth_shape")) {
+                String val = doc.getString("avatar_mouth_shape");
+                if (val != null) editor.putString("pref_avatar_mouth_shape", val);
+            }
+            if (doc.contains("avatar_eye_color")) {
+                Long val = doc.getLong("avatar_eye_color");
+                if (val != null) editor.putInt("pref_avatar_eye_color", val.intValue());
+            }
+            if (doc.contains("avatar_eye_base")) {
+                String val = doc.getString("avatar_eye_base");
+                if (val != null) editor.putString("pref_avatar_eye_base", val);
+            }
+            if (doc.contains("avatar_cheeks_index")) {
+                Long val = doc.getLong("avatar_cheeks_index");
+                if (val != null) editor.putInt("pref_avatar_cheeks", val.intValue());
+            }
+            if (doc.contains("avatar_hair_index")) {
+                Long val = doc.getLong("avatar_hair_index");
+                if (val != null) editor.putInt("pref_avatar_hair", val.intValue());
+            }
+            if (doc.contains("avatar_hair_color")) {
+                Long val = doc.getLong("avatar_hair_color");
+                if (val != null) editor.putInt("pref_avatar_hair_color", val.intValue());
+            }
+            if (doc.contains("avatar_hair_base")) {
+                String val = doc.getString("avatar_hair_base");
+                if (val != null) editor.putString("pref_avatar_hair_base", val);
+            }
+            if (doc.contains("avatar_clothes")) {
+                String val = doc.getString("avatar_clothes");
+                if (val != null) editor.putString("pref_avatar_clothes", val);
+            }
+
+            editor.apply();
+            AvatarCompositor.clearCache();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_streak_dialog_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#5E8268">
+    android:background="@color/dagoal_primary">
 
     <!-- STEP 1: Streak Days Counter -->
     <LinearLayout
@@ -20,50 +21,84 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
+        <!-- Streak Count Badge Container with comic starburst popup_streak.xml -->
         <FrameLayout
-            android:id="@+id/avatar_host_container"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp">
 
-        <TextView
-            android:id="@+id/tv_dialog_streak_count"
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:contentDescription="Streak Popup Badge"
+                android:scaleType="fitCenter"
+                android:src="@drawable/popup_streak" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:id="@+id/tv_dialog_streak_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:text="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="80sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#000000"
+                    android:shadowDx="3"
+                    android:shadowDy="3"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.03"
+                    android:text="STREAK DAY(S)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="3" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 7-Day Streak Track Row Container -->
+        <FrameLayout
+            android:id="@+id/container_streak_weekly_wrapper"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1"
-            android:textColor="#FFFFFF"
-            android:textSize="80sp"
-            android:textStyle="bold"
-            android:includeFontPadding="false" />
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="DAY STREAK"
-            android:textColor="#FFFFFF"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.05"
-            android:layout_marginBottom="40dp" />
-
-        <LinearLayout
-            android:id="@+id/container_streak_weekly_row"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#20FFFFFF"
-            android:paddingVertical="12dp"
-            android:paddingHorizontal="24dp"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="32dp" />
+            <LinearLayout
+                android:id="@+id/container_streak_weekly_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_streak_track_container"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="10dp"
+                android:paddingHorizontal="14dp"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
+        </FrameLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Great job! Open the app every day to maintain your self-care streak with DaGoal!"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:gravity="center"
             android:lineSpacingMultiplier="1.2"
@@ -81,182 +116,185 @@
             android:layout_height="54dp"
             android:layout_marginBottom="16dp"
             android:text="Let’s go!"
-            android:textColor="#5E8268"
-            android:backgroundTint="#FFFFFF"
+            android:textColor="@color/dagoal_primary"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="#FFFFFF"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:textStyle="bold"
             android:textAllCaps="false"
             android:textSize="16sp" />
 
     </LinearLayout>
 
-    <!-- STEP 2: Streak Prediction Goal (Mockup Layout) -->
-    <LinearLayout
+    <!-- STEP 2: Streak Prediction Goal -->
+    <FrameLayout
         android:id="@+id/layout_step2_prediction"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="20dp"
         android:visibility="gone">
 
-        <TextView
+        <!-- Centered Rounded Surface Card Panel -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="20dp"
-            android:gravity="center"
-            android:text="How many days do you think you can keep your streak?"
-            android:textColor="#000000"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <!-- Option 3 Days -->
-        <LinearLayout
-            android:id="@+id/option_3_days"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_button_pill"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:layout_gravity="center"
+            android:background="@drawable/bg_surface_card_full_radius"
+            android:elevation="12dp"
+            android:orientation="vertical"
+            android:padding="24dp">
 
             <TextView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:gravity="center"
-                android:text="👌"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:text="3 Days"
-                android:textColor="#000000"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                android:text="How many days do you think you can keep your streak?"
+                android:textColor="@color/dagoal_primary_dark"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- Option 3 Days -->
+            <LinearLayout
+                android:id="@+id/option_3_days"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_streak_option_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="👌"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="3 Days"
+                    android:textColor="@color/dagoal_primary_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Option 5 Days -->
+            <LinearLayout
+                android:id="@+id/option_5_days"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_streak_option_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="💪"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="5 Days"
+                    android:textColor="@color/dagoal_primary_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Option 7 Days -->
+            <LinearLayout
+                android:id="@+id/option_7_days"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_streak_option_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="🎯"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="7 Days"
+                    android:textColor="@color/dagoal_primary_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Option 14 Days -->
+            <LinearLayout
+                android:id="@+id/option_14_days"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_streak_option_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:text="🔥"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="14 Days"
+                    android:textColor="@color/dagoal_primary_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_commit_goal"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="Commit to This Goal"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
         </LinearLayout>
 
-        <!-- Option 5 Days -->
-        <LinearLayout
-            android:id="@+id/option_5_days"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_button_pill"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:gravity="center"
-                android:text="💪"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:text="5 Days"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Option 7 Days -->
-        <LinearLayout
-            android:id="@+id/option_7_days"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_button_pill"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:gravity="center"
-                android:text="🎯"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:text="7 Days"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Option 14 Days -->
-        <LinearLayout
-            android:id="@+id/option_14_days"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_button_pill"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:gravity="center"
-                android:text="🔥"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:text="14 Days"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/img_prediction_mascot"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:src="@drawable/sample_avatar"
-            android:contentDescription="Avatar Character" />
-
-        <Button
-            android:id="@+id/btn_commit_goal"
-            android:layout_width="match_parent"
-            android:layout_height="46dp"
-            android:layout_marginBottom="8dp"
-            android:backgroundTint="#42654D"
-            android:text="Commit to This Goal"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-    </LinearLayout>
+    </FrameLayout>
 
 </FrameLayout>

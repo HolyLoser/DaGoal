@@ -9,11 +9,16 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -31,7 +36,13 @@ public class AuthPasswordActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_auth_password);
+
+        View rootLayout = findViewById(R.id.root_auth_password_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         dbHelper = new DatabaseHelper(this);
         userEmail = getIntent().getStringExtra("extra_email");
@@ -44,15 +55,15 @@ public class AuthPasswordActivity extends AppCompatActivity {
         TextView tvForgotPassword = findViewById(R.id.tv_forgot_password);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> finish());
         }
 
         if (btnToggleVisibility != null) {
-            btnToggleVisibility.setOnClickListener(v -> togglePasswordVisibility());
+            DebouncedOnClickListener.setSafeOnClickListener(btnToggleVisibility, v -> togglePasswordVisibility());
         }
 
         if (tvForgotPassword != null) {
-            tvForgotPassword.setOnClickListener(v -> sendPasswordResetEmail());
+            DebouncedOnClickListener.setSafeOnClickListener(tvForgotPassword, v -> sendPasswordResetEmail());
         }
 
         if (editAuthPassword != null) {
@@ -85,7 +96,7 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
 
         if (btnPasswordLogin != null) {
-            btnPasswordLogin.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPasswordLogin, v -> {
                 v.setEnabled(false);
                 processLoginAuthentication();
                 v.postDelayed(() -> {
@@ -130,6 +141,12 @@ public class AuthPasswordActivity extends AppCompatActivity {
         editAuthPassword.setSelection(editAuthPassword.getText().length());
     }
 
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
     private void processLoginAuthentication() {
         if (editAuthPassword == null) return;
         String password = editAuthPassword.getText().toString().trim();
@@ -140,18 +157,37 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
 
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        FirebaseUser previousAuthenticatedUser = mAuth.getCurrentUser();
         mAuth.signInWithEmailAndPassword(userEmail, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         String uid = firebaseUser != null ? firebaseUser.getUid() : "";
 
+                        SharedPreferences currentPrefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+                        if (AccountSessionHelper.ownsLocalProfile(currentPrefs, uid)) {
+                            currentPrefs.edit().putString("user_email", userEmail).apply();
+                            proceedWithLocalLogin(null);
+                            new TaskManager(this).syncUserProfileToFirestore(this);
+                            AvatarConfig.saveUserAvatarToFirestore(this, uid);
+                            return;
+                        }
+                        AvatarConfig localAvatarBackup = AvatarConfig.loadFromPreferences(AuthPasswordActivity.this);
+
                         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-                        firestore.collection("users").document(uid).get()
+                        firestore.collection("users").document(uid).get(com.google.firebase.firestore.Source.SERVER)
                                 .addOnSuccessListener(doc -> {
+                                    // Replace a different account only after its server profile is available.
+                                    if (!DatabaseHelper.resetAccountAndUserData(AuthPasswordActivity.this, false)) {
+                                        AccountSessionHelper.restorePreviousAuthentication(mAuth, previousAuthenticatedUser);
+                                        ToastUtils.showToast(this, getString(R.string.login_profile_load_failed));
+                                        return;
+                                    }
                                     SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
                                     SharedPreferences.Editor editor = prefs.edit();
                                     editor.putBoolean("isLoggedIn", true)
+                                          .putBoolean("isOnboardingComplete", true)
+                                          .putBoolean("isFirstRun", false)
                                           .putBoolean("isGuestUser", false)
                                           .putString("user_email", userEmail)
                                           .putString("user_uid", uid);
@@ -160,18 +196,36 @@ public class AuthPasswordActivity extends AppCompatActivity {
                                         String username = doc.getString("username");
                                         if (username != null && !username.isEmpty()) {
                                             editor.putString("user_nickname", username);
-                                            syncUserToLocalDb(username);
+                                        }
+                                        syncUserToLocalDbFromDoc(doc, userEmail);
+                                        TaskManager.restoreUserInventoryAndEquippedFromFirestoreDoc(doc, AuthPasswordActivity.this);
+                                        if (AvatarConfig.hasAvatarDataInFirestoreDoc(doc)) {
+                                            AvatarConfig.restoreUserAvatarFromFirestoreDoc(doc, AuthPasswordActivity.this);
+                                        } else if (localAvatarBackup != null) {
+                                            localAvatarBackup.saveToPreferences(AuthPasswordActivity.this);
+                                            localAvatarBackup.saveToFirestore(uid);
+                                        }
+                                    } else {
+                                        syncUserToLocalDbFromDoc(null, userEmail);
+                                        if (localAvatarBackup != null) {
+                                            localAvatarBackup.saveToPreferences(AuthPasswordActivity.this);
+                                            localAvatarBackup.saveToFirestore(uid);
                                         }
                                     }
+                                    boolean schedulesRestored = RecurringQuestBackup.restoreAfterLogin(doc != null ? doc.get(RecurringQuestBackup.CLOUD_FIELD) : null, this, uid);
                                     editor.apply();
+                                    if (schedulesRestored && RecurringQuestBackup.hasPending(this, uid)) new TaskManager(this).syncUserProfileToFirestore(this);
 
-                                    ToastUtils.showToast(AuthPasswordActivity.this, "Welcome back!");
-                                    Intent intent = new Intent(AuthPasswordActivity.this, DashboardActivity.class);
+                                    ToastUtils.showToast(AuthPasswordActivity.this, schedulesRestored ? "Welcome back!" : getString(R.string.schedule_restore_failed));
+                                    Intent intent = new Intent(AuthPasswordActivity.this, AccountSessionHelper.nextScreen(prefs));
                                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                                     startActivity(intent);
                                     finish();
                                 })
-                                .addOnFailureListener(e -> proceedWithLocalLogin());
+                                .addOnFailureListener(e -> {
+                                    AccountSessionHelper.restorePreviousAuthentication(mAuth, previousAuthenticatedUser);
+                                    ToastUtils.showToast(this, getString(R.string.login_profile_load_failed));
+                                });
                     } else {
                         Exception exception = task.getException();
                         String errorMsg = exception != null ? exception.getMessage() : "Authentication failed";
@@ -182,16 +236,24 @@ public class AuthPasswordActivity extends AppCompatActivity {
                         } else if (exception instanceof com.google.firebase.auth.FirebaseAuthInvalidCredentialsException) {
                             ToastUtils.showToast(AuthPasswordActivity.this, "Incorrect password. Please try again.");
                         } else {
-                            ToastUtils.showToast(AuthPasswordActivity.this, "Notice: " + errorMsg + ". Trying local mode.");
-                            proceedWithLocalLogin();
+                            proceedWithLocalLogin(null);
                         }
                     }
                 });
     }
 
-    private void proceedWithLocalLogin() {
+    private void proceedWithLocalLogin(AvatarConfig localAvatarBackup) {
         SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        FirebaseUser cachedUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (!AccountSessionHelper.canResumeOffline(prefs, cachedUser, userEmail)) {
+            ToastUtils.showToast(this, getString(R.string.login_offline_requires_session));
+            return;
+        }
         boolean hasExistingAccount = checkExistingUserAccountInDb();
+
+        if (localAvatarBackup != null) {
+            localAvatarBackup.saveToPreferences(this);
+        }
 
         prefs.edit()
                 .putBoolean("isLoggedIn", true)
@@ -200,9 +262,9 @@ public class AuthPasswordActivity extends AppCompatActivity {
                 .apply();
 
         if (hasExistingAccount) {
-            prefs.edit().putBoolean("isOnboardingComplete", true).putBoolean("isFirstRun", false).apply();
+
             ToastUtils.showToast(this, "Welcome back!");
-            Intent intent = new Intent(AuthPasswordActivity.this, DashboardActivity.class);
+            Intent intent = new Intent(AuthPasswordActivity.this, AccountSessionHelper.nextScreen(prefs));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
@@ -230,12 +292,47 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
     }
 
-    private void syncUserToLocalDb(String username) {
+    private void syncUserToLocalDbFromDoc(com.google.firebase.firestore.DocumentSnapshot doc, String defaultEmail) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         DatabaseHelper.ensureUserTableExists(db);
         ContentValues values = new ContentValues();
+
+        String username = doc != null ? doc.getString("username") : null;
+        if (username == null || username.isEmpty()) {
+            username = defaultEmail != null && defaultEmail.contains("@") ? defaultEmail.split("@")[0] : "Adventurer";
+        }
         values.put(DatabaseContract.UserEntry.COLUMN_NAME, username);
         values.put("username", username);
+
+        if (doc != null && doc.exists()) {
+            if (doc.contains("gold")) {
+                Long g = doc.getLong("gold");
+                if (g != null) values.put(DatabaseContract.UserEntry.COLUMN_GOLD, g.intValue());
+            }
+            if (doc.contains("level")) {
+                Long l = doc.getLong("level");
+                if (l != null) values.put("level", l.intValue());
+                Long highestRewarded = doc.getLong("highest_rewarded_level");
+                if (highestRewarded != null || l != null) values.put("highest_rewarded_level",
+                        Math.max(highestRewarded != null ? highestRewarded.intValue() : 1, l != null ? l.intValue() : 1));
+            }
+            if (doc.contains("xp")) {
+                Long x = doc.getLong("xp");
+                if (x != null) values.put(DatabaseContract.UserEntry.COLUMN_XP, x.intValue());
+            }
+            if (doc.contains("streak")) {
+                Long s = doc.getLong("streak");
+                if (s != null) values.put(DatabaseContract.UserEntry.COLUMN_STREAK, s.intValue());
+            }
+            String lastStreakDate = doc.getString("last_completed_date");
+            if (lastStreakDate != null && !lastStreakDate.isEmpty()) values.put("last_completed_date", lastStreakDate);
+            Long longest = doc.getLong("longest_streak");
+            if (longest != null) values.put("longest_streak", longest.intValue());
+            Long customCount = doc.getLong("custom_quest_count");
+            if (customCount != null) values.put("custom_quest_count", customCount.intValue());
+            String customWeek = doc.getString("custom_quest_week_start");
+            if (customWeek != null) values.put("custom_quest_week_start", customWeek);
+        }
 
         Cursor checkCursor = db.rawQuery("SELECT _id FROM user WHERE _id = 1", null);
         if (checkCursor != null && checkCursor.moveToFirst()) {
@@ -243,10 +340,10 @@ public class AuthPasswordActivity extends AppCompatActivity {
             checkCursor.close();
         } else {
             values.put("_id", 1);
-            values.put(DatabaseContract.UserEntry.COLUMN_AGE, 22);
-            values.put(DatabaseContract.UserEntry.COLUMN_XP, 0);
-            values.put(DatabaseContract.UserEntry.COLUMN_GOLD, 0);
-            values.put(DatabaseContract.UserEntry.COLUMN_STREAK, 0);
+            if (!values.containsKey("gold")) values.put(DatabaseContract.UserEntry.COLUMN_GOLD, 0);
+            if (!values.containsKey("level")) values.put("level", 1);
+            if (!values.containsKey("xp")) values.put(DatabaseContract.UserEntry.COLUMN_XP, 0);
+            if (!values.containsKey("streak")) values.put(DatabaseContract.UserEntry.COLUMN_STREAK, 0);
             db.insert(DatabaseContract.UserEntry.TABLE_NAME, null, values);
             if (checkCursor != null) checkCursor.close();
         }

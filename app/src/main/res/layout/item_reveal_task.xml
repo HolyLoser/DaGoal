@@ -5,9 +5,9 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_task_card"
     android:gravity="center_vertical"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="@dimen/spacing_medium"
     android:orientation="horizontal"
-    android:padding="16dp">
+    android:padding="@dimen/spacing_normal">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:text="Task Title Placeholder"
             android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_size_title"
             android:textStyle="bold" />
 
         <TextView
@@ -31,20 +31,20 @@
             android:layout_marginTop="2dp"
             android:text="Target: 2000 steps"
             android:textColor="@color/dagoal_primary"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_size_small"
             android:alpha="0.8" />
 
         <TextView
             android:id="@+id/tv_task_target_pill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_tiny"
             android:background="@drawable/bg_target_pill"
-            android:paddingHorizontal="10dp"
+            android:paddingHorizontal="@dimen/spacing_medium"
             android:paddingVertical="2dp"
             android:text="5.0 km"
             android:textColor="@color/dagoal_primary"
-            android:textSize="10sp"
+            android:textSize="@dimen/text_size_micro"
             android:textStyle="bold"
             android:visibility="gone" />
 
@@ -53,9 +53,9 @@
             android:id="@+id/pb_task_progress"
             style="@android:style/Widget.ProgressBar.Horizontal"
             android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
+            android:layout_height="@dimen/progress_bar_height_thin"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:layout_marginEnd="@dimen/spacing_normal"
             android:progress="0"
             android:progressTint="@color/dagoal_secondary"
             android:visibility="gone" />
@@ -64,8 +64,8 @@
     <!-- Pedometer / Auto-tracked Icon -->
     <ImageView
         android:id="@+id/iv_auto_tracked_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="@dimen/icon_size_medium"
+        android:layout_height="@dimen/icon_size_medium"
         android:alpha="0.7"
         android:clickable="false"
         android:contentDescription="Auto-tracked quest"
@@ -78,28 +78,35 @@
     <Button
         android:id="@+id/btn_start_avoidance"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:backgroundTint="@color/dagoal_secondary"
-        android:paddingHorizontal="16dp"
+        android:layout_height="48dp"
+        android:minWidth="@dimen/touch_target_min_width"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:paddingHorizontal="@dimen/spacing_normal"
         android:text="Start"
         android:textAllCaps="false"
         android:textColor="@color/white"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_size_small"
         android:textStyle="bold"
         android:visibility="gone" />
 
     <!-- Increment Progress Button -->
     <Button
         android:id="@+id/btn_increment_progress"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:backgroundTint="@color/dagoal_secondary"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:minWidth="@dimen/touch_target_min_width"
+        android:minHeight="@dimen/touch_target_min_height"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:padding="0dp"
         android:text="+"
         android:textColor="@color/white"
-        android:textSize="20sp"
+        android:textSize="@dimen/text_size_headline"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -107,13 +114,17 @@
     <Button
         android:id="@+id/btn_manual_complete"
         android:layout_width="wrap_content"
-        android:layout_height="38dp"
-        android:backgroundTint="@color/dagoal_secondary"
-        android:paddingHorizontal="14dp"
+        android:layout_height="48dp"
+        android:minWidth="@dimen/touch_target_min_width"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:paddingHorizontal="@dimen/spacing_medium"
         android:text="Complete"
         android:textAllCaps="false"
         android:textColor="@color/white"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_size_small"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -127,9 +138,9 @@
     <!-- Separate Shuffle Button -->
     <ImageButton
         android:id="@+id/btn_card_shuffle"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginStart="8dp"
+        android:layout_width="@dimen/icon_button_size"
+        android:layout_height="@dimen/icon_button_size"
+        android:layout_marginStart="@dimen/spacing_small"
         android:background="@android:color/transparent"
         android:contentDescription="Shuffle Quest"
         android:scaleType="fitCenter"
@@ -140,13 +151,14 @@
     <Button
         android:id="@+id/btn_quest_completed_label"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
+        android:layout_height="@dimen/touch_target_min_height"
+        android:minWidth="@dimen/touch_target_min_width"
         android:background="@drawable/bg_quest_completed_button"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="@dimen/spacing_medium"
         android:text="Quest Completed"
         android:textAllCaps="false"
         android:textColor="@color/dagoal_secondary"
-        android:textSize="11sp"
+        android:textSize="@dimen/text_size_caption"
         android:textStyle="bold"
         android:visibility="gone"
         app:backgroundTint="@null" />
