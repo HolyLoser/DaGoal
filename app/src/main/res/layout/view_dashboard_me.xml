@@ -1,180 +1,336 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dagoal_background_light"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:paddingTop="48dp">
+    android:background="@color/dagoal_primary"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true"
+    android:overScrollMode="never"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <FrameLayout
-            android:id="@+id/layout_profile_avatar_host"
-            android:layout_width="84dp"
-            android:layout_height="84dp"
-            android:layout_marginEnd="16dp"
-            android:background="@drawable/bg_circle_primary"
-            android:clickable="true"
-            android:focusable="true">
-
-            <FrameLayout
-                android:id="@+id/avatar_me_host"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-        </FrameLayout>
-
+        <!-- Top Header Area: Profile Info & Actions -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_profile_username"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="User Adventurer"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_profile_level"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/loading"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="14sp"
-                android:alpha="0.7" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/btn_app_tutorial"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_circle_primary"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="ℹ️"
-            android:textSize="18sp"
-            android:contentDescription="App Tutorial" />
-
-        <ImageButton
-            android:id="@+id/btn_open_settings"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@android:color/transparent"
-            android:src="@android:drawable/ic_menu_manage"
-            app:tint="@color/dagoal_primary"
-            android:contentDescription="Settings" />
-    </LinearLayout>
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:clipChildren="false"
-        android:clipToPadding="false">
-
-        <LinearLayout
-            android:id="@+id/card_streak"
+            android:id="@+id/layout_me_top_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_task_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_large"
+            android:paddingTop="12dp"
+            android:paddingBottom="4dp">
+
+            <!-- Avatar Container -->
+            <FrameLayout
+                android:id="@+id/layout_profile_avatar_host"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginEnd="@dimen/spacing_normal"
+                android:background="@drawable/bg_avatar_circle_ring"
+                android:clickable="true"
+                android:focusable="true">
+
+                <FrameLayout
+                    android:id="@+id/avatar_me_host"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="3dp" />
+            </FrameLayout>
+
+            <!-- User Info: Name, Level, Progress Bar -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_profile_username"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="12sp"
+                    app:autoSizeMaxTextSize="20sp"
+                    app:autoSizeStepGranularity="1sp"
+                    android:text="Username"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <!-- Level & Progress Bar Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_profile_level"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lvl 01"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <ProgressBar
+                        android:id="@+id/pb_profile_level"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="0dp"
+                        android:layout_height="12dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:max="100"
+                        android:progress="60"
+                        android:progressDrawable="@drawable/bg_profile_xp_track" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Top Right Action Buttons: Tutorial & Settings -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btn_app_tutorial"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_edit_info_pill"
+                    android:clickable="true"
+                    android:contentDescription="App Tutorial"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_info_circle"
+                    app:tint="@color/dagoal_primary" />
+
+                <ImageButton
+                    android:id="@+id/btn_open_settings"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Settings"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_settings_gear"
+                    app:tint="@color/white" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Streak Card Container -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/spacing_large"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="6dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:id="@+id/card_streak"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_streak_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
+
+                <!-- Starburst Badge Container -->
+                <FrameLayout
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/popup_streak" />
+
+                    <TextView
+                        android:id="@+id/tv_profile_streak"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="1"
+                        android:textColor="#3D2E0B"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+
+                <!-- Text Column -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Streak Day(s)"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/keep_it_up_daily"
+                        android:textColor="@color/dagoal_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Menu Button Circle -->
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_circle_dark_green">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_menu_hamburger"
+                        app:tint="@color/white" />
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- Unclaimed Chest Red Badge -->
+            <View
+                android:id="@+id/badge_streak_unclaimed_chest"
+                android:layout_width="@dimen/icon_size_tiny"
+                android:layout_height="@dimen/icon_size_tiny"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="-4dp"
+                android:layout_marginTop="-4dp"
+                android:background="@drawable/bg_circle_primary"
+                android:backgroundTint="@color/dagoal_red"
+                android:elevation="@dimen/card_elevation"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Consumables & Boosts Card (Preserved Functionality & Style) -->
+        <LinearLayout
+            android:id="@+id/card_consumables"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/spacing_large"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_streak_card"
             android:clickable="true"
             android:focusable="true"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
 
             <TextView
-                android:id="@+id/tv_profile_streak"
+                android:id="@+id/tv_consumables_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/loading"
-                android:textColor="@color/dagoal_primary"
+                android:text="Consumables &amp; Boosts"
+                android:textColor="@color/dagoal_primary_dark"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tv_consumables_summary"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:alpha="0.7"
-                android:text="@string/keep_it_up_daily"
+                android:text="Tap to view and activate items"
                 android:textColor="@color/dagoal_primary"
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <View
-            android:id="@+id/badge_streak_unclaimed_chest"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_gravity="top|start"
-            android:layout_marginStart="-4dp"
-            android:layout_marginTop="-4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#E53935"
-            android:elevation="6dp"
-            android:visibility="gone" />
-    </FrameLayout>
+        <!-- Achievements Surface Panel (Bottom section) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_achievements_panel"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/spacing_large"
+            android:paddingTop="20dp"
+            android:paddingBottom="24dp">
 
-    <LinearLayout
-        android:id="@+id/card_consumables"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:background="@drawable/bg_task_card"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true">
+            <!-- Ribbon Header Banner -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
 
-        <TextView
-            android:id="@+id/tv_consumables_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Consumables &amp; Boosts"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="280dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/bg_ribbon_achievements" />
 
-        <TextView
-            android:id="@+id/tv_consumables_summary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tap to view and activate items"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="12sp"
-            android:alpha="0.7" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_trophy" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.03"
+                        android:shadowColor="#3B000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
+                        android:text="@string/achievements"
+                        android:textColor="@color/white"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Achievements Grid -->
+            <GridView
+                android:id="@+id/list_profile_achievements"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:horizontalSpacing="8dp"
+                android:nestedScrollingEnabled="false"
+                android:numColumns="3"
+                android:scrollbars="none"
+                android:stretchMode="columnWidth"
+                android:verticalSpacing="12dp" />
+
+        </LinearLayout>
+
     </LinearLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="@string/achievements"
-        android:textColor="@color/dagoal_primary"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <GridView
-        android:id="@+id/list_profile_achievements"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:horizontalSpacing="8dp"
-        android:numColumns="3"
-        android:scrollbars="none"
-        android:stretchMode="columnWidth"
-        android:verticalSpacing="8dp" />
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

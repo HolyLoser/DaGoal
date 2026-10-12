@@ -11,7 +11,11 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -26,6 +30,11 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_settings);
+
+        View rootLayout = findViewById(R.id.root_settings_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         dbHelper = new DatabaseHelper(this);
         prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
@@ -65,7 +74,6 @@ public class SettingsActivity extends AppCompatActivity {
         view.findViewById(R.id.row_settings_notifications).setOnClickListener(v -> showScreen("NOTIFICATIONS"));
         view.findViewById(R.id.row_settings_privacy).setOnClickListener(v -> showScreen("PRIVACY"));
         view.findViewById(R.id.row_settings_sound).setOnClickListener(v -> showScreen("SOUND"));
-        view.findViewById(R.id.row_settings_appearance).setOnClickListener(v -> showScreen("APPEARANCE"));
         view.findViewById(R.id.row_settings_about).setOnClickListener(v -> showScreen("ABOUT"));
     }
 
@@ -89,10 +97,6 @@ public class SettingsActivity extends AppCompatActivity {
             case "SOUND":
                 tvScreenTitle.setText("Sound & Haptics");
                 buildSoundScreen();
-                break;
-            case "APPEARANCE":
-                tvScreenTitle.setText("Appearance");
-                buildAppearanceScreen();
                 break;
             case "ABOUT":
                 tvScreenTitle.setText("About");
@@ -358,7 +362,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         android.widget.EditText editUsername = new android.widget.EditText(this);
         editUsername.setText(currentUsername);
-        editUsername.setSelection(currentUsername.length());
+        editUsername.setHint("Enter username (max 16 characters)");
+        editUsername.setFilters(new android.text.InputFilter[]{ new android.text.InputFilter.LengthFilter(16) });
+        editUsername.setSelection(Math.min(currentUsername.length(), 16));
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
         editUsername.setPadding(padding, padding, padding, padding);
 
@@ -371,8 +377,8 @@ public class SettingsActivity extends AppCompatActivity {
                         ToastUtils.showToast(this, "Username cannot be empty.");
                         return;
                     }
-                    if (newUsername.length() > 20) {
-                        ToastUtils.showToast(this, "Username must be 20 characters or fewer.");
+                    if (newUsername.length() > 16) {
+                        ToastUtils.showToast(this, "Username must be 16 characters or fewer.");
                         return;
                     }
 
@@ -617,20 +623,6 @@ public class SettingsActivity extends AppCompatActivity {
         addSwitchRow(container, "Vibration on Quest Complete", "",
                 prefs.getBoolean("pref_haptics", true),
                 isChecked -> prefs.edit().putBoolean("pref_haptics", isChecked).apply());
-
-        contentFrame.addView(container);
-    }
-
-    private void buildAppearanceScreen() {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        addSwitchRow(container, "Follow System Theme", "When off, DaGoal always uses its light theme regardless of your device's dark mode setting.",
-                prefs.getBoolean("pref_follow_system_theme", false),
-                isChecked -> {
-                    prefs.edit().putBoolean("pref_follow_system_theme", isChecked).apply();
-                    AppearanceHelper.applyPreferredNightMode(this);
-                });
 
         contentFrame.addView(container);
     }

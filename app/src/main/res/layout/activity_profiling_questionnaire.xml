@@ -4,395 +4,352 @@
     android:id="@+id/root_profiling_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dagoal_background_light"
+    android:background="@color/dagoal_primary"
+    android:fitsSystemWindows="true"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:fitsSystemWindows="true">
+    android:padding="@dimen/spacing_large">
 
-    <!-- Top Navigation Bar (Back Button + Step Indicator) -->
+    <!-- Top Navigation Bar (Back Button) -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="@dimen/spacing_small">
 
         <ImageButton
             android:id="@+id/btn_questionnaire_back"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="@dimen/icon_button_size"
+            android:layout_height="@dimen/icon_button_size"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_circle_primary"
+            android:background="@drawable/bg_auth_pill"
+            android:contentDescription="Back"
+            android:padding="@dimen/spacing_small"
+            android:scaleType="centerInside"
             android:src="@android:drawable/ic_menu_revert"
-            android:contentDescription="Back" />
-
-        <LinearLayout
-            android:id="@+id/layout_step_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tv_step_node_1"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginHorizontal="2dp"
-                android:background="@drawable/bg_circle_primary"
-                android:gravity="center"
-                android:text="1"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="12dp"
-                android:layout_height="2dp"
-                android:background="@color/dagoal_primary" />
-
-            <TextView
-                android:id="@+id/tv_step_node_2"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginHorizontal="2dp"
-                android:background="@drawable/bg_circle_primary"
-                android:gravity="center"
-                android:text="2"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="12dp"
-                android:layout_height="2dp"
-                android:background="@color/dagoal_primary" />
-
-            <TextView
-                android:id="@+id/tv_step_node_3"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginHorizontal="2dp"
-                android:background="@drawable/bg_circle_primary"
-                android:gravity="center"
-                android:text="3"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="12dp"
-                android:layout_height="2dp"
-                android:background="@color/dagoal_primary" />
-
-            <TextView
-                android:id="@+id/tv_step_node_4"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginHorizontal="2dp"
-                android:background="@drawable/bg_circle_primary"
-                android:gravity="center"
-                android:text="4"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            app:tint="@color/dagoal_primary_dark" />
     </RelativeLayout>
 
-    <!-- Question Content Frame (Slide Animated) -->
+    <!-- Dynamic Step Indicator Bar (Positioned Top of Profiling Card) -->
+    <LinearLayout
+        android:id="@+id/layout_step_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_micro" />
+
+    <!-- Question Content Frame (Slide Animated) with BG Profiling Card -->
     <FrameLayout
         android:id="@+id/frame_question_anim_host"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="@dimen/spacing_normal">
 
         <LinearLayout
-            android:id="@+id/card_question_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_profiling_card"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_large">
 
-            <TextView
-                android:id="@+id/tv_category_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:gravity="center"
-                android:text="Sample Question"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_question_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:gravity="center"
-                android:text="Sample question description text"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="14sp"
-                android:alpha="0.8" />
-
-            <!-- Username / Nickname Input Box (Displayed for Question 0) -->
-            <LinearLayout
-                android:id="@+id/layout_nickname_input"
+            <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:overScrollMode="never"
+                android:scrollbars="none">
 
-                <EditText
-                    android:id="@+id/edit_nickname_input"
+                <LinearLayout
+                    android:id="@+id/card_question_container"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginBottom="16dp"
-                    android:background="@drawable/bg_button_pill"
-                    android:gravity="center"
-                    android:hint="Type your adventurer nickname..."
-                    android:inputType="textPersonName"
-                    android:paddingHorizontal="20dp"
-                    android:textColor="@color/dagoal_primary"
-                    android:textColorHint="@color/dagoal_hint"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_nickname_next"
-                    android:layout_width="180dp"
-                    android:layout_height="50dp"
-                    android:background="@drawable/bg_auth_pill_green"
-                    android:text="Next"
-                    android:textAllCaps="false"
-                    android:textColor="#1E1E1E"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="@null" />
-            </LinearLayout>
-
-            <!-- 4 Option Pill Cards -->
-            <LinearLayout
-                android:id="@+id/option_card_1"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
-
-                <TextView
-                    android:id="@+id/tv_option_text_1"
-                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:gravity="center"
-                    android:text="sample answer 1"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tv_option_check_1"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_category_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/spacing_tiny"
+                        android:gravity="center"
+                        android:text="Sample Question"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="@dimen/text_size_headline"
+                        android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/option_card_2"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
+                    <TextView
+                        android:id="@+id/tv_question_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/spacing_large"
+                        android:gravity="center"
+                        android:text="Sample question description text"
+                        android:textColor="@color/dagoal_text_secondary"
+                        android:textSize="@dimen/text_size_body" />
 
-                <TextView
-                    android:id="@+id/tv_option_text_2"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="sample answer 2"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    <!-- Username / Nickname Input Box -->
+                    <LinearLayout
+                        android:id="@+id/layout_nickname_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/tv_option_check_2"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                        <EditText
+                            android:id="@+id/edit_nickname_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/button_height_standard"
+                            android:layout_marginBottom="@dimen/spacing_normal"
+                            android:background="@drawable/bg_auth_pill"
+                            android:gravity="center"
+                            android:hint="Enter nickname (max 16 characters)"
+                            android:inputType="textPersonName"
+                            android:maxLength="16"
+                            android:paddingHorizontal="@dimen/spacing_large"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textColorHint="@color/dagoal_text_muted"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/option_card_3"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
+                        <Button
+                            android:id="@+id/btn_nickname_next"
+                            android:layout_width="@dimen/logo_width_medium"
+                            android:layout_height="50dp"
+                            android:background="@drawable/bg_button_pill_secondary"
+                            app:backgroundTint="@null"
+                            android:text="Next"
+                            android:textAllCaps="false"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_option_text_3"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="sample answer 3"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    <!-- 6 Option Pill Cards (Centered) -->
+                    <LinearLayout
+                        android:id="@+id/option_card_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
 
-                <TextView
-                    android:id="@+id/tv_option_check_3"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_option_text_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 1"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/option_card_4"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp">
+                        <TextView
+                            android:id="@+id/tv_option_check_1"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_option_text_4"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="sample answer 4"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    <LinearLayout
+                        android:id="@+id/option_card_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
 
-                <TextView
-                    android:id="@+id/tv_option_check_4"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_option_text_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 2"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/option_card_5"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:visibility="gone">
+                        <TextView
+                            android:id="@+id/tv_option_check_2"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_option_text_5"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="sample answer 5"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    <LinearLayout
+                        android:id="@+id/option_card_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
 
-                <TextView
-                    android:id="@+id/tv_option_check_5"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_option_text_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 3"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/option_card_6"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_pill"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:visibility="gone">
+                        <TextView
+                            android:id="@+id/tv_option_check_3"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_option_text_6"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="sample answer 6"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    <LinearLayout
+                        android:id="@+id/option_card_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
 
-                <TextView
-                    android:id="@+id/tv_option_check_6"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:gravity="center"
-                    android:text="✔"
-                    android:textColor="#546B41"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_option_text_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 4"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
 
+                        <TextView
+                            android:id="@+id/tv_option_check_4"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_5"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_5"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 5"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_5"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_6"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/touch_target_min_height"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_6"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 6"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_6"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </ScrollView>
         </LinearLayout>
     </FrameLayout>
 
-    <!-- Bottom Character Display Canvas (Fixed Height Custom Avatar) -->
+    <!-- Bottom Character Display Canvas -->
     <FrameLayout
         android:id="@+id/avatar_host_container"
         android:layout_width="match_parent"
-        android:layout_height="220dp"
+        android:layout_height="@dimen/avatar_host_height_large"
         android:layout_gravity="bottom|center_horizontal" />
 
 </LinearLayout>

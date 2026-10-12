@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#556B43"
+    android:background="@color/dagoal_primary"
     android:padding="24dp">
 
     <FrameLayout
@@ -32,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Achievement Title"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:textSize="18sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -42,7 +42,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Rank:"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/dagoal_background_light"
         android:textSize="14sp"
         android:gravity="center" />
 
@@ -51,7 +51,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Bronze"
-        android:textColor="#7ED6FF"
+        android:textColor="@color/dagoal_secondary"
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -64,8 +64,8 @@
         android:layout_height="10dp"
         android:max="100"
         android:progress="0"
-        android:progressTint="#7ED6FF"
-        android:progressBackgroundTint="#FFFFFF"
+        android:progressTint="@color/dagoal_secondary"
+        android:progressBackgroundTint="@color/white"
         android:layout_marginBottom="8dp" />
 
     <TextView
@@ -73,7 +73,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="5 until next rank"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/dagoal_background_light"
         android:textSize="13sp"
         android:gravity="center" />
 

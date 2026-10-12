@@ -26,17 +26,21 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,7 +50,7 @@ import java.util.Locale;
 
 public class DashboardActivity extends AppCompatActivity {
 
-    private static final float COLLAPSED_HEIGHT_DP = 300f;
+    private static final float COLLAPSED_HEIGHT_DP = 330f;
     private static final float EXPANDED_HEIGHT_DP = 600f;
 
     private FrameLayout contentFrame;
@@ -75,18 +79,21 @@ public class DashboardActivity extends AppCompatActivity {
     private Handler shopTimerHandler = new Handler(Looper.getMainLooper());
     private Runnable shopTimerRunnable;
 
-    private ShopItem selectedShopItem = null;
-    private ShopItem selectedWardrobeItem = null;
-
     private View tabViewQuest = null;
     private View tabViewWardrobe = null;
     private View tabViewShop = null;
     private View tabViewMe = null;
+    private androidx.appcompat.app.AlertDialog activeChestTierDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         AppearanceHelper.applyPreferredNightMode(this);
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(false);
+
         setContentView(R.layout.activity_dashboard);
 
         dbHelper = new DatabaseHelper(this);
@@ -110,11 +117,38 @@ public class DashboardActivity extends AppCompatActivity {
         bottomNavBar = findViewById(R.id.bottom_nav_bar);
 
         rootLayout = findViewById(R.id.root_dashboard_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), 0, v.getPaddingRight(), systemBars.bottom);
-            return insets;
-        });
+
+        View topBadgeContainer = findViewById(R.id.stats_header);
+        if (topBadgeContainer != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(topBadgeContainer, (view, insets) -> {
+                Insets systemBarInsets = insets.getInsets(
+                        WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+                );
+                int topPadding = systemBarInsets.top + (int) (8 * view.getResources().getDisplayMetrics().density);
+                view.setPadding(
+                        view.getPaddingLeft(),
+                        topPadding,
+                        view.getPaddingRight(),
+                        view.getPaddingBottom()
+                );
+                return insets;
+            });
+        }
+
+        View bottomNavContainer = findViewById(R.id.bottom_nav_container);
+        if (bottomNavContainer != null) {
+            int initialBottomPadding = bottomNavContainer.getPaddingBottom();
+            ViewCompat.setOnApplyWindowInsetsListener(bottomNavContainer, (v, insets) -> {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(
+                        v.getPaddingLeft(),
+                        v.getPaddingTop(),
+                        v.getPaddingRight(),
+                        initialBottomPadding + systemBars.bottom
+                );
+                return insets;
+            });
+        }
 
         scheduleDailyNotifications();
         checkFirstTimeUserTutorialPrompt();
@@ -571,8 +605,65 @@ public class DashboardActivity extends AppCompatActivity {
             rowDuration.setOnClickListener(v -> showCustomDurationPickerDialog(durationHms, tvDurationValue));
         }
 
-        android.widget.ArrayAdapter<String> unitAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
-                new String[]{ "Tap to complete", "Steps", "Repetition", "Duration" });
+        class TrackingOption {
+            final String key;
+            final String title;
+            final String description;
+
+            TrackingOption(String key, String title, String description) {
+                this.key = key;
+                this.title = title;
+                this.description = description;
+            }
+
+            @Override
+            public String toString() {
+                return title;
+            }
+        }
+
+        TrackingOption[] options = new TrackingOption[] {
+            new TrackingOption("Tap to complete", "🎯 Tap to complete", "Mark quest as complete with a single tap."),
+            new TrackingOption("Steps", "👟 Steps", "Track target step count via device step sensor."),
+            new TrackingOption("Repetition", "🔢 Repetition", "Counter for reps (e.g. 20 pushups, 10 pages)."),
+            new TrackingOption("Duration", "⏱️ Duration", "Focus timer with optional app blocker.")
+        };
+
+        android.widget.ArrayAdapter<TrackingOption> unitAdapter = new android.widget.ArrayAdapter<TrackingOption>(this, R.layout.item_spinner_unit_selected, options) {
+            @androidx.annotation.NonNull
+            @Override
+            public View getView(int position, View convertView, @androidx.annotation.NonNull android.view.ViewGroup parent) {
+                View v = super.getView(position, convertView, parent);
+                if (v instanceof TextView) {
+                    TrackingOption item = getItem(position);
+                    if (item != null) {
+                        ((TextView) v).setText(item.title);
+                    }
+                    ((TextView) v).setTextColor(androidx.core.content.ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary_dark));
+                }
+                return v;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, @androidx.annotation.NonNull android.view.ViewGroup parent) {
+                View v = convertView;
+                if (v == null) {
+                    v = LayoutInflater.from(getContext()).inflate(R.layout.item_spinner_unit_dropdown, parent, false);
+                }
+                TrackingOption item = getItem(position);
+                if (item != null) {
+                    TextView tvTitle = v.findViewById(R.id.tv_dropdown_title);
+                    TextView tvDesc = v.findViewById(R.id.tv_dropdown_desc);
+                    if (tvTitle != null) tvTitle.setText(item.title);
+                    if (tvDesc != null) tvDesc.setText(item.description);
+                }
+                int topPadding = (position == 0) ? 12 : 8;
+                int bottomPadding = (position == getCount() - 1) ? 12 : 8;
+                float density = parent.getContext().getResources().getDisplayMetrics().density;
+                v.setPadding((int)(16 * density), (int)(topPadding * density), (int)(16 * density), (int)(bottomPadding * density));
+                return v;
+            }
+        };
         spinnerUnitType.setAdapter(unitAdapter);
 
         Button btnCustomBlockApps = dialogView.findViewById(R.id.btn_custom_block_apps);
@@ -581,7 +672,9 @@ public class DashboardActivity extends AppCompatActivity {
         spinnerUnitType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                String selection = (String) parent.getItemAtPosition(position);
+                Object selectedObj = parent.getItemAtPosition(position);
+                TrackingOption selectedOption = selectedObj instanceof TrackingOption ? (TrackingOption) selectedObj : null;
+                String selection = selectedOption != null ? selectedOption.key : "Tap to complete";
 
                 editTarget.setVisibility(View.VISIBLE);
                 editUnitLabel.setVisibility(View.GONE);
@@ -646,6 +739,14 @@ public class DashboardActivity extends AppCompatActivity {
             pickerRepeatUnit.setValue(initialUnitIndex);
 
             TextView tvWeekdayLabel = repeatDialogView.findViewById(R.id.tv_repeat_weekday_label);
+            boolean isDayInitial = "Day".equalsIgnoreCase(repeatUnitOptions[initialUnitIndex]);
+            if (tvWeekdayLabel != null) {
+                tvWeekdayLabel.setVisibility(isDayInitial ? View.GONE : View.VISIBLE);
+            }
+            if (containerWeekdays != null) {
+                containerWeekdays.setVisibility(isDayInitial ? View.GONE : View.VISIBLE);
+            }
+
             pickerRepeatUnit.setOnValueChangedListener((picker, oldVal, newVal) -> {
                 boolean isDay = "Day".equalsIgnoreCase(repeatUnitOptions[newVal]);
                 if (tvWeekdayLabel != null) {
@@ -656,23 +757,32 @@ public class DashboardActivity extends AppCompatActivity {
                 }
             });
 
+            styleNumberPicker(pickerInterval);
+            styleNumberPicker(pickerRepeatUnit);
+
             String[] weekdayLabels = { "S", "M", "T", "W", "T", "F", "S" };
             TextView[] weekdayViews = new TextView[7];
+            float density = getResources().getDisplayMetrics().density;
+            int chipHeight = (int) (38 * density);
             for (int i = 0; i < 7; i++) {
                 TextView chip = new TextView(this);
                 chip.setText(weekdayLabels[i]);
                 chip.setGravity(android.view.Gravity.CENTER);
-                chip.setTextColor(Color.WHITE);
+                chip.setTypeface(null, Typeface.BOLD);
+                chip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
                 chip.setBackgroundResource(R.drawable.bg_weekday_chip);
                 chip.setSelected(selectedWeekdays[i]);
-                LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(0, (int) (36 * getResources().getDisplayMetrics().density));
-                chipParams.width = (int) (36 * getResources().getDisplayMetrics().density);
-                chipParams.setMarginEnd((int) (6 * getResources().getDisplayMetrics().density));
+                chip.setTextColor(selectedWeekdays[i] ? Color.WHITE : ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(0, chipHeight, 1f);
+                if (i < 6) {
+                    chipParams.setMarginEnd((int) (4 * density));
+                }
                 chip.setLayoutParams(chipParams);
                 final int index = i;
                 chip.setOnClickListener(cv -> {
                     selectedWeekdays[index] = !selectedWeekdays[index];
                     chip.setSelected(selectedWeekdays[index]);
+                    chip.setTextColor(selectedWeekdays[index] ? Color.WHITE : ContextCompat.getColor(this, R.color.dagoal_primary_dark));
                 });
                 weekdayViews[i] = chip;
                 containerWeekdays.addView(chip);
@@ -706,6 +816,7 @@ public class DashboardActivity extends AppCompatActivity {
             countPicker.setMinValue(1);
             countPicker.setMaxValue(365);
             countPicker.setValue(2);
+            styleNumberPicker(countPicker);
 
             String[] activeTab = { "DATE" };
             if ("COUNT".equals(selectedRepeatEndType[0])) {
@@ -714,8 +825,10 @@ public class DashboardActivity extends AppCompatActivity {
 
             Runnable refreshTabs = () -> {
                 boolean isDate = "DATE".equals(activeTab[0]);
-                tabDate.setTextColor(isDate ? Color.parseColor("#556B43") : Color.parseColor("#A0AEC0"));
-                tabCount.setTextColor(isDate ? Color.parseColor("#A0AEC0") : Color.parseColor("#556B43"));
+                int primaryCol = ContextCompat.getColor(this, R.color.dagoal_primary);
+                int borderCol = ContextCompat.getColor(this, R.color.dagoal_border_light);
+                tabDate.setTextColor(isDate ? primaryCol : borderCol);
+                tabCount.setTextColor(isDate ? borderCol : primaryCol);
                 calendarView.setVisibility(isDate ? View.VISIBLE : View.GONE);
                 countPicker.setVisibility(isDate ? View.GONE : View.VISIBLE);
             };
@@ -797,12 +910,17 @@ public class DashboardActivity extends AppCompatActivity {
 
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                 .setView(dialogView)
-                .setNegativeButton("Cancel", null)
                 .create();
+
+        Button btnCancel = dialogView.findViewById(R.id.btn_custom_quest_cancel);
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
 
         btnCreate.setOnClickListener(v -> {
             String title = editTitle.getText().toString().trim();
-            String unitTypeSelection = (String) spinnerUnitType.getSelectedItem();
+            Object selectedObj = spinnerUnitType.getSelectedItem();
+            String unitTypeSelection = selectedObj instanceof TrackingOption ? ((TrackingOption) selectedObj).key : String.valueOf(selectedObj);
 
             if (title.isEmpty()) {
                 ToastUtils.showToast(this, "Please fill in a title.");
@@ -1036,9 +1154,15 @@ public class DashboardActivity extends AppCompatActivity {
                         } else if ("WARDROBE".equalsIgnoreCase(currentActiveTab)) {
                             selectTab("SHOP");
                             return true;
+                        } else if ("SHOP".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("ME");
+                            return true;
                         }
                     } else {
-                        if ("SHOP".equalsIgnoreCase(currentActiveTab)) {
+                        if ("ME".equalsIgnoreCase(currentActiveTab)) {
+                            selectTab("SHOP");
+                            return true;
+                        } else if ("SHOP".equalsIgnoreCase(currentActiveTab)) {
                             selectTab("WARDROBE");
                             return true;
                         } else if ("WARDROBE".equalsIgnoreCase(currentActiveTab)) {
@@ -1118,27 +1242,79 @@ public class DashboardActivity extends AppCompatActivity {
 
         java.util.List<CheckBox> checkBoxes = new java.util.ArrayList<>();
         android.content.pm.PackageManager pm = getPackageManager();
-        java.util.List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA);
+
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        java.util.List<android.content.pm.ResolveInfo> launcherApps = pm.queryIntentActivities(mainIntent, 0);
+
+        class AppItem {
+            final String name;
+            final String packageName;
+            final android.graphics.drawable.Drawable icon;
+
+            AppItem(String name, String packageName, android.graphics.drawable.Drawable icon) {
+                this.name = name;
+                this.packageName = packageName;
+                this.icon = icon;
+            }
+        }
+
+        java.util.List<AppItem> appList = new java.util.ArrayList<>();
+        java.util.Set<String> addedPackages = new java.util.HashSet<>();
+
+        for (android.content.pm.ResolveInfo ri : launcherApps) {
+            if (ri.activityInfo == null || ri.activityInfo.applicationInfo == null) continue;
+            String pkgName = ri.activityInfo.packageName;
+            if (pkgName == null || addedPackages.contains(pkgName)) continue;
+
+            CharSequence labelSeq = ri.loadLabel(pm);
+            String appName = labelSeq.toString();
+
+            if (!isUserSelectableApp(ri.activityInfo.applicationInfo, appName, pkgName)) {
+                continue;
+            }
+
+            android.graphics.drawable.Drawable appIcon = null;
+            try {
+                appIcon = ri.loadIcon(pm);
+            } catch (Exception ignored) {
+            }
+
+            addedPackages.add(pkgName);
+            appList.add(new AppItem(appName, pkgName, appIcon));
+        }
+
+        java.util.Collections.sort(appList, (a, b) -> a.name.compareToIgnoreCase(b.name));
 
         if (container != null) {
             container.removeAllViews();
-            for (android.content.pm.ApplicationInfo app : apps) {
-                if ((app.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0) continue;
-                String appName = pm.getApplicationLabel(app).toString();
-                String pkgName = app.packageName;
+            for (AppItem app : appList) {
+                View itemView = getLayoutInflater().inflate(R.layout.item_app_checkbox, container, false);
+                ImageView ivIcon = itemView.findViewById(R.id.iv_app_icon);
+                TextView tvName = itemView.findViewById(R.id.tv_app_name);
+                CheckBox cb = itemView.findViewById(R.id.cb_app_selected);
 
-                CheckBox cb = new CheckBox(this);
-                cb.setText(appName);
-                cb.setTextColor(Color.parseColor("#2D3748"));
-                float density = getResources().getDisplayMetrics().density;
-                int padPx = (int) (8 * density);
-                cb.setPadding(padPx, padPx, padPx, padPx);
-                cb.setTag(pkgName);
-                if (selectedPackages.contains(pkgName)) {
-                    cb.setChecked(true);
+                if (ivIcon != null && app.icon != null) {
+                    ivIcon.setImageDrawable(app.icon);
                 }
-                checkBoxes.add(cb);
-                container.addView(cb);
+                if (tvName != null) {
+                    tvName.setText(app.name);
+                }
+                if (cb != null) {
+                    cb.setChecked(selectedPackages.contains(app.packageName));
+                    cb.setTag(app.packageName);
+                    cb.setButtonTintList(android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dagoal_primary_dark)));
+                    checkBoxes.add(cb);
+                }
+
+                itemView.setTag(app.packageName);
+                itemView.setOnClickListener(v -> {
+                    if (cb != null) {
+                        cb.setChecked(!cb.isChecked());
+                    }
+                });
+
+                container.addView(itemView);
             }
         }
 
@@ -1165,6 +1341,42 @@ public class DashboardActivity extends AppCompatActivity {
             });
         }
         dialog.show();
+    }
+
+    private boolean isUserSelectableApp(android.content.pm.ApplicationInfo appInfo, String appName, String pkgName) {
+        if (appInfo == null || pkgName == null) return false;
+
+        if ("com.stipasay.dagoal".equalsIgnoreCase(pkgName) || "DaGoal".equalsIgnoreCase(appName) || getPackageName().equalsIgnoreCase(pkgName)) {
+            return false;
+        }
+
+        String lowerPkg = pkgName.toLowerCase(Locale.ROOT);
+        String lowerName = appName != null ? appName.toLowerCase(Locale.ROOT) : "";
+
+        if (lowerName.contains("calculator") || lowerName.contains("settings") || lowerName.contains("calendar")
+                || lowerName.contains("theme") || lowerName.contains("assistant") || lowerName.contains("app vault")
+                || lowerName.contains("clock") || lowerName.contains("compass") || lowerName.contains("gallery")
+                || lowerName.contains("camera") || lowerName.contains("phone") || lowerName.contains("contacts")
+                || lowerName.contains("sim toolkit") || lowerName.contains("system ui") || lowerName.contains("downloads")
+                || lowerName.contains("file manager") || lowerName.contains("fm radio") || lowerName.contains("wallpaper")
+                || lowerPkg.contains("android.settings") || lowerPkg.contains("android.calculator") || lowerPkg.contains("android.calendar")
+                || lowerPkg.contains("miui.securitycenter") || lowerPkg.contains("miui.calculator") || lowerPkg.contains("miui.cleanmaster")
+                || lowerPkg.contains("google.android.gms") || lowerPkg.contains("google.android.googlequicksearchbox")) {
+            return false;
+        }
+
+        boolean isBrowser = lowerPkg.contains("chrome") || lowerPkg.contains("browser") || lowerPkg.contains("firefox")
+                || lowerPkg.contains("opera") || lowerPkg.contains("brave") || lowerPkg.contains("edge")
+                || lowerName.contains("chrome") || lowerName.contains("browser") || lowerName.contains("firefox");
+
+        if (isBrowser) {
+            return true;
+        }
+
+        boolean isSystemApp = (appInfo.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0;
+        boolean isUpdatedSystemApp = (appInfo.flags & android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+
+        return !isSystemApp && !isUpdatedSystemApp;
     }
 
     private void updateDashboardBackground(String tabName, boolean movingRight) {
@@ -1282,11 +1494,7 @@ public class DashboardActivity extends AppCompatActivity {
                 }
                 tabViewWardrobe.setVisibility(View.VISIBLE);
 
-                Button btnEquipAction = tabViewWardrobe.findViewById(R.id.btn_wardrobe_action);
                 android.widget.GridView gridWardrobeItems = tabViewWardrobe.findViewById(R.id.grid_wardrobe_items);
-
-                btnEquipAction.setText("Equip Item");
-                btnEquipAction.setVisibility(View.GONE);
 
                 TaskManager wardrobeManager = new TaskManager(this);
 
@@ -1308,7 +1516,7 @@ public class DashboardActivity extends AppCompatActivity {
                         if (eqHat != null && ivSidebarHat != null) {
                             bindShopItemImagePreview(eqHat, ivSidebarHat, null);
                         } else if (ivSidebarHat != null) {
-                            ivSidebarHat.setImageResource(R.drawable.ic_unequipped_x);
+                            ivSidebarHat.setImageResource(R.drawable.accessory_knit_hat);
                             ivSidebarHat.setVisibility(View.VISIBLE);
                         }
 
@@ -1316,7 +1524,7 @@ public class DashboardActivity extends AppCompatActivity {
                         if (eqGlasses != null && ivSidebarGlasses != null) {
                             bindShopItemImagePreview(eqGlasses, ivSidebarGlasses, null);
                         } else if (ivSidebarGlasses != null) {
-                            ivSidebarGlasses.setImageResource(R.drawable.ic_unequipped_x);
+                            ivSidebarGlasses.setImageResource(R.drawable.accessory_reading_glasses);
                             ivSidebarGlasses.setVisibility(View.VISIBLE);
                         }
 
@@ -1324,7 +1532,7 @@ public class DashboardActivity extends AppCompatActivity {
                         if (eqClothes != null && !"tank_top".equalsIgnoreCase(eqClothes.getResName()) && ivSidebarClothes != null) {
                             bindShopItemImagePreview(eqClothes, ivSidebarClothes, null);
                         } else if (ivSidebarClothes != null) {
-                            ivSidebarClothes.setImageResource(R.drawable.ic_unequipped_x);
+                            ivSidebarClothes.setImageResource(R.drawable.tank_top);
                             ivSidebarClothes.setVisibility(View.VISIBLE);
                         }
                     }
@@ -1351,14 +1559,25 @@ public class DashboardActivity extends AppCompatActivity {
                             return 0;
                         });
 
-                        int greenColor = Color.parseColor("#546B41");
-                        int grayColor = Color.parseColor("#CBD5E1");
+                        int greenColor = ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary);
+                        int grayColor = ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_gray_disabled);
                         if (bgFilterHat != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterHat, android.content.res.ColorStateList.valueOf("hat".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
                         if (bgFilterGlasses != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterGlasses, android.content.res.ColorStateList.valueOf("glasses".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
                         if (bgFilterClothes != null) androidx.core.view.ViewCompat.setBackgroundTintList(bgFilterClothes, android.content.res.ColorStateList.valueOf("clothes".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? greenColor : grayColor));
 
-                        if (gridWardrobeItems.getAdapter() != null) {
+                        View containerEmpty = tabViewWardrobe.findViewById(R.id.container_wardrobe_empty);
+
+                        if (filteredOwned.isEmpty()) {
+                            if (containerEmpty != null) containerEmpty.setVisibility(View.VISIBLE);
+                            if (gridWardrobeItems != null) gridWardrobeItems.setVisibility(View.GONE);
+                        } else {
+                            if (containerEmpty != null) containerEmpty.setVisibility(View.GONE);
+                            if (gridWardrobeItems != null) gridWardrobeItems.setVisibility(View.VISIBLE);
+                        }
+
+                        if (gridWardrobeItems != null && gridWardrobeItems.getAdapter() != null) {
                             ((android.widget.BaseAdapter) gridWardrobeItems.getAdapter()).notifyDataSetChanged();
+                            adjustGridViewHeight(gridWardrobeItems, 142);
                         }
                     }
                 };
@@ -1396,49 +1615,34 @@ public class DashboardActivity extends AppCompatActivity {
 
                         if (isEquipped) {
                             tvMeta.setText("EQUIPPED");
-                            tvMeta.setTextColor(android.graphics.Color.parseColor("#2D5A27"));
-                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#546B41")));
+                            tvMeta.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary_dark));
+                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary)));
                         } else {
                             tvMeta.setText(item.getRarityTier());
-                            tvMeta.setTextColor(android.graphics.Color.parseColor("#64748B"));
-                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#CBD5E1")));
+                            tvMeta.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_text_muted));
+                            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_gray_disabled)));
                         }
 
                         lockOverlay.setVisibility(View.GONE);
                         ivLockIcon.setVisibility(View.GONE);
 
                         convertView.setOnClickListener(v -> {
-                            selectedWardrobeItem = item;
-                            btnEquipAction.setVisibility(View.VISIBLE);
                             String itemSlot = TaskManager.getItemSlotType(item);
-                            ShopItem eq = TaskManager.getEquippedItemForSlot(DashboardActivity.this, itemSlot);
-                            if (eq != null && eq.getId() == item.getId()) {
-                                btnEquipAction.setText("Unequip " + item.getName());
+                            ShopItem currentlyEquipped = TaskManager.getEquippedItemForSlot(DashboardActivity.this, itemSlot);
+                            if (currentlyEquipped != null && currentlyEquipped.getId() == item.getId()) {
+                                TaskManager.unequipItemInSlot(DashboardActivity.this, itemSlot);
                             } else {
-                                btnEquipAction.setText("Equip " + item.getName());
+                                TaskManager.setEquippedItem(DashboardActivity.this, item);
                             }
+                            AvatarCompositor.clearCache();
+                            updateGlobalAvatarHeader();
+                            updateSidebarItemPreviews.run();
+                            applyWardrobeFilter.run();
                         });
                         return convertView;
                     }
                 });
-
-                btnEquipAction.setOnClickListener(v -> {
-                    if (selectedWardrobeItem != null) {
-                        String itemSlot = TaskManager.getItemSlotType(selectedWardrobeItem);
-                        ShopItem currentlyEquipped = TaskManager.getEquippedItemForSlot(this, itemSlot);
-                        if (currentlyEquipped != null && currentlyEquipped.getId() == selectedWardrobeItem.getId()) {
-                            TaskManager.unequipItemInSlot(this, itemSlot);
-                            ToastUtils.showToast(this, "Unequipped: " + selectedWardrobeItem.getName());
-                        } else {
-                            TaskManager.setEquippedItem(this, selectedWardrobeItem);
-                            ToastUtils.showToast(this, "Equipped: " + selectedWardrobeItem.getName());
-                        }
-                        AvatarCompositor.clearCache();
-                        updateGlobalAvatarHeader();
-                        updateSidebarItemPreviews.run();
-                        applyWardrobeFilter.run();
-                    }
-                });
+                adjustGridViewHeight(gridWardrobeItems, 142);
 
                 updateSidebarItemPreviews.run();
                 applyWardrobeFilter.run();
@@ -1457,14 +1661,25 @@ public class DashboardActivity extends AppCompatActivity {
                 TextView tvStatusBadge = tabViewShop.findViewById(R.id.tv_shop_status_badge);
                 TextView tvShopTimer = tabViewShop.findViewById(R.id.tv_shop_timer);
                 Button btnRefreshShop = tabViewShop.findViewById(R.id.btn_refresh_shop);
-                Button btnPurchaseAction = tabViewShop.findViewById(R.id.btn_shop_action);
                 android.widget.GridView gridShopItems = tabViewShop.findViewById(R.id.grid_shop_items);
-
-                btnPurchaseAction.setText("Purchase Item");
-                btnPurchaseAction.setVisibility(View.GONE);
 
                 TaskManager shopManager = new TaskManager(this);
                 int shopUserLevel = getCurrentUserLevel();
+
+                Runnable updateShopGoldDisplay = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (tvShopGoldBalance != null) {
+                            Cursor profileCursor = shopManager.getUserProfile();
+                            if (profileCursor != null && profileCursor.moveToFirst()) {
+                                int userGold = profileCursor.getInt(2);
+                                tvShopGoldBalance.setText(String.format(java.util.Locale.getDefault(), "%,d", userGold));
+                                profileCursor.close();
+                            }
+                        }
+                    }
+                };
+                updateShopGoldDisplay.run();
 
                 boolean isOnline = OnlineShopManager.isNetworkAvailable(this);
                 boolean showBadge = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).getBoolean("pref_show_network_badge", false);
@@ -1511,6 +1726,7 @@ public class DashboardActivity extends AppCompatActivity {
                     shopList.addAll(OnlineShopManager.getDynamicShopItems(this));
                     if (gridShopItems.getAdapter() != null) {
                         ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
+                        adjustGridViewHeight(gridShopItems, 142);
                     }
                     updateRefreshButtonState.run();
                 });
@@ -1527,6 +1743,7 @@ public class DashboardActivity extends AppCompatActivity {
                         if (convertView == null) {
                             convertView = LayoutInflater.from(DashboardActivity.this).inflate(R.layout.item_shop_grid, parent, false);
                         }
+                        if (position < 0 || position >= shopList.size()) return convertView;
                         ShopItem item = shopList.get(position);
                         boolean isOwned = shopManager.isItemOwned(item.getId());
                         boolean isLocked = getCurrentUserLevel() < item.getRequiredLevel();
@@ -1547,12 +1764,12 @@ public class DashboardActivity extends AppCompatActivity {
 
                         if (isOwned) {
                             tvMeta.setText("OWNED");
-                            tvMeta.setTextColor(Color.parseColor("#546B41"));
+                            tvMeta.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary));
                             lockOverlay.setVisibility(View.VISIBLE);
                             ivLockIcon.setVisibility(View.GONE);
                         } else if (isLocked) {
                             tvMeta.setText("Level " + item.getRequiredLevel());
-                            tvMeta.setTextColor(Color.parseColor("#A0AEC0"));
+                            tvMeta.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_border_light));
                             lockOverlay.setVisibility(View.VISIBLE);
                             ivLockIcon.setVisibility(View.VISIBLE);
                         } else {
@@ -1563,23 +1780,43 @@ public class DashboardActivity extends AppCompatActivity {
                         }
 
                         convertView.setOnClickListener(v -> {
-                            if (isOwned) {
-                                ToastUtils.showToast(DashboardActivity.this, "You already own " + item.getName() + "!");
-                                btnPurchaseAction.setVisibility(View.GONE);
-                                return;
+                            if (position >= 0 && position < shopList.size()) {
+                                ShopItem currentItem = shopList.get(position);
+                                boolean isOwnedNow = shopManager.isItemOwned(currentItem.getId());
+                                boolean isLockedNow = getCurrentUserLevel() < currentItem.getRequiredLevel();
+
+                                if (isOwnedNow) {
+                                    ToastUtils.showToast(DashboardActivity.this, "You already own " + currentItem.getName() + "!");
+                                    return;
+                                }
+                                if (isLockedNow) {
+                                    ToastUtils.showToast(DashboardActivity.this, "Unlocks at Level " + currentItem.getRequiredLevel());
+                                    return;
+                                }
+                                new androidx.appcompat.app.AlertDialog.Builder(DashboardActivity.this, R.style.DaGoalDialogTheme)
+                                        .setTitle("Purchase Item")
+                                        .setMessage("Buy " + currentItem.getName() + " for " + currentItem.getPrice() + " Gold?")
+                                        .setPositiveButton("Buy", (dialog, which) -> {
+                                            if (shopManager.purchaseShopItem(currentItem)) {
+                                                ToastUtils.showToast(DashboardActivity.this, "Purchased " + currentItem.getName());
+                                                updateGlobalAvatarHeader();
+                                                updateShopGoldDisplay.run();
+                                                if (gridShopItems.getAdapter() != null) {
+                                                    ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
+                                                    adjustGridViewHeight(gridShopItems, 142);
+                                                }
+                                            } else {
+                                                ToastUtils.showToast(DashboardActivity.this, "Not enough Gold!");
+                                            }
+                                        })
+                                        .setNegativeButton("Cancel", null)
+                                        .show();
                             }
-                            if (isLocked) {
-                                ToastUtils.showToast(DashboardActivity.this, "Unlocks at Level " + item.getRequiredLevel());
-                                btnPurchaseAction.setVisibility(View.GONE);
-                                return;
-                            }
-                            selectedShopItem = item;
-                            btnPurchaseAction.setVisibility(View.VISIBLE);
-                            btnPurchaseAction.setText("Purchase " + item.getName() + " (" + item.getPrice() + "g)");
                         });
                         return convertView;
                     }
                 });
+                adjustGridViewHeight(gridShopItems, 142);
 
                 if (btnRefreshShop != null) {
                     btnRefreshShop.setOnClickListener(v -> {
@@ -1588,32 +1825,14 @@ public class DashboardActivity extends AppCompatActivity {
                             shopList.addAll(OnlineShopManager.getDynamicShopItems(this));
                             if (gridShopItems.getAdapter() != null) {
                                 ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
+                                adjustGridViewHeight(gridShopItems, 142);
                             }
                             updateRefreshButtonState.run();
                             updateGlobalAvatarHeader();
+                            updateShopGoldDisplay.run();
                         }
                     });
                 }
-
-                btnPurchaseAction.setOnClickListener(v -> {
-                    if (selectedShopItem != null) {
-                        if (shopManager.isItemOwned(selectedShopItem.getId())) {
-                            ToastUtils.showToast(this, "You already own " + selectedShopItem.getName() + "!");
-                            btnPurchaseAction.setVisibility(View.GONE);
-                            return;
-                        }
-                        if (shopManager.purchaseShopItem(selectedShopItem)) {
-                            ToastUtils.showToast(this, "Purchased " + selectedShopItem.getName());
-                            updateGlobalAvatarHeader();
-                            btnPurchaseAction.setVisibility(View.GONE);
-                            if (gridShopItems.getAdapter() != null) {
-                                ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
-                            }
-                        } else {
-                            ToastUtils.showToast(this, "Not enough Gold!");
-                        }
-                    }
-                });
                 break;
 
             case "ME":
@@ -1628,6 +1847,37 @@ public class DashboardActivity extends AppCompatActivity {
                 populateAchievementsList(tabViewMe);
                 wireSettingsButton(tabViewMe);
                 break;
+        }
+    }
+
+    private void adjustGridViewHeight(android.widget.GridView gridView, int itemHeightDp) {
+        if (gridView == null) return;
+        android.widget.ListAdapter adapter = gridView.getAdapter();
+        if (adapter == null) return;
+        int count = adapter.getCount();
+        if (count == 0) {
+            android.view.ViewGroup.LayoutParams params = gridView.getLayoutParams();
+            if (params != null) {
+                params.height = 0;
+                gridView.setLayoutParams(params);
+            }
+            return;
+        }
+        int cols = gridView.getNumColumns();
+        if (cols <= 0) cols = 3;
+        int rows = (int) Math.ceil((double) count / cols);
+
+        float density = getResources().getDisplayMetrics().density;
+        int itemHeightPx = (int) (itemHeightDp * density);
+        int spacingPx = (int) (12 * density);
+        int paddingPx = (int) (8 * density);
+
+        int totalHeight = (rows * itemHeightPx) + (Math.max(0, rows - 1) * spacingPx) + paddingPx;
+
+        android.view.ViewGroup.LayoutParams params = gridView.getLayoutParams();
+        if (params != null) {
+            params.height = totalHeight;
+            gridView.setLayoutParams(params);
         }
     }
 
@@ -1836,63 +2086,188 @@ public class DashboardActivity extends AppCompatActivity {
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT
         ));
+        spotlightView.setAlpha(0f);
+
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_spotlight_tutorial, spotlightView, false);
         spotlightView.addView(dialogView);
         decorView.addView(spotlightView);
 
+        spotlightView.animate().alpha(1f).setDuration(250).start();
+
         TextView tvTitle = dialogView.findViewById(R.id.tv_spotlight_step_title);
         TextView tvDesc = dialogView.findViewById(R.id.tv_spotlight_step_desc);
+        TextView tvBadge = dialogView.findViewById(R.id.tv_spotlight_step_badge);
+        View tooltipCard = dialogView.findViewById(R.id.card_spotlight_tooltip);
         Button btnPrev = dialogView.findViewById(R.id.btn_spotlight_prev);
         Button btnNext = dialogView.findViewById(R.id.btn_spotlight_next);
 
         String[] stepTitles = {
-                "1. QUEST Tab & Add Goal 📜",
-                "2. WARDROBE Tab 💇",
-                "3. SHOP Catalog 🛒",
-                "4. Chest Milestone Bar 🎁",
-                "5. ME Tab & Info Icon ℹ️"
+                "1. QUEST Tab 📜",
+                "2. Create Custom Quest 🎯",
+                "3. WARDROBE Tab 💇",
+                "4. SHOP Catalog 🛒",
+                "5. Chest Milestone Bar 🎁",
+                "6. ME Tab & Info Icon ℹ️"
         };
 
         String[] stepDescs = {
-                "Tap QUEST to view your Daily Quests and create Custom Goals tailored to your self-care journey!",
+                "View your active Daily Quests and track your daily progress in one place!",
+                "Tap '+ Add a Goal' to create Custom Quests! Define tracking options (Tap to complete, Steps, Repetitions, or Focus Timer with App Blocker), repeat schedules, and custom rewards!",
                 "Tap WARDROBE to customize your character avatar with hairstyles, skin tones, hats, glasses, and outfits!",
                 "Tap SHOP to spend earned Gold and unlock new clothing and accessory items!",
                 "Every 3 daily quests completed fills your Chest Bar to unlock Wooden, Silver, Gold, and Platinum Chests!",
-                "Tap ME to view your Level, Streaks, Achievements, and relaunch this tutorial anytime using the Info icon ℹ️!"
+                "Tap ME to view your Level, Streaks, and Achievements! You can tap your avatar circle to customize your character appearance, or use the Info icon ℹ️ to relaunch this tutorial!"
         };
 
         int[] currentStep = { 0 };
 
         Runnable dismissTutorial = () -> {
+            selectTab("QUEST");
+            if (tabViewQuest != null) {
+                androidx.core.widget.NestedScrollView scrollView = tabViewQuest.findViewById(R.id.scroll_quest_tab);
+                if (scrollView != null) {
+                    scrollView.smoothScrollTo(0, 0);
+                }
+            }
+            if (tabViewShop != null) {
+                androidx.core.widget.NestedScrollView scrollView = tabViewShop.findViewById(R.id.scroll_shop_tab);
+                if (scrollView != null) {
+                    scrollView.smoothScrollTo(0, 0);
+                }
+            }
             SoundEffectsHelper.playMenuClose(this);
-            decorView.removeView(spotlightView);
+            spotlightView.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                try {
+                    decorView.removeView(spotlightView);
+                } catch (Exception ignored) {
+                }
+            }).start();
+        };
+
+        Runnable positionTooltipCard = () -> {
+            int step = currentStep[0];
+            View targetView = null;
+            if (step == 0) {
+                targetView = navQuest;
+            } else if (step == 1) {
+                if (tabViewQuest != null) {
+                    targetView = tabViewQuest.findViewById(R.id.btn_dashboard_add_goal);
+                }
+            } else if (step == 2) {
+                targetView = navWardrobe;
+            } else if (step == 3) {
+                targetView = navShop;
+            } else if (step == 4) {
+                targetView = findViewById(R.id.card_chest_bar);
+            } else if (step == 5) {
+                targetView = navMe;
+            }
+
+            if (tooltipCard == null || targetView == null) return;
+
+            spotlightView.setTargetView(targetView);
+
+            int[] targetLoc = new int[2];
+            targetView.getLocationOnScreen(targetLoc);
+            int targetY = targetLoc[1];
+            int targetHeight = targetView.getHeight();
+            int targetBottom = targetY + targetHeight;
+
+            int[] spotlightLoc = new int[2];
+            spotlightView.getLocationOnScreen(spotlightLoc);
+            int relativeTargetY = targetY - spotlightLoc[1];
+            int relativeTargetBottom = targetBottom - spotlightLoc[1];
+
+            float density = getResources().getDisplayMetrics().density;
+            int screenWidth = spotlightView.getWidth() > 0 ? spotlightView.getWidth() : getResources().getDisplayMetrics().widthPixels;
+            int screenHeight = spotlightView.getHeight() > 0 ? spotlightView.getHeight() : getResources().getDisplayMetrics().heightPixels;
+
+            int cardWidth = Math.min((int) (300 * density), screenWidth - (int) (32 * density));
+            tooltipCard.measure(
+                    View.MeasureSpec.makeMeasureSpec(cardWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            );
+            int cardHeight = tooltipCard.getMeasuredHeight();
+
+            int gap = (int) (16 * density);
+            int minTopMargin = (int) (48 * density);
+            int maxTopMargin = screenHeight - cardHeight - (int) (16 * density);
+            if (maxTopMargin < minTopMargin) maxTopMargin = minTopMargin;
+
+            android.widget.FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) tooltipCard.getLayoutParams();
+            params.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
+
+            int desiredTop;
+            if (relativeTargetY > screenHeight * 0.45f) {
+                desiredTop = relativeTargetY - cardHeight - gap;
+            } else {
+                desiredTop = relativeTargetBottom + gap;
+            }
+
+            if (desiredTop < minTopMargin) desiredTop = minTopMargin;
+            if (desiredTop > maxTopMargin) desiredTop = maxTopMargin;
+
+            params.topMargin = desiredTop;
+            params.bottomMargin = 0;
+            tooltipCard.setLayoutParams(params);
         };
 
         Runnable refreshStep = () -> {
             int step = currentStep[0];
-            if (tvTitle != null) tvTitle.setText(stepTitles[step]);
-            if (tvDesc != null) tvDesc.setText(stepDescs[step]);
 
-            View targetView = null;
-            if (step == 0) {
-                selectTab("QUEST");
-                targetView = navQuest;
-            } else if (step == 1) {
-                selectTab("WARDROBE");
-                targetView = navWardrobe;
-            } else if (step == 2) {
-                selectTab("SHOP");
-                targetView = navShop;
-            } else if (step == 3) {
-                selectTab("QUEST");
-                targetView = findViewById(R.id.card_chest_bar);
-            } else if (step == 4) {
-                selectTab("ME");
-                targetView = navMe;
+            if (step != 1 && tabViewQuest != null) {
+                androidx.core.widget.NestedScrollView scrollView = tabViewQuest.findViewById(R.id.scroll_quest_tab);
+                if (scrollView != null) {
+                    scrollView.smoothScrollTo(0, 0);
+                }
+            }
+            if (tabViewShop != null) {
+                androidx.core.widget.NestedScrollView scrollView = tabViewShop.findViewById(R.id.scroll_shop_tab);
+                if (scrollView != null) {
+                    scrollView.smoothScrollTo(0, 0);
+                }
             }
 
-            final View finalTarget = targetView;
-            spotlightView.post(() -> spotlightView.setTargetView(finalTarget));
+            if (tvBadge != null) {
+                tvBadge.setText((step + 1) + "/" + stepTitles.length);
+            }
+
+            if (tvTitle != null && tvDesc != null) {
+                tvTitle.setText(stepTitles[step]);
+                tvDesc.setText(stepDescs[step]);
+                tvTitle.setAlpha(0f);
+                tvDesc.setAlpha(0f);
+                tvTitle.animate().alpha(1f).setDuration(120).start();
+                tvDesc.animate().alpha(1f).setDuration(120).start();
+            }
+
+            if (step == 0) {
+                selectTab("QUEST");
+            } else if (step == 1) {
+                selectTab("QUEST");
+                if (tabViewQuest != null) {
+                    View btnAddGoal = tabViewQuest.findViewById(R.id.btn_dashboard_add_goal);
+                    androidx.core.widget.NestedScrollView scrollView = tabViewQuest.findViewById(R.id.scroll_quest_tab);
+                    if (scrollView != null && btnAddGoal != null) {
+                        scrollView.post(() -> {
+                            int y = btnAddGoal.getTop() - (scrollView.getHeight() / 2) + (btnAddGoal.getHeight() / 2);
+                            if (y < 0) y = 0;
+                            scrollView.smoothScrollTo(0, y);
+                            spotlightView.postDelayed(positionTooltipCard, 220);
+                        });
+                    }
+                }
+            } else if (step == 2) {
+                selectTab("WARDROBE");
+            } else if (step == 3) {
+                selectTab("SHOP");
+            } else if (step == 4) {
+                selectTab("QUEST");
+            } else if (step == 5) {
+                selectTab("ME");
+            }
+
+            spotlightView.post(positionTooltipCard);
 
             if (btnPrev != null) btnPrev.setVisibility(step > 0 ? View.VISIBLE : View.GONE);
             if (btnNext != null) btnNext.setText(step == stepTitles.length - 1 ? "Got It!" : "Next");
@@ -1926,12 +2301,31 @@ public class DashboardActivity extends AppCompatActivity {
         boolean hasSeenTutorialPrompt = prefs.getBoolean("has_seen_tutorial_prompt", false);
         if (!hasSeenTutorialPrompt) {
             prefs.edit().putBoolean("has_seen_tutorial_prompt", true).apply();
-            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
-                    .setTitle("Welcome to DaGoal! ℹ️")
-                    .setMessage("New to DaGoal? You can tap the Info icon (ℹ️) on the ME tab anytime to view the interactive App Tutorial!")
-                    .setPositiveButton("View Tutorial Now", (dialog, which) -> showAppTutorialDialog())
-                    .setNegativeButton("Got It", null)
-                    .show();
+
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_app_tutorial, null);
+            androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+                    .setView(dialogView)
+                    .create();
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            }
+
+            Button btnDismiss = dialogView.findViewById(R.id.btn_tutorial_dismiss);
+            Button btnStart = dialogView.findViewById(R.id.btn_tutorial_start);
+
+            if (btnDismiss != null) {
+                btnDismiss.setOnClickListener(v -> dialog.dismiss());
+            }
+
+            if (btnStart != null) {
+                btnStart.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    showAppTutorialDialog();
+                });
+            }
+
+            dialog.show();
         }
     }
 
@@ -1988,6 +2382,7 @@ public class DashboardActivity extends AppCompatActivity {
         if (meView == null) return;
         TextView tvProfileUsername = meView.findViewById(R.id.tv_profile_username);
         TextView tvProfileLevel = meView.findViewById(R.id.tv_profile_level);
+        ProgressBar pbProfileLevel = meView.findViewById(R.id.pb_profile_level);
         TextView tvProfileStreak = meView.findViewById(R.id.tv_profile_streak);
 
         FrameLayout avatarMeHost = meView.findViewById(R.id.avatar_me_host);
@@ -1995,13 +2390,33 @@ public class DashboardActivity extends AppCompatActivity {
             AvatarHelper.renderUserAvatarFaceOnly(this, avatarMeHost);
         }
 
+        View.OnClickListener openAvatarEditListener = v -> {
+            Intent intent = new Intent(this, AvatarCreationActivity.class);
+            intent.putExtra("extra_edit_mode", true);
+            startActivity(intent);
+        };
+
         View layoutProfileAvatarHost = meView.findViewById(R.id.layout_profile_avatar_host);
         if (layoutProfileAvatarHost != null) {
-            layoutProfileAvatarHost.setOnClickListener(v -> {
-                Intent intent = new Intent(this, AvatarCreationActivity.class);
-                intent.putExtra("extra_edit_mode", true);
-                startActivity(intent);
+            layoutProfileAvatarHost.setOnClickListener(openAvatarEditListener);
+        }
+
+        View meTopHeader = meView.findViewById(R.id.layout_me_top_header);
+        if (meTopHeader != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(meTopHeader, (v, insets) -> {
+                Insets systemBarInsets = insets.getInsets(
+                        WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+                );
+                int topPadding = systemBarInsets.top + (int) (8 * v.getResources().getDisplayMetrics().density);
+                v.setPadding(
+                        v.getPaddingLeft(),
+                        topPadding,
+                        v.getPaddingRight(),
+                        v.getPaddingBottom()
+                );
+                return insets;
             });
+            ViewCompat.requestApplyInsets(meTopHeader);
         }
 
         SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
@@ -2017,12 +2432,14 @@ public class DashboardActivity extends AppCompatActivity {
             int gold = profileCursor.getInt(2);
             int xp = profileCursor.getInt(3);
 
-            String title = TaskManager.getLevelTitle(level);
-
             int maxXp = TaskManager.getRequiredXpForLevel(level);
 
-            if (tvProfileUsername != null) tvProfileUsername.setText(username + " • " + title);
-            if (tvProfileLevel != null) tvProfileLevel.setText("Level " + level + "\n" + xp + " / " + maxXp + " XP");
+            if (tvProfileUsername != null) tvProfileUsername.setText(username);
+            if (tvProfileLevel != null) tvProfileLevel.setText(String.format(Locale.getDefault(), "Lvl %02d", level));
+            if (pbProfileLevel != null) {
+                pbProfileLevel.setMax(maxXp);
+                pbProfileLevel.setProgress(xp);
+            }
             profileCursor.close();
         }
 
@@ -2041,7 +2458,7 @@ public class DashboardActivity extends AppCompatActivity {
         Cursor streakCursor = db.rawQuery("SELECT streak FROM user WHERE _id = 1", null);
         if (streakCursor != null && streakCursor.moveToFirst()) {
             int streak = streakCursor.getInt(0);
-            if (tvProfileStreak != null) tvProfileStreak.setText(getString(R.string.streak_days, streak));
+            if (tvProfileStreak != null) tvProfileStreak.setText(String.valueOf(streak));
             streakCursor.close();
         }
 
@@ -2069,11 +2486,11 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void showConsumablesDialog(View meView) {
         SoundEffectsHelper.playMenuOpen(this);
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_consumables, null);
         builder.setView(dialogView);
 
-        android.app.AlertDialog dialog = builder.create();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
@@ -2246,7 +2663,7 @@ public class DashboardActivity extends AppCompatActivity {
 
                     if (rankIndex < 0) {
                         tvRankLabel.setText("Unranked");
-                        tvRankLabel.setTextColor(Color.parseColor("#A0AEC0"));
+                        tvRankLabel.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_border_light));
                     } else {
                         tvRankLabel.setText(AchievementTierHelper.RANK_NAMES[rankIndex]);
                         tvRankLabel.setTextColor(badgeColor);
@@ -2257,6 +2674,7 @@ public class DashboardActivity extends AppCompatActivity {
                     return convertView;
                 }
             });
+            adjustGridViewHeight(gridAchievements, 174);
         }
     }
 
@@ -2447,11 +2865,11 @@ public class DashboardActivity extends AppCompatActivity {
             viewFill.setLayoutParams(params);
 
             if (tier == 1) {
-                viewFill.setBackgroundColor(Color.parseColor("#8A2BE2"));
+                viewFill.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_xp_purple));
             } else if (tier == 2) {
                 viewFill.setBackgroundColor(Color.parseColor("#1E90FF"));
             } else {
-                viewFill.setBackgroundColor(Color.parseColor("#FFD700"));
+                viewFill.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_gold_amber));
             }
         }
 
@@ -2469,19 +2887,37 @@ public class DashboardActivity extends AppCompatActivity {
         int level = getCurrentUserLevel();
         int allowance = TaskManager.getCustomQuestAllowance(level);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
-                .setTitle("🎯 Custom Quest Slots Info")
-                .setMessage("Custom Quests allow you to create personalized real-life goals with your choice of Gold and XP rewards!\n\n" +
-                        "• Slot Unlock Schedule: You start with 1 slot at Level 1, gaining +1 slot every 5 Levels (up to 10 slots at Level 45+).\n\n" +
-                        "• Recurring Quests & Slots: Creating a recurring custom quest (daily or weekly) consumes 1 custom quest slot for as long as it repeats.\n\n" +
-                        "• Weekly Refill: Custom quest allowances refill automatically every Monday morning at 00:00 AM.\n\n" +
-                        "Current Level: " + level + "\n" +
-                        "Total Slots: " + allowance + " Custom Quest(s)")
-                .setPositiveButton("Got It!", null)
-                .show();
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_custom_quest_info, null);
+        builder.setView(dialogView);
+
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        TextView tvLevel = dialogView.findViewById(R.id.tv_custom_info_level);
+        TextView tvSlots = dialogView.findViewById(R.id.tv_custom_info_slots);
+        Button btnGotIt = dialogView.findViewById(R.id.btn_custom_info_got_it);
+
+        if (tvLevel != null) {
+            tvLevel.setText("Level " + level);
+        }
+        if (tvSlots != null) {
+            String slotText = allowance + (allowance == 1 ? " Slot" : " Slots");
+            tvSlots.setText(slotText);
+        }
+        if (btnGotIt != null) {
+            btnGotIt.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
     }
 
     private void checkAndShowChestTierPrompt() {
+        if (activeChestTierDialog != null && activeChestTierDialog.isShowing()) {
+            return;
+        }
         int points = TaskManager.getChestBarPoints(this);
         int tier = TaskManager.getChestBarCurrentTier(this);
         int target = TaskManager.getChestBarTargetPoints(this);
@@ -2591,6 +3027,10 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void showChestTierDialog(int tier) {
+        if (activeChestTierDialog != null && activeChestTierDialog.isShowing()) {
+            return;
+        }
+
         SoundEffectsHelper.playMenuOpen(this);
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_chest_tier_prompt, null);
@@ -2601,17 +3041,26 @@ public class DashboardActivity extends AppCompatActivity {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
 
+        activeChestTierDialog = dialog;
+
         TextView tvTitle = dialogView.findViewById(R.id.tv_chest_dialog_title);
         TextView tvLoot = dialogView.findViewById(R.id.tv_chest_dialog_loot);
+        ImageView ivChest = dialogView.findViewById(R.id.iv_chest_dialog_icon);
         Button btnUnlock = dialogView.findViewById(R.id.btn_unlock_chest_now);
         Button btnKeepGoing = dialogView.findViewById(R.id.btn_keep_completing_quests);
 
         if (tier == 1) {
-            if (tvTitle != null) tvTitle.setText("Tier 1 Wooden Chest Ready!");
+            if (tvTitle != null) tvTitle.setText("🪵 Tier 1 Wooden Chest Ready!");
+            if (ivChest != null) ivChest.setImageResource(R.drawable.chest_wood);
         } else if (tier == 2) {
-            if (tvTitle != null) tvTitle.setText("Tier 2 Silver Chest Ready!");
+            if (tvTitle != null) tvTitle.setText("🥈 Tier 2 Silver Chest Ready!");
+            if (ivChest != null) ivChest.setImageResource(R.drawable.chest_silver);
         } else if (tier == 3) {
-            if (tvTitle != null) tvTitle.setText("Tier 3 Gold Chest Ready!");
+            if (tvTitle != null) tvTitle.setText("👑 Tier 3 Gold Chest Ready!");
+            if (ivChest != null) ivChest.setImageResource(R.drawable.chest_gold);
+        } else if (tier >= 4) {
+            if (tvTitle != null) tvTitle.setText("💎 Tier 4 Platinum Chest Ready!");
+            if (ivChest != null) ivChest.setImageResource(R.drawable.chest_plat);
         }
 
         if (tvLoot != null) {
@@ -2627,16 +3076,26 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnKeepGoing != null) {
-            btnKeepGoing.setOnClickListener(v -> {
-                SoundEffectsHelper.playButton(DashboardActivity.this);
-                TaskManager.advanceToNextChestTier(DashboardActivity.this);
-                dialog.dismiss();
-                updateChestBarUI();
-                ToastUtils.showToast(DashboardActivity.this, "Pushed for Tier " + (tier + 1) + "! Bar reset to 0/" + TaskManager.getChestBarTargetPoints(DashboardActivity.this) + " points.");
-            });
+            if (tier >= 4) {
+                btnKeepGoing.setVisibility(View.GONE);
+            } else {
+                btnKeepGoing.setVisibility(View.VISIBLE);
+                btnKeepGoing.setOnClickListener(v -> {
+                    SoundEffectsHelper.playButton(DashboardActivity.this);
+                    TaskManager.advanceToNextChestTier(DashboardActivity.this);
+                    dialog.dismiss();
+                    updateChestBarUI();
+                    int nextTier = TaskManager.getChestBarCurrentTier(DashboardActivity.this);
+                    int newTarget = TaskManager.getChestBarTargetPoints(DashboardActivity.this);
+                    ToastUtils.showToast(DashboardActivity.this, "Upgraded to Tier " + nextTier + " Chest! Target is now 0/" + newTarget + " points.");
+                });
+            }
         }
 
-        dialog.setOnDismissListener(d -> SoundEffectsHelper.playMenuClose(this));
+        dialog.setOnDismissListener(d -> {
+            activeChestTierDialog = null;
+            SoundEffectsHelper.playMenuClose(this);
+        });
         dialog.show();
     }
 
@@ -2647,7 +3106,6 @@ public class DashboardActivity extends AppCompatActivity {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
         updateChestBarUI();
-        checkAndShowChestTierPrompt();
 
         View parentView = (View) activeContainer.getParent();
         TextView tvEmpty = null;
@@ -2796,6 +3254,7 @@ public class DashboardActivity extends AppCompatActivity {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.completeTask(taskId);
                             populateQuestLists(activeContainer, completedContainer);
+                            checkAndShowChestTierPrompt();
                         });
                     }
                 }
@@ -2886,5 +3345,11 @@ public class DashboardActivity extends AppCompatActivity {
             icon.setColorFilter(primaryColor);
             icon.setAlpha(0.6f);
         }
+    }
+
+    private void styleNumberPicker(android.widget.NumberPicker picker) {
+        if (picker == null) return;
+        picker.setSelectionDividerHeight(0);
+        picker.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
     }
 }

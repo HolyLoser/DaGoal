@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_surface_card"
+    android:background="@drawable/bg_surface_card_full_radius"
     android:orientation="vertical"
     android:padding="20dp">
 
@@ -48,7 +49,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="59" />
+            android:progress="59"
+            android:progressDrawable="@drawable/bg_seekbar_track_red"
+            android:thumb="@drawable/bg_seekbar_thumb_red"
+            android:splitTrack="false"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
 
         <TextView
             android:id="@+id/tv_hair_red_val"
@@ -56,7 +62,7 @@
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="59"
-            android:textColor="@color/dagoal_primary"
+            android:textColor="@color/dagoal_primary_dark"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -83,7 +89,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="34" />
+            android:progress="34"
+            android:progressDrawable="@drawable/bg_seekbar_track_green"
+            android:thumb="@drawable/bg_seekbar_thumb_green"
+            android:splitTrack="false"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
 
         <TextView
             android:id="@+id/tv_hair_green_val"
@@ -91,7 +102,7 @@
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="34"
-            android:textColor="@color/dagoal_primary"
+            android:textColor="@color/dagoal_primary_dark"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -118,7 +129,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="25" />
+            android:progress="25"
+            android:progressDrawable="@drawable/bg_seekbar_track_blue"
+            android:thumb="@drawable/bg_seekbar_thumb_blue"
+            android:splitTrack="false"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
 
         <TextView
             android:id="@+id/tv_hair_blue_val"
@@ -213,12 +229,15 @@
     <Button
         android:id="@+id/btn_apply_hair_color"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:backgroundTint="@color/dagoal_secondary"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:text="Apply Hair Color"
         android:textAllCaps="false"
         android:textColor="@color/white"
-        android:textSize="14sp"
+        android:textSize="16sp"
         android:textStyle="bold" />
 
 </LinearLayout>

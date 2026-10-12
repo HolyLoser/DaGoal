@@ -36,15 +36,13 @@ public class LoadingActivity extends AppCompatActivity {
                 dbHelper.getReadableDatabase();
             }
 
-            SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-            boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
-
-            Intent nextIntent = determineNextDestination(prefs, isFirstRun);
+            Intent nextIntent = determineNextDestination();
 
             long elapsedTime = System.currentTimeMillis() - startTime;
             long delay = Math.max(0, MIN_LOADING_TIME - elapsedTime);
 
             mainHandler.postDelayed(() -> {
+                if (isFinishing() || isDestroyed()) return;
                 startActivity(nextIntent);
                 overridePendingTransition(R.anim.slide_in_bottom, R.anim.slide_out_top);
                 finish();
@@ -53,47 +51,22 @@ public class LoadingActivity extends AppCompatActivity {
         });
     }
 
-    private Intent determineNextDestination(SharedPreferences prefs, boolean isFirstRun) {
+    private Intent determineNextDestination() {
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
         boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
         boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
         boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
+        com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
 
-        boolean hasUserRecordInDb = false;
-        try {
-            DatabaseHelper dbHelper = new DatabaseHelper(this);
-            android.database.sqlite.SQLiteDatabase db = dbHelper.getReadableDatabase();
-            DatabaseHelper.ensureUserTableExists(db);
-            android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM user WHERE _id = 1", null);
-            if (cursor != null) {
-                if (cursor.moveToFirst()) {
-                    hasUserRecordInDb = cursor.getInt(0) > 0;
-                }
-                cursor.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        if (hasUserRecordInDb) {
-            if (!isLoggedIn && !isGuestUser) {
-                isGuestUser = true;
-                prefs.edit().putBoolean("isGuestUser", true).apply();
-            }
-            if (!isOnboardingComplete) {
-                isOnboardingComplete = true;
-                prefs.edit().putBoolean("isOnboardingComplete", true).putBoolean("isFirstRun", false).apply();
-            }
-        }
-
-        if ((isLoggedIn || isGuestUser || hasUserRecordInDb) && isOnboardingComplete) {
+        if ((isLoggedIn || isGuestUser || fUser != null) && isOnboardingComplete) {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             String lastQuestDate = prefs.getString("last_quest_generation_date", "");
 
             if (!todayDateStr.equals(lastQuestDate)) {
                 return new Intent(this, DailyRevealActivity.class);
-            } else {
-                return new Intent(this, DashboardActivity.class);
             }
+
+            return new Intent(this, DashboardActivity.class);
         }
 
         return new Intent(this, MainActivity.class);

@@ -14,7 +14,15 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProfilingActivity extends AppCompatActivity {
 
@@ -27,10 +35,13 @@ public class ProfilingActivity extends AppCompatActivity {
     private TextView tvOptionText1, tvOptionText2, tvOptionText3, tvOptionText4, tvOptionText5, tvOptionText6;
     private TextView tvOptionCheck1, tvOptionCheck2, tvOptionCheck3, tvOptionCheck4, tvOptionCheck5, tvOptionCheck6;
 
-    private TextView node1, node2, node3, node4;
+    private LinearLayout layoutStepIndicator;
+    private final List<TextView> stepNodesList = new ArrayList<>();
+    private final List<View> stepLinesList = new ArrayList<>();
 
     private int currentQuestionIndex = 0;
     private boolean isAnimating = false;
+    private boolean isSubmitting = false;
 
     private final String[] categories = {
             "Adventurer Profile", "Adventurer Profile", "Adventurer Profile",
@@ -82,6 +93,11 @@ public class ProfilingActivity extends AppCompatActivity {
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_profiling_questionnaire);
 
+        View rootLayout = findViewById(R.id.root_profiling_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
+
         dbHelper = new DatabaseHelper(this);
 
         tvCategoryTitle = findViewById(R.id.tv_category_title);
@@ -91,6 +107,9 @@ public class ProfilingActivity extends AppCompatActivity {
 
         layoutNicknameInput = findViewById(R.id.layout_nickname_input);
         editNicknameInput = findViewById(R.id.edit_nickname_input);
+        if (editNicknameInput != null) {
+            editNicknameInput.setFilters(new android.text.InputFilter[]{ new android.text.InputFilter.LengthFilter(16) });
+        }
         btnNicknameNext = findViewById(R.id.btn_nickname_next);
 
         cardOption1 = findViewById(R.id.option_card_1);
@@ -114,10 +133,8 @@ public class ProfilingActivity extends AppCompatActivity {
         tvOptionCheck5 = findViewById(R.id.tv_option_check_5);
         tvOptionCheck6 = findViewById(R.id.tv_option_check_6);
 
-        node1 = findViewById(R.id.tv_step_node_1);
-        node2 = findViewById(R.id.tv_step_node_2);
-        node3 = findViewById(R.id.tv_step_node_3);
-        node4 = findViewById(R.id.tv_step_node_4);
+        layoutStepIndicator = findViewById(R.id.layout_step_indicator);
+        setupDynamicStepIndicator(questions.length);
 
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> handleBackClick());
@@ -132,11 +149,50 @@ public class ProfilingActivity extends AppCompatActivity {
             AvatarHelper.renderUserAvatar(this, avatarContainer);
         }
 
+        boolean startLastQuestion = getIntent().getBooleanExtra("EXTRA_START_LAST_QUESTION", false);
+        if (startLastQuestion && questions.length > 0) {
+            currentQuestionIndex = questions.length - 1;
+        }
+
         displayQuestion(currentQuestionIndex, true);
     }
 
+    private void setupDynamicStepIndicator(int totalQuestions) {
+        if (layoutStepIndicator == null || totalQuestions <= 0) return;
+        layoutStepIndicator.removeAllViews();
+        stepNodesList.clear();
+        stepLinesList.clear();
+
+        float density = getResources().getDisplayMetrics().density;
+        int nodeSizeDp = totalQuestions <= 6 ? 30 : 22;
+        int nodeSizePx = (int) (nodeSizeDp * density);
+        int lineHeightPx = (int) (4f * density);
+
+        for (int i = 0; i < totalQuestions; i++) {
+            TextView node = new TextView(this);
+            LinearLayout.LayoutParams nodeParams = new LinearLayout.LayoutParams(nodeSizePx, nodeSizePx);
+            node.setLayoutParams(nodeParams);
+            node.setGravity(android.view.Gravity.CENTER);
+            node.setText("");
+            node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+
+            layoutStepIndicator.addView(node);
+            stepNodesList.add(node);
+
+            if (i < totalQuestions - 1) {
+                View line = new View(this);
+                LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(0, lineHeightPx, 1.0f);
+                lineParams.setMargins(0, 0, 0, 0);
+                line.setLayoutParams(lineParams);
+                line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+                layoutStepIndicator.addView(line);
+                stepLinesList.add(line);
+            }
+        }
+    }
+
     private void processNicknameSubmit() {
-        if (isAnimating) return;
+        if (isAnimating || isSubmitting) return;
 
         try {
             android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -148,6 +204,9 @@ public class ProfilingActivity extends AppCompatActivity {
         String typedName = "Adventurer";
         if (editNicknameInput != null && !editNicknameInput.getText().toString().trim().isEmpty()) {
             typedName = editNicknameInput.getText().toString().trim();
+            if (typedName.length() > 16) {
+                typedName = typedName.substring(0, 16);
+            }
         }
         userAnswers[0] = typedName;
 
@@ -157,13 +216,20 @@ public class ProfilingActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        isAnimating = false;
+        displayQuestion(currentQuestionIndex, false);
+    }
+
+    @Override
     public void onBackPressed() {
         super.onBackPressed();
         handleBackClick();
     }
 
     private void handleBackClick() {
-        if (isAnimating) return;
+        if (isAnimating || isSubmitting) return;
         if (currentQuestionIndex > 0) {
             currentQuestionIndex--;
             displayQuestionWithAnimation(currentQuestionIndex, false);
@@ -183,6 +249,9 @@ public class ProfilingActivity extends AppCompatActivity {
 
         if (index == 0) {
             if (layoutNicknameInput != null) layoutNicknameInput.setVisibility(View.VISIBLE);
+            if (editNicknameInput != null && userAnswers[0] != null) {
+                editNicknameInput.setText(userAnswers[0]);
+            }
             if (cardOption1 != null) cardOption1.setVisibility(View.GONE);
             if (cardOption2 != null) cardOption2.setVisibility(View.GONE);
             if (cardOption3 != null) cardOption3.setVisibility(View.GONE);
@@ -221,6 +290,16 @@ public class ProfilingActivity extends AppCompatActivity {
             } else {
                 if (cardOption6 != null) cardOption6.setVisibility(View.GONE);
             }
+
+            String savedAnswer = userAnswers[index];
+            if (savedAnswer != null) {
+                for (int i = 0; i < options.length; i++) {
+                    if (savedAnswer.equals(options[i])) {
+                        highlightSelectedCard(i);
+                        break;
+                    }
+                }
+            }
         }
 
         updateStepIndicatorNodes(index);
@@ -231,7 +310,7 @@ public class ProfilingActivity extends AppCompatActivity {
         tvText.setText(optionText);
 
         card.setOnClickListener(v -> {
-            if (isAnimating) return;
+            if (isAnimating || isSubmitting) return;
             isAnimating = true;
 
             highlightSelectedCard(optionIndex);
@@ -291,7 +370,7 @@ public class ProfilingActivity extends AppCompatActivity {
     private void resetSingleCardStyle(LinearLayout card, TextView tvText, TextView tvCheck) {
         if (card == null || tvText == null) return;
         card.setBackgroundResource(R.drawable.bg_button_pill);
-        tvText.setTextColor(Color.parseColor("#546B41"));
+        tvText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
         if (tvCheck != null) tvCheck.setVisibility(View.GONE);
     }
 
@@ -325,10 +404,10 @@ public class ProfilingActivity extends AppCompatActivity {
         }
 
         if (selectedCard != null) {
-            selectedCard.setBackgroundResource(R.drawable.bg_nav_item_selected);
+            selectedCard.setBackgroundResource(R.drawable.bg_button_pill_secondary);
         }
         if (selectedText != null) {
-            selectedText.setTextColor(Color.parseColor("#546B41"));
+            selectedText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
         }
         if (selectedCheck != null) {
             selectedCheck.setVisibility(View.VISIBLE);
@@ -336,28 +415,44 @@ public class ProfilingActivity extends AppCompatActivity {
     }
 
     private void updateStepIndicatorNodes(int index) {
-        int currentGroup = index / 3; // Maps 12 questions across 4 progress node groups
-        updateNodeState(node1, currentGroup >= 0, currentGroup > 0);
-        updateNodeState(node2, currentGroup >= 1, currentGroup > 1);
-        updateNodeState(node3, currentGroup >= 2, currentGroup > 2);
-        updateNodeState(node4, currentGroup >= 3, currentGroup > 3);
-    }
+        if (stepNodesList.isEmpty()) return;
 
-    private void updateNodeState(TextView node, boolean isReached, boolean isCompleted) {
-        if (node == null) return;
-        if (isCompleted) {
-            node.setText("✔");
-            node.setAlpha(1.0f);
-        } else if (isReached) {
-            node.setText("•");
-            node.setAlpha(1.0f);
-        } else {
-            node.setText("○");
-            node.setAlpha(0.4f);
+        for (int i = 0; i < stepNodesList.size(); i++) {
+            TextView node = stepNodesList.get(i);
+            if (node == null) continue;
+
+            if (i == index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_active);
+                node.setText("");
+                node.setAlpha(1.0f);
+            } else if (i < index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_completed);
+                node.setText("✔");
+                node.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                node.setAlpha(1.0f);
+            } else {
+                node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+                node.setText("");
+                node.setAlpha(1.0f);
+            }
+        }
+
+        for (int i = 0; i < stepLinesList.size(); i++) {
+            View line = stepLinesList.get(i);
+            if (line == null) continue;
+            line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+            if (i < index) {
+                line.setAlpha(1.0f);
+            } else {
+                line.setAlpha(0.85f);
+            }
         }
     }
 
     private void calculateAndSaveProfilingTiers() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
         String chosenNickname = userAnswers[0] != null ? userAnswers[0] : "Adventurer";
         String ageRangeStr = userAnswers[1] != null ? userAnswers[1] : "18–24";
 

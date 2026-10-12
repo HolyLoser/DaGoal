@@ -1,49 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_settings_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dagoal_background_light"
-    android:orientation="vertical"
-    android:fitsSystemWindows="true">
+    android:background="@color/dagoal_primary"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
+    <!-- Top Header Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="20dp">
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_large"
+        android:paddingVertical="@dimen/spacing_medium">
 
         <ImageButton
             android:id="@+id/btn_settings_back"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@android:color/transparent"
-            android:src="@android:drawable/ic_menu_revert"
-            android:contentDescription="Back" />
+            android:layout_width="@dimen/icon_button_size"
+            android:layout_height="@dimen/icon_button_size"
+            android:minWidth="@dimen/touch_target_min_width"
+            android:minHeight="@dimen/touch_target_min_height"
+            android:background="@drawable/bg_auth_pill"
+            android:contentDescription="@string/back"
+            android:padding="@dimen/spacing_small"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/dagoal_primary_dark" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:contentDescription="@string/settings_title"
+            android:src="@drawable/ic_settings_gear"
+            app:tint="@color/white" />
 
         <TextView
             android:id="@+id/tv_settings_screen_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_small"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:text="Settings"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="20sp"
+            android:text="@string/settings_title"
+            android:textColor="@color/white"
+            android:textSize="@dimen/text_size_headline"
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Main Content Container with Curved Panel -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@drawable/bg_dashboard_surface"
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <FrameLayout
             android:id="@+id/settings_content_frame"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="20dp" />
+            android:paddingHorizontal="20dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="24dp" />
     </ScrollView>
 
 </LinearLayout>

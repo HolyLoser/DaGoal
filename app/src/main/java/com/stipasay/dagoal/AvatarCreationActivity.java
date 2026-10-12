@@ -105,12 +105,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        View rootLayout = findViewById(android.R.id.content);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
-        });
+        View rootLayout = findViewById(R.id.root_avatar_creation_layout);
+        if (rootLayout == null) rootLayout = findViewById(android.R.id.content);
+        AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
 
         // Left Color Bar Swatches
         View swatchBlack = findViewById(R.id.color_swatch_black);

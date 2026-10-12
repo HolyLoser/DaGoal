@@ -1,56 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
     android:background="#CC000000"
-    android:padding="32dp">
+    android:padding="@dimen/spacing_huge">
 
     <FrameLayout
         android:id="@+id/avatar_host_container"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginBottom="24dp" />
+        android:layout_width="@dimen/avatar_host_size_medium"
+        android:layout_height="@dimen/avatar_host_size_medium"
+        android:layout_marginBottom="@dimen/spacing_extra_large" />
 
     <TextView
         android:id="@+id/tv_overlay_quest_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/avoidance_title"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_size_headline"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="@dimen/spacing_small" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/avoidance_message"
-        android:textColor="#E2E8F0"
-        android:textSize="14sp"
+        android:textColor="@color/dagoal_background_light"
+        android:textSize="@dimen/text_size_body"
         android:gravity="center"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginBottom="@dimen/spacing_huge" />
 
     <Button
         android:id="@+id/btn_overlay_understand"
-        android:layout_width="240dp"
-        android:layout_height="54dp"
+        android:layout_width="@dimen/avatar_host_height_medium"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:text="@string/understand"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:textAllCaps="false"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:backgroundTint="#778A66"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="@dimen/spacing_medium" />
 
     <Button
         android:id="@+id/btn_overlay_ignore"
-        android:layout_width="240dp"
-        android:layout_height="54dp"
+        android:layout_width="@dimen/avatar_host_height_medium"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
         android:text="@string/ignore_5_mins"
-        android:textColor="#2D3748"
+        android:textColor="@color/dagoal_primary_dark"
         android:textAllCaps="false"
-        android:backgroundTint="#E1C6A7" />
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

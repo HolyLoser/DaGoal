@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="33dp"
+    android:viewportWidth="300"
+    android:viewportHeight="50">
+
+    <!-- Left Ribbon Fold Shadow (3D depth) -->
+    <path
+        android:fillColor="#25331A"
+        android:pathData="M 28,43 L 42,43 L 42,49 Z" />
+
+    <!-- Right Ribbon Fold Shadow (3D depth) -->
+    <path
+        android:fillColor="#25331A"
+        android:pathData="M 272,43 L 258,43 L 258,49 Z" />
+
+    <!-- Left Ribbon Tail Notch -->
+    <path
+        android:fillColor="#3B4E2B"
+        android:pathData="M 30,13 L 0,5 L 14,25 L 0,45 L 30,37 Z" />
+
+    <!-- Right Ribbon Tail Notch -->
+    <path
+        android:fillColor="#3B4E2B"
+        android:pathData="M 270,13 L 300,5 L 286,25 L 300,45 L 270,37 Z" />
+
+    <!-- Main Ribbon Center Banner -->
+    <path
+        android:fillColor="#546B41"
+        android:pathData="M 28,7 L 272,7 L 272,43 L 28,43 Z" />
+
+    <!-- Inner Banner Border/Highlight -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M 32,10.5 L 268,10.5 L 268,39.5 L 32,39.5 Z"
+        android:strokeColor="#A9BC94"
+        android:strokeWidth="1.5" />
+
+</vector>
