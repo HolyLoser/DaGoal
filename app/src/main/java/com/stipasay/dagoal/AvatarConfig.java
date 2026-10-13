@@ -27,16 +27,16 @@ public class AvatarConfig {
 
     public AvatarConfig() {
         this.skinIndex = 0;
-        this.selectedColorName = "peach";
-        this.selectedNoseColorName = "black";
-        this.selectedMouthColorName = "peach";
+        this.selectedColorName = "orange";
+        this.selectedNoseColorName = "orange";
+        this.selectedMouthColorName = "brown";
         this.selectedNoseShape = "triangle_nose";
         this.selectedMouthShape = "smile_01";
-        this.selectedEyeColor = Color.parseColor("#1E90FF");
+        this.selectedEyeColor = Color.parseColor("#1E1E1E");
         this.selectedEyeBase = "bigeye";
         this.cheeksIndex = 0;
         this.hairIndex = 0;
-        this.selectedHairColor = Color.parseColor("#3B2219");
+        this.selectedHairColor = Color.parseColor("#1E1E1E");
         this.selectedHairBase = "01";
         this.clothesAssetId = "tank_top";
         this.accessoryAssetId = "";
@@ -52,9 +52,9 @@ public class AvatarConfig {
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId, String glassesAssetId, int glassesColor, String hatAssetId, int hatColor) {
         this.skinIndex = skinIndex;
-        this.selectedColorName = selectedColorName != null ? selectedColorName : "peach";
-        this.selectedNoseColorName = selectedNoseColorName != null ? selectedNoseColorName : "black";
-        this.selectedMouthColorName = selectedMouthColorName != null ? selectedMouthColorName : "peach";
+        this.selectedColorName = selectedColorName != null ? selectedColorName : "orange";
+        this.selectedNoseColorName = selectedNoseColorName != null ? selectedNoseColorName : "orange";
+        this.selectedMouthColorName = selectedMouthColorName != null ? selectedMouthColorName : "brown";
         this.selectedNoseShape = selectedNoseShape != null ? selectedNoseShape : "triangle_nose";
         this.selectedMouthShape = selectedMouthShape != null ? selectedMouthShape : "smile_01";
         this.selectedEyeColor = selectedEyeColor;
@@ -101,14 +101,14 @@ public class AvatarConfig {
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase,
                         String clothesAssetId) {
-        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, "orange", "brown", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, clothesAssetId, "", Color.parseColor("#1E1E1E"));
     }
 
     public AvatarConfig(int skinIndex, String selectedColorName, String selectedNoseShape,
                         String selectedMouthShape, int selectedEyeColor, String selectedEyeBase,
                         int cheeksIndex, int hairIndex, int selectedHairColor, String selectedHairBase) {
-        this(skinIndex, selectedColorName, "black", "peach", selectedNoseShape, selectedMouthShape, selectedEyeColor,
+        this(skinIndex, selectedColorName, "orange", "brown", selectedNoseShape, selectedMouthShape, selectedEyeColor,
                 selectedEyeBase, cheeksIndex, hairIndex, selectedHairColor, selectedHairBase, "tank_top", "", Color.parseColor("#1E1E1E"));
     }
 
@@ -129,16 +129,16 @@ public class AvatarConfig {
         SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
 
         int skinIndex = prefs.getInt("pref_avatar_skin", 0);
-        String selectedColorName = prefs.getString("pref_avatar_color", "peach");
-        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "black");
-        String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", selectedColorName);
+        String selectedColorName = prefs.getString("pref_avatar_color", "orange");
+        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "orange");
+        String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", "brown");
         String selectedNoseShape = prefs.getString("pref_avatar_nose_shape", "triangle_nose");
         String selectedMouthShape = prefs.getString("pref_avatar_mouth_shape", "smile_01");
-        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E90FF"));
+        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E1E1E"));
         String selectedEyeBase = prefs.getString("pref_avatar_eye_base", "bigeye");
         int cheeksIndex = prefs.getInt("pref_avatar_cheeks", 0);
         int hairIndex = prefs.getInt("pref_avatar_hair", 0);
-        int selectedHairColor = prefs.getInt("pref_avatar_hair_color", Color.parseColor("#3B2219"));
+        int selectedHairColor = prefs.getInt("pref_avatar_hair_color", Color.parseColor("#1E1E1E"));
         String selectedHairBase = prefs.getString("pref_avatar_hair_base", "01");
         String clothesAssetId = prefs.getString("pref_avatar_clothes", "tank_top");
 

@@ -57,7 +57,7 @@ public class AppSelectionActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btn_app_selection_back);
         if (btnBack != null) {
             btnBack.setVisibility(View.VISIBLE);
-            btnBack.setOnClickListener(v -> navigateBackToPreviousScreen());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> navigateBackToPreviousScreen());
         }
 
         getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
@@ -74,7 +74,7 @@ public class AppSelectionActivity extends AppCompatActivity {
 
         loadInstalledApps();
 
-        btnContinue.setOnClickListener(v -> saveSelectedAppsAndProceed());
+        DebouncedOnClickListener.setSafeOnClickListener(btnContinue, v -> saveSelectedAppsAndProceed());
     }
 
     private void loadInstalledApps() {
@@ -150,7 +150,7 @@ public class AppSelectionActivity extends AppCompatActivity {
                 cbSelected.setButtonTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.dagoal_primary_dark)));
             }
 
-            row.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(row, 150L, v -> {
                 if (cbSelected != null) {
                     cbSelected.setChecked(!cbSelected.isChecked());
                 }

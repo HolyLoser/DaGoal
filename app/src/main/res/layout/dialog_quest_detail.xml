@@ -2,41 +2,43 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:overScrollMode="never"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_surface_card_full_radius"
         android:orientation="vertical"
-        android:background="@drawable/bg_task_card"
-        android:padding="@dimen/spacing_large">
+        android:padding="24dp">
 
+        <!-- Top Header Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="@dimen/spacing_normal">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
+            <!-- Emoji Badge Frame -->
             <FrameLayout
-                android:layout_width="@dimen/nav_item_height"
-                android:layout_height="@dimen/nav_item_height"
-                android:layout_marginEnd="@dimen/spacing_normal">
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_achievement_badge" />
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="14dp"
+                android:background="@drawable/bg_circle_primary"
+                android:backgroundTint="@color/dagoal_secondary">
 
                 <TextView
                     android:id="@+id/tv_quest_detail_emoji"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="\uD83D\uDCCB"
+                    android:text="📋"
                     android:textSize="26sp" />
             </FrameLayout>
 
+            <!-- Title and Description -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -48,73 +50,98 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Quest Title"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="@dimen/text_size_header"
+                    android:textColor="@color/dagoal_primary_dark"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_quest_detail_description"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:lineSpacingMultiplier="1.2"
                     android:text="Goal description"
-                    android:textColor="@color/dagoal_primary"
-                    android:textSize="@dimen/text_size_caption"
-                    android:alpha="0.7"
-                    android:layout_marginTop="2dp" />
+                    android:textColor="@color/dagoal_text_secondary"
+                    android:textSize="13sp" />
             </LinearLayout>
 
+            <!-- Action Button (Delete / Forfeit) -->
             <ImageButton
                 android:id="@+id/btn_quest_detail_action"
-                android:layout_width="@dimen/icon_button_size"
-                android:layout_height="@dimen/icon_button_size"
-                android:minWidth="@dimen/touch_target_min_width"
-                android:minHeight="@dimen/touch_target_min_height"
-                android:background="@drawable/bg_achievement_rank_badge"
-                android:src="@android:drawable/ic_menu_delete"
-                app:tint="@android:color/white"
-                android:contentDescription="Remove quest" />
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_circle_primary"
+                android:backgroundTint="#FEE2E2"
+                android:contentDescription="Remove quest"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_delete_trash"
+                app:tint="@color/dagoal_error" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tv_quest_detail_difficulty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="Quest Difficulty: Easy"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="@dimen/text_size_body"
-            android:layout_marginBottom="@dimen/spacing_tiny" />
+            android:textColor="@color/dagoal_text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tv_quest_detail_reward"
-            android:layout_width="wrap_content"
+        <!-- Rewards Card Box -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Reward: 10 Gold / 15 XP"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="@dimen/text_size_body"
-            android:layout_marginBottom="@dimen/spacing_normal" />
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_task_card"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="14dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="QUEST REWARD"
+                android:textColor="@color/dagoal_text_muted"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_quest_detail_reward"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="🪙 10 Gold   •   ⚡ 15 XP"
+                android:textColor="@color/dagoal_primary_dark"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Progress Section -->
         <TextView
             android:id="@+id/tv_quest_detail_progress_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Progress"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="@dimen/text_size_caption"
-            android:alpha="0.7"
-            android:layout_marginBottom="@dimen/spacing_tiny" />
+            android:layout_marginBottom="6dp"
+            android:text="PROGRESS"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_large">
+            android:layout_height="28dp"
+            android:layout_marginBottom="24dp">
 
             <ProgressBar
                 android:id="@+id/pb_quest_detail_progress"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/progress_bar_height_large"
-                android:progressTint="@color/dagoal_secondary"
-                android:progressBackgroundTint="@color/dagoal_surface"
+                android:layout_height="match_parent"
+                android:progressDrawable="@drawable/bg_seekbar_track"
                 android:max="100"
                 android:progress="0" />
 
@@ -123,23 +150,26 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="0/5"
-                android:textColor="@color/dagoal_primary"
-                android:textSize="@dimen/text_size_small"
+                android:text="0/1"
+                android:textColor="@color/dagoal_primary_dark"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </FrameLayout>
 
+        <!-- Close Button -->
         <Button
             android:id="@+id/btn_quest_detail_close"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:background="@drawable/bg_button_primary_pill"
+            android:background="@drawable/bg_button_pill_dark"
             app:backgroundTint="@null"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
             android:text="Close"
             android:textAllCaps="false"
-            android:textColor="@android:color/white"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 

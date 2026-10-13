@@ -63,7 +63,7 @@ public class DailyRevealActivity extends AppCompatActivity {
         loadDailyTasksFromDatabase();
         loadDailyTasksFromDatabase();
 
-        btnAcceptTasks.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnAcceptTasks, v -> {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             prefs.edit().putString("last_quest_generation_date", todayDateStr).apply();
@@ -126,7 +126,7 @@ public class DailyRevealActivity extends AppCompatActivity {
                 if (btnCardShuffle != null) {
                     btnCardShuffle.setVisibility(View.VISIBLE);
                     btnCardShuffle.setImageResource(R.drawable.shuffle_icon);
-                    btnCardShuffle.setOnClickListener(v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                    DebouncedOnClickListener.setSafeOnClickListener(btnCardShuffle, v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
                 }
 
                 if (btnShuffle != null) btnShuffle.setVisibility(View.GONE);

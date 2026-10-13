@@ -11,21 +11,39 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:text="💇 Hair Color Picker"
         android:textColor="@color/dagoal_primary"
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- Color Preview Swatch -->
-    <View
-        android:id="@+id/view_hair_color_preview"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+    <!-- Color Preview Swatch & Hex Code -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/bg_circle_primary"
-        android:backgroundTint="#3B2219" />
+        android:gravity="center"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
+
+        <View
+            android:id="@+id/view_hair_color_preview"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_circle_preset"
+            android:backgroundTint="#1E1E1E" />
+
+        <TextView
+            android:id="@+id/tv_hair_hex_val"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="#1E1E1E"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+    </LinearLayout>
 
     <!-- Red Slider -->
     <LinearLayout
@@ -49,7 +67,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="59"
+            android:progress="30"
             android:progressDrawable="@drawable/bg_seekbar_track_red"
             android:thumb="@drawable/bg_seekbar_thumb_red"
             android:splitTrack="false"
@@ -61,7 +79,7 @@
             android:layout_width="32dp"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:text="59"
+            android:text="30"
             android:textColor="@color/dagoal_primary_dark"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -89,7 +107,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="34"
+            android:progress="30"
             android:progressDrawable="@drawable/bg_seekbar_track_green"
             android:thumb="@drawable/bg_seekbar_thumb_green"
             android:splitTrack="false"
@@ -101,7 +119,7 @@
             android:layout_width="32dp"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:text="34"
+            android:text="30"
             android:textColor="@color/dagoal_primary_dark"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -129,7 +147,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255"
-            android:progress="25"
+            android:progress="30"
             android:progressDrawable="@drawable/bg_seekbar_track_blue"
             android:thumb="@drawable/bg_seekbar_thumb_blue"
             android:splitTrack="false"
@@ -141,7 +159,7 @@
             android:layout_width="32dp"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:text="25"
+            android:text="30"
             android:textColor="@color/dagoal_primary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -157,73 +175,129 @@
         android:textSize="12sp"
         android:textStyle="bold" />
 
-    <!-- Presets Grid Row -->
+    <!-- Presets Grid Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <View
-            android:id="@+id/preset_hair_black"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#1E1E1E"
-            android:clickable="true"
-            android:focusable="true" />
+        <!-- Row 1 Presets -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <View
-            android:id="@+id/preset_hair_brown"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#3B2219"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_hair_white"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#FFFFFF"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_hair_blonde"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#E6BE75"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_hair_silver"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#D3D3D3"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_hair_auburn"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#A52A2A"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_hair_black"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#1E1E1E"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_hair_silver"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#D3D3D3"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_hair_brown"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#3B2219"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_hair_pink"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#FFB6C1"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_hair_blonde"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#E6BE75"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Row 2 Presets -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/preset_hair_auburn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#A52A2A"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_hair_pink"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#FFB6C1"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_hair_skyblue"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#87CEEB"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_hair_emerald"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#2E8B57"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_hair_purple"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle_preset"
+                android:backgroundTint="#9370DB"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
     </LinearLayout>
 
     <Button

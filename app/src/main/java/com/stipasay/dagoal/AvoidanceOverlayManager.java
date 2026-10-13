@@ -44,12 +44,7 @@ public class AvoidanceOverlayManager {
         Button btnIgnore = overlayView.findViewById(R.id.btn_overlay_ignore);
         Button btnUnderstand = overlayView.findViewById(R.id.btn_overlay_understand);
 
-        android.widget.FrameLayout avatarContainer = overlayView.findViewById(R.id.avatar_host_container);
-        if (avatarContainer != null) {
-            AvatarHelper.renderUserAvatar(context, avatarContainer);
-        }
-
-        tvQuestTitle.setText(quest.title);
+        tvQuestTitle.setText(quest.getRemainingTimeFormatted());
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -68,41 +63,25 @@ public class AvoidanceOverlayManager {
         SoundEffectsHelper.playWarning(context);
 
         TaskManager taskManager = new TaskManager(context);
-        updateIgnoreButtonLabel(btnIgnore, taskManager, quest.taskId);
+        if (btnIgnore != null) {
+            btnIgnore.setText(R.string.ignore_5_mins);
+        }
 
-        btnIgnore.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnIgnore, v -> {
             taskManager.handleIgnorePressed(quest.taskId);
             dismiss();
             dismissListener.onDismiss();
         });
 
-        btnUnderstand.setOnClickListener(v -> {
-            Intent launchIntent = new Intent(context, DashboardActivity.class);
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(launchIntent);
+        DebouncedOnClickListener.setSafeOnClickListener(btnUnderstand, v -> {
+            taskManager.snoozeAvoidanceQuestSeconds(quest.taskId, 15);
+            Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+            homeIntent.addCategory(Intent.CATEGORY_HOME);
+            homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(homeIntent);
             dismiss();
             dismissListener.onDismiss();
         });
-    }
-
-    private void updateIgnoreButtonLabel(Button btnIgnore, TaskManager taskManager, int taskId) {
-        int stage = taskManager.getIgnoreStage(taskId);
-        String label;
-        switch (stage) {
-            case 0:
-                label = "Ignore for 5 minutes";
-                break;
-            case 1:
-                label = "Ignore for 10 minutes";
-                break;
-            case 2:
-                label = "Ignore for 15 minutes";
-                break;
-            default:
-                label = "Ignore for today";
-                break;
-        }
-        btnIgnore.setText(label);
     }
 
     public void dismiss() {

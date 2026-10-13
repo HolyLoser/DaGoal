@@ -55,15 +55,15 @@ public class AuthPasswordActivity extends AppCompatActivity {
         TextView tvForgotPassword = findViewById(R.id.tv_forgot_password);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> finish());
         }
 
         if (btnToggleVisibility != null) {
-            btnToggleVisibility.setOnClickListener(v -> togglePasswordVisibility());
+            DebouncedOnClickListener.setSafeOnClickListener(btnToggleVisibility, v -> togglePasswordVisibility());
         }
 
         if (tvForgotPassword != null) {
-            tvForgotPassword.setOnClickListener(v -> sendPasswordResetEmail());
+            DebouncedOnClickListener.setSafeOnClickListener(tvForgotPassword, v -> sendPasswordResetEmail());
         }
 
         if (editAuthPassword != null) {
@@ -96,7 +96,7 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
 
         if (btnPasswordLogin != null) {
-            btnPasswordLogin.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPasswordLogin, v -> {
                 v.setEnabled(false);
                 processLoginAuthentication();
                 v.postDelayed(() -> {
@@ -139,6 +139,12 @@ public class AuthPasswordActivity extends AppCompatActivity {
         }
 
         editAuthPassword.setSelection(editAuthPassword.getText().length());
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
     }
 
     private void processLoginAuthentication() {

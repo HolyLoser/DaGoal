@@ -137,11 +137,11 @@ public class ProfilingActivity extends AppCompatActivity {
         setupDynamicStepIndicator(questions.length);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> handleBackClick());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> handleBackClick());
         }
 
         if (btnNicknameNext != null) {
-            btnNicknameNext.setOnClickListener(v -> processNicknameSubmit());
+            DebouncedOnClickListener.setSafeOnClickListener(btnNicknameNext, v -> processNicknameSubmit());
         }
 
         android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
@@ -155,6 +155,12 @@ public class ProfilingActivity extends AppCompatActivity {
         }
 
         displayQuestion(currentQuestionIndex, true);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
     }
 
     private void setupDynamicStepIndicator(int totalQuestions) {
@@ -309,7 +315,7 @@ public class ProfilingActivity extends AppCompatActivity {
         if (card == null || tvText == null) return;
         tvText.setText(optionText);
 
-        card.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(card, v -> {
             if (isAnimating || isSubmitting) return;
             isAnimating = true;
 

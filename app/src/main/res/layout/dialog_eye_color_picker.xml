@@ -11,219 +11,187 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:text="🎨 Eye Iris Color Picker"
+        android:layout_marginBottom="12dp"
+        android:text="👁️ Iris Color Picker"
         android:textColor="@color/dagoal_primary"
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- Color Preview Swatch -->
-    <View
-        android:id="@+id/view_eye_color_preview"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+    <!-- Color Preview Swatch & Name/Hex Code -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/bg_circle_primary"
-        android:backgroundTint="#1E90FF" />
+        android:gravity="center"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
 
-    <!-- Red Slider -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="R:"
-            android:textColor="#DC143C"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <SeekBar
-            android:id="@+id/sb_eye_red"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="255"
-            android:progress="30"
-            android:progressDrawable="@drawable/bg_seekbar_track_red"
-            android:thumb="@drawable/bg_seekbar_thumb_red"
-            android:splitTrack="false"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
+        <View
+            android:id="@+id/view_eye_color_preview"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_circle_preset"
+            android:backgroundTint="#1E1E1E" />
 
         <TextView
-            android:id="@+id/tv_eye_red_val"
-            android:layout_width="32dp"
+            android:id="@+id/tv_eye_color_name"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="30"
-            android:textColor="@color/dagoal_primary_dark"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Green Slider -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="G:"
-            android:textColor="#2E8B57"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <SeekBar
-            android:id="@+id/sb_eye_green"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="255"
-            android:progress="144"
-            android:progressDrawable="@drawable/bg_seekbar_track_green"
-            android:thumb="@drawable/bg_seekbar_thumb_green"
-            android:splitTrack="false"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
-
-        <TextView
-            android:id="@+id/tv_eye_green_val"
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="144"
-            android:textColor="@color/dagoal_primary_dark"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Blue Slider -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="B:"
-            android:textColor="#1E90FF"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <SeekBar
-            android:id="@+id/sb_eye_blue"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="255"
-            android:progress="255"
-            android:progressDrawable="@drawable/bg_seekbar_track_blue"
-            android:thumb="@drawable/bg_seekbar_thumb_blue"
-            android:splitTrack="false"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
-
-        <TextView
-            android:id="@+id/tv_eye_blue_val"
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="255"
+            android:layout_marginTop="6dp"
+            android:text="Deep Black"
             android:textColor="@color/dagoal_primary"
-            android:textSize="12sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_eye_hex_val"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="#1E1E1E"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="13sp"
+            android:fontFamily="monospace" />
     </LinearLayout>
 
-    <!-- Quick Color Presets Label -->
+    <!-- Presets Label -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="Quick Presets:"
+        android:layout_marginBottom="10dp"
+        android:text="Iris Color Presets:"
         android:textColor="@color/dagoal_primary"
-        android:textSize="12sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
-    <!-- Presets Grid Row -->
+    <!-- Presets Grid Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <View
-            android:id="@+id/preset_blue"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#1E90FF"
-            android:clickable="true"
-            android:focusable="true" />
+        <!-- Row 1: Black, Dark Brown, Chestnut Brown, Hazel -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <View
-            android:id="@+id/preset_green"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#2E8B57"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_iris_black"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_brown"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#8B4513"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_iris_darkbrown"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_hazel"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#DAA520"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_iris_brown"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <View
-            android:id="@+id/preset_purple"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#8A2BE2"
-            android:clickable="true"
-            android:focusable="true" />
+            <View
+                android:id="@+id/preset_iris_hazel"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
 
-        <View
-            android:id="@+id/preset_crimson"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#DC143C"
-            android:clickable="true"
-            android:focusable="true" />
+        <!-- Row 2: Amber Gold, Emerald Green, Turquoise, Sapphire Blue -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/preset_iris_amber"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_green"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_turquoise"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_sapphire"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Row 3: Sky Blue, Steel Gray, Purple, Ruby Red -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/preset_iris_skyblue"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_gray"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_purple"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:id="@+id/preset_iris_crimson"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
     </LinearLayout>
 
     <Button

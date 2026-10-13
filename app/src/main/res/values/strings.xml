@@ -94,4 +94,19 @@
     <string name="settings_category_sound_desc">Audio feedback, sound effects and vibrations</string>
     <string name="settings_category_about">About</string>
     <string name="settings_category_about_desc">App version, feedback and privacy policy</string>
+
+    <!-- Delete Account Strings -->
+    <string name="delete_account_title">Delete Account?</string>
+    <string name="delete_account_message">This action will permanently delete your account and erase all stored progress. This cannot be undone.</string>
+    <string name="delete_account_erased_header">Data to be permanently erased:</string>
+    <string name="delete_account_erase_item_quests">• Quests, tasks &amp; streak history</string>
+    <string name="delete_account_erase_item_achievements">• Achievements &amp; unlocked rewards</string>
+    <string name="delete_account_erase_item_progression">• Gold, XP &amp; level progression</string>
+    <string name="delete_account_erase_item_avatar">• Custom avatar &amp; saved preferences</string>
+    <string name="delete_account_type_instruction">To proceed, type DELETE below:</string>
+    <string name="delete_account_type_hint">Type DELETE</string>
+    <string name="delete_account_confirm">Delete Account</string>
+    <string name="cancel">Cancel</string>
+    <string name="coins_desc">Coins</string>
+    <string name="avoidance_interrupt_badge">AVOIDANCE INTERRUPT</string>
 </resources>

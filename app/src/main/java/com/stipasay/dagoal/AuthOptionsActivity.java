@@ -30,24 +30,24 @@ public class AuthOptionsActivity extends AppCompatActivity {
         View btnFacebook = findViewById(R.id.btn_opt_facebook);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> finish());
         }
 
         if (btnEmail != null) {
-            btnEmail.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnEmail, v -> {
                 Intent intent = new Intent(AuthOptionsActivity.this, AuthEmailActivity.class);
                 startActivity(intent);
             });
         }
 
         if (btnGmail != null) {
-            btnGmail.setOnClickListener(v ->
+            DebouncedOnClickListener.setSafeOnClickListener(btnGmail, v ->
                     ToastUtils.showToast(this, "Gmail sign-in coming soon!")
             );
         }
 
         if (btnFacebook != null) {
-            btnFacebook.setOnClickListener(v ->
+            DebouncedOnClickListener.setSafeOnClickListener(btnFacebook, v ->
                     ToastUtils.showToast(this, "Facebook sign-in coming soon!")
             );
         }

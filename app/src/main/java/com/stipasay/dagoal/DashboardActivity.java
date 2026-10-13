@@ -5,6 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -70,7 +73,7 @@ public class DashboardActivity extends AppCompatActivity {
     private SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener;
     private com.google.firebase.firestore.ListenerRegistration firestoreUserListener;
     private String currentActiveTab = "QUEST";
-    private String selectedWardrobeCategoryFilter = "clothes";
+    private String selectedWardrobeCategoryFilter = "all";
     private android.view.GestureDetector dashboardGestureDetector;
     private LinearLayout currentActiveQuestContainer;
     private LinearLayout currentCompletedQuestContainer;
@@ -84,6 +87,7 @@ public class DashboardActivity extends AppCompatActivity {
     private View tabViewShop = null;
     private View tabViewMe = null;
     private androidx.appcompat.app.AlertDialog activeChestTierDialog = null;
+    private boolean userDismissedChestPromptForCurrentPoints = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -175,16 +179,18 @@ public class DashboardActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     updateGlobalAvatarHeader();
                     if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
+                        userDismissedChestPromptForCurrentPoints = false;
                         populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+                        checkAndShowChestTierPrompt();
                     }
                 });
             }
         };
 
-        navQuest.setOnClickListener(v -> selectTab("QUEST"));
-        navWardrobe.setOnClickListener(v -> selectTab("WARDROBE"));
-        navShop.setOnClickListener(v -> selectTab("SHOP"));
-        navMe.setOnClickListener(v -> selectTab("ME"));
+        DebouncedOnClickListener.setSafeOnClickListener(navQuest, 250L, v -> selectTab("QUEST"));
+        DebouncedOnClickListener.setSafeOnClickListener(navWardrobe, 250L, v -> selectTab("WARDROBE"));
+        DebouncedOnClickListener.setSafeOnClickListener(navShop, 250L, v -> selectTab("SHOP"));
+        DebouncedOnClickListener.setSafeOnClickListener(navMe, 250L, v -> selectTab("ME"));
 
         if (checkNewDayQuestRouting()) {
             return;
@@ -235,8 +241,11 @@ public class DashboardActivity extends AppCompatActivity {
 
         if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
             TaskManager refreshManager = new TaskManager(this);
-            refreshManager.checkAndCompleteAvoidanceQuests();
+            if (refreshManager.checkAndCompleteAvoidanceQuests()) {
+                userDismissedChestPromptForCurrentPoints = false;
+            }
             populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+            checkAndShowChestTierPrompt();
         }
 
         startAvoidanceServiceIfNeeded();
@@ -401,24 +410,80 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme);
-        builder.setTitle("Permissions needed");
-        builder.setMessage("To enforce your avoidance quests, DaGoal needs Usage Access and Display Over Other Apps permissions.");
+        String btnPosLabel = !hasUsageAccess ? "Grant Usage Access" : "Grant Overlay Permission";
+        Runnable posAction = !hasUsageAccess
+                ? () -> startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                : () -> startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:" + getPackageName())));
 
-        if (!hasUsageAccess) {
-            builder.setPositiveButton("Grant Usage Access", (dialog, which) -> {
-                startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS));
-            });
-        } else {
-            builder.setPositiveButton("Grant Overlay Permission", (dialog, which) -> {
-                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        android.net.Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
+        showCustomConfirmDialog(
+                R.drawable.ic_info_circle, Color.parseColor("#EADEC7"), ContextCompat.getColor(this, R.color.dagoal_primary_dark),
+                "Permissions Needed 🛡️",
+                "To enforce your avoidance quests, DaGoal needs Usage Access and Display Over Other Apps permissions.",
+                btnPosLabel, R.drawable.bg_button_primary_pill, posAction,
+                "Later", null
+        );
+    }
+
+    private void showCustomConfirmDialog(int iconRes, int badgeBgColor, int iconTintColor,
+                                         String title, String message,
+                                         String posText, int posBtnBgRes, Runnable onPositive,
+                                         String negText, Runnable onNegative) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null && badgeBgColor != 0) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(badgeBgColor));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(iconRes != 0 ? iconRes : R.drawable.ic_info_circle);
+            if (iconTintColor != 0) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, android.content.res.ColorStateList.valueOf(iconTintColor));
+            }
+        }
+
+        if (tvTitle != null) tvTitle.setText(title);
+        if (tvMessage != null) tvMessage.setText(message);
+
+        if (btnNeg != null) {
+            btnNeg.setText(negText != null ? negText : "Cancel");
+        }
+        if (btnPos != null) {
+            btnPos.setText(posText != null ? posText : "Confirm");
+            if (posBtnBgRes != 0) {
+                btnPos.setBackgroundResource(posBtnBgRes);
+            }
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnNeg != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnNeg, v -> {
+                dialog.dismiss();
+                if (onNegative != null) onNegative.run();
             });
         }
 
-        builder.setNegativeButton("Later", null);
-        builder.show();
+        if (btnPos != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPos, v -> {
+                dialog.dismiss();
+                if (onPositive != null) onPositive.run();
+            });
+        }
+
+        dialog.show();
     }
 
     private void startAvoidanceServiceIfNeeded() {
@@ -602,7 +667,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         int[] durationHms = { 0, 30, 0 };
         if (rowDuration != null) {
-            rowDuration.setOnClickListener(v -> showCustomDurationPickerDialog(durationHms, tvDurationValue));
+            DebouncedOnClickListener.setSafeOnClickListener(rowDuration, v -> showCustomDurationPickerDialog(durationHms, tvDurationValue));
         }
 
         class TrackingOption {
@@ -705,7 +770,7 @@ public class DashboardActivity extends AppCompatActivity {
         });
 
         if (btnCustomBlockApps != null) {
-            btnCustomBlockApps.setOnClickListener(v -> showCustomAppBlockerDialog(selectedBlockedPackages));
+            DebouncedOnClickListener.setSafeOnClickListener(btnCustomBlockApps, v -> showCustomAppBlockerDialog(selectedBlockedPackages));
         }
 
         int[] selectedRepeatInterval = { 0 };
@@ -714,7 +779,7 @@ public class DashboardActivity extends AppCompatActivity {
         String[] selectedRepeatEndType = { "" };
         String[] selectedRepeatEndValue = { "" };
 
-        rowRepeat.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(rowRepeat, v -> {
             View repeatDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_picker, null);
             android.widget.NumberPicker pickerInterval = repeatDialogView.findViewById(R.id.picker_repeat_interval);
             android.widget.NumberPicker pickerRepeatUnit = repeatDialogView.findViewById(R.id.picker_repeat_unit);
@@ -779,7 +844,7 @@ public class DashboardActivity extends AppCompatActivity {
                 }
                 chip.setLayoutParams(chipParams);
                 final int index = i;
-                chip.setOnClickListener(cv -> {
+                DebouncedOnClickListener.setSafeOnClickListener(chip, 150L, cv -> {
                     selectedWeekdays[index] = !selectedWeekdays[index];
                     chip.setSelected(selectedWeekdays[index]);
                     chip.setTextColor(selectedWeekdays[index] ? Color.WHITE : ContextCompat.getColor(this, R.color.dagoal_primary_dark));
@@ -792,8 +857,8 @@ public class DashboardActivity extends AppCompatActivity {
                     .setView(repeatDialogView)
                     .create();
 
-            btnRepeatCancel.setOnClickListener(cv -> repeatDialog.dismiss());
-            btnRepeatOk.setOnClickListener(cv -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnRepeatCancel, cv -> repeatDialog.dismiss());
+            DebouncedOnClickListener.setSafeOnClickListener(btnRepeatOk, cv -> {
                 selectedRepeatInterval[0] = pickerInterval.getValue();
                 selectedRepeatUnit[0] = repeatUnitOptions[pickerRepeatUnit.getValue()];
                 tvRepeatValue.setText("Every " + selectedRepeatInterval[0] + " " + selectedRepeatUnit[0].toLowerCase(Locale.getDefault()) +
@@ -804,7 +869,7 @@ public class DashboardActivity extends AppCompatActivity {
             repeatDialog.show();
         });
 
-        rowRepeatEnds.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(rowRepeatEnds, v -> {
             View endsDialogView = LayoutInflater.from(this).inflate(R.layout.dialog_repeat_ends, null);
             TextView tabDate = endsDialogView.findViewById(R.id.tab_end_by_date);
             TextView tabCount = endsDialogView.findViewById(R.id.tab_end_by_count);
@@ -834,12 +899,12 @@ public class DashboardActivity extends AppCompatActivity {
             };
             refreshTabs.run();
 
-            tabDate.setOnClickListener(tv -> {
+            DebouncedOnClickListener.setSafeOnClickListener(tabDate, 200L, tv -> {
                 activeTab[0] = "DATE";
                 refreshTabs.run();
             });
 
-            tabCount.setOnClickListener(tv -> {
+            DebouncedOnClickListener.setSafeOnClickListener(tabCount, 200L, tv -> {
                 activeTab[0] = "COUNT";
                 refreshTabs.run();
             });
@@ -857,7 +922,7 @@ public class DashboardActivity extends AppCompatActivity {
 
             Button btnEndsClear = endsDialogView.findViewById(R.id.btn_repeat_ends_clear);
             if (btnEndsClear != null) {
-                btnEndsClear.setOnClickListener(cv -> {
+                DebouncedOnClickListener.setSafeOnClickListener(btnEndsClear, cv -> {
                     selectedRepeatEndType[0] = "NEVER";
                     selectedRepeatEndValue[0] = "";
                     tvRepeatEndsValue.setText("Does not end");
@@ -865,9 +930,9 @@ public class DashboardActivity extends AppCompatActivity {
                 });
             }
 
-            btnEndsCancel.setOnClickListener(cv -> endsDialog.dismiss());
+            DebouncedOnClickListener.setSafeOnClickListener(btnEndsCancel, cv -> endsDialog.dismiss());
 
-            btnEndsOk.setOnClickListener(cv -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnEndsOk, cv -> {
                 if ("DATE".equals(activeTab[0])) {
                     long selectedMillis = calendarView.getDate();
                     java.util.Calendar cal = java.util.Calendar.getInstance();
@@ -914,10 +979,10 @@ public class DashboardActivity extends AppCompatActivity {
 
         Button btnCancel = dialogView.findViewById(R.id.btn_custom_quest_cancel);
         if (btnCancel != null) {
-            btnCancel.setOnClickListener(v -> dialog.dismiss());
+            DebouncedOnClickListener.setSafeOnClickListener(btnCancel, v -> dialog.dismiss());
         }
 
-        btnCreate.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnCreate, v -> {
             String title = editTitle.getText().toString().trim();
             Object selectedObj = spinnerUnitType.getSelectedItem();
             String unitTypeSelection = selectedObj instanceof TrackingOption ? ((TrackingOption) selectedObj).key : String.valueOf(selectedObj);
@@ -1000,7 +1065,9 @@ public class DashboardActivity extends AppCompatActivity {
 
             if (success) {
                 ToastUtils.showToast(this, "Custom quest created!");
+                userDismissedChestPromptForCurrentPoints = false;
                 populateQuestLists(activeContainer, completedContainer);
+                checkAndShowChestTierPrompt();
                 dialog.dismiss();
             } else {
                 ToastUtils.showToast(this, "No custom quests remaining this week.");
@@ -1117,14 +1184,18 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void run() {
                 TaskManager taskManager = new TaskManager(DashboardActivity.this);
-                taskManager.checkAndCompleteAvoidanceQuests();
+                boolean completedAny = taskManager.checkAndCompleteAvoidanceQuests();
+                if (completedAny) {
+                    userDismissedChestPromptForCurrentPoints = false;
+                }
                 if (currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
                     populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+                    checkAndShowChestTierPrompt();
                 }
-                avoidanceTickHandler.postDelayed(this, 60000);
+                avoidanceTickHandler.postDelayed(this, 1000);
             }
         };
-        avoidanceTickHandler.postDelayed(avoidanceTickRunnable, 60000);
+        avoidanceTickHandler.postDelayed(avoidanceTickRunnable, 1000);
     }
 
     private void stopAvoidanceTicker() {
@@ -1178,6 +1249,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
         if (dashboardGestureDetector != null) {
             dashboardGestureDetector.onTouchEvent(ev);
         }
@@ -1462,7 +1534,7 @@ public class DashboardActivity extends AppCompatActivity {
 
                     Button btnAddGoal = tabViewQuest.findViewById(R.id.btn_dashboard_add_goal);
                     if (btnAddGoal != null) {
-                        btnAddGoal.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(btnAddGoal, v -> {
                             LinearLayout activeC = tabViewQuest.findViewById(R.id.container_active_dashboard_quests);
                             LinearLayout completedC = tabViewQuest.findViewById(R.id.container_completed_dashboard_quests);
                             showAddGoalChooserDialog(activeC, completedC);
@@ -1516,24 +1588,21 @@ public class DashboardActivity extends AppCompatActivity {
                         if (eqHat != null && ivSidebarHat != null) {
                             bindShopItemImagePreview(eqHat, ivSidebarHat, null);
                         } else if (ivSidebarHat != null) {
-                            ivSidebarHat.setImageResource(R.drawable.accessory_knit_hat);
-                            ivSidebarHat.setVisibility(View.VISIBLE);
+                            bindShopItemImagePreview(new ShopItem(-1, "Hat", 0, "hat", "accessory_knit_hat"), ivSidebarHat, null);
                         }
 
                         ShopItem eqGlasses = TaskManager.getEquippedItemForSlot(DashboardActivity.this, "glasses");
                         if (eqGlasses != null && ivSidebarGlasses != null) {
                             bindShopItemImagePreview(eqGlasses, ivSidebarGlasses, null);
                         } else if (ivSidebarGlasses != null) {
-                            ivSidebarGlasses.setImageResource(R.drawable.accessory_reading_glasses);
-                            ivSidebarGlasses.setVisibility(View.VISIBLE);
+                            bindShopItemImagePreview(new ShopItem(-2, "Glasses", 0, "glasses", "accessory_reading_glasses"), ivSidebarGlasses, null);
                         }
 
                         ShopItem eqClothes = TaskManager.getEquippedItemForSlot(DashboardActivity.this, "clothes");
                         if (eqClothes != null && !"tank_top".equalsIgnoreCase(eqClothes.getResName()) && ivSidebarClothes != null) {
                             bindShopItemImagePreview(eqClothes, ivSidebarClothes, null);
                         } else if (ivSidebarClothes != null) {
-                            ivSidebarClothes.setImageResource(R.drawable.tank_top);
-                            ivSidebarClothes.setVisibility(View.VISIBLE);
+                            bindShopItemImagePreview(new ShopItem(-3, "Tank Top", 0, "clothes", "tank_top"), ivSidebarClothes, null);
                         }
                     }
                 };
@@ -1547,7 +1616,9 @@ public class DashboardActivity extends AppCompatActivity {
                         filteredOwned.clear();
                         for (ShopItem item : allOwned) {
                             String itemSlot = TaskManager.getItemSlotType(item);
-                            if (selectedWardrobeCategoryFilter.equalsIgnoreCase(itemSlot)) {
+                            if ("all".equalsIgnoreCase(selectedWardrobeCategoryFilter)
+                                    || selectedWardrobeCategoryFilter.isEmpty()
+                                    || selectedWardrobeCategoryFilter.equalsIgnoreCase(itemSlot)) {
                                 filteredOwned.add(item);
                             }
                         }
@@ -1556,7 +1627,13 @@ public class DashboardActivity extends AppCompatActivity {
                             boolean eqB = isItemEquippedInSlot(b);
                             if (eqA && !eqB) return -1;
                             if (!eqA && eqB) return 1;
-                            return 0;
+
+                            int slotA = getSlotOrder(TaskManager.getItemSlotType(a));
+                            int slotB = getSlotOrder(TaskManager.getItemSlotType(b));
+                            if (slotA != slotB) {
+                                return Integer.compare(slotA, slotB);
+                            }
+                            return Integer.compare(a.getId(), b.getId());
                         });
 
                         int greenColor = ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_primary);
@@ -1582,9 +1659,18 @@ public class DashboardActivity extends AppCompatActivity {
                     }
                 };
 
-                if (btnFilterHat != null) btnFilterHat.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "hat"; applyWardrobeFilter.run(); });
-                if (btnFilterGlasses != null) btnFilterGlasses.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "glasses"; applyWardrobeFilter.run(); });
-                if (btnFilterClothes != null) btnFilterClothes.setOnClickListener(v -> { selectedWardrobeCategoryFilter = "clothes"; applyWardrobeFilter.run(); });
+                if (btnFilterHat != null) DebouncedOnClickListener.setSafeOnClickListener(btnFilterHat, 200L, v -> {
+                    selectedWardrobeCategoryFilter = "hat".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? "all" : "hat";
+                    applyWardrobeFilter.run();
+                });
+                if (btnFilterGlasses != null) DebouncedOnClickListener.setSafeOnClickListener(btnFilterGlasses, 200L, v -> {
+                    selectedWardrobeCategoryFilter = "glasses".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? "all" : "glasses";
+                    applyWardrobeFilter.run();
+                });
+                if (btnFilterClothes != null) DebouncedOnClickListener.setSafeOnClickListener(btnFilterClothes, 200L, v -> {
+                    selectedWardrobeCategoryFilter = "clothes".equalsIgnoreCase(selectedWardrobeCategoryFilter) ? "all" : "clothes";
+                    applyWardrobeFilter.run();
+                });
 
                 gridWardrobeItems.setAdapter(new android.widget.BaseAdapter() {
                     @Override
@@ -1626,7 +1712,7 @@ public class DashboardActivity extends AppCompatActivity {
                         lockOverlay.setVisibility(View.GONE);
                         ivLockIcon.setVisibility(View.GONE);
 
-                        convertView.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(convertView, 250L, v -> {
                             String itemSlot = TaskManager.getItemSlotType(item);
                             ShopItem currentlyEquipped = TaskManager.getEquippedItemForSlot(DashboardActivity.this, itemSlot);
                             if (currentlyEquipped != null && currentlyEquipped.getId() == item.getId()) {
@@ -1779,7 +1865,7 @@ public class DashboardActivity extends AppCompatActivity {
                             ivLockIcon.setVisibility(View.GONE);
                         }
 
-                        convertView.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(convertView, v -> {
                             if (position >= 0 && position < shopList.size()) {
                                 ShopItem currentItem = shopList.get(position);
                                 boolean isOwnedNow = shopManager.isItemOwned(currentItem.getId());
@@ -1793,24 +1879,7 @@ public class DashboardActivity extends AppCompatActivity {
                                     ToastUtils.showToast(DashboardActivity.this, "Unlocks at Level " + currentItem.getRequiredLevel());
                                     return;
                                 }
-                                new androidx.appcompat.app.AlertDialog.Builder(DashboardActivity.this, R.style.DaGoalDialogTheme)
-                                        .setTitle("Purchase Item")
-                                        .setMessage("Buy " + currentItem.getName() + " for " + currentItem.getPrice() + " Gold?")
-                                        .setPositiveButton("Buy", (dialog, which) -> {
-                                            if (shopManager.purchaseShopItem(currentItem)) {
-                                                ToastUtils.showToast(DashboardActivity.this, "Purchased " + currentItem.getName());
-                                                updateGlobalAvatarHeader();
-                                                updateShopGoldDisplay.run();
-                                                if (gridShopItems.getAdapter() != null) {
-                                                    ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
-                                                    adjustGridViewHeight(gridShopItems, 142);
-                                                }
-                                            } else {
-                                                ToastUtils.showToast(DashboardActivity.this, "Not enough Gold!");
-                                            }
-                                        })
-                                        .setNegativeButton("Cancel", null)
-                                        .show();
+                                showShopItemPreviewDialog(currentItem, updateShopGoldDisplay, gridShopItems);
                             }
                         });
                         return convertView;
@@ -1819,7 +1888,7 @@ public class DashboardActivity extends AppCompatActivity {
                 adjustGridViewHeight(gridShopItems, 142);
 
                 if (btnRefreshShop != null) {
-                    btnRefreshShop.setOnClickListener(v -> {
+                    DebouncedOnClickListener.setSafeOnClickListener(btnRefreshShop, v -> {
                         if (shopManager.performShopRefresh(this)) {
                             shopList.clear();
                             shopList.addAll(OnlineShopManager.getDynamicShopItems(this));
@@ -1881,6 +1950,134 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    private void showShopItemPreviewDialog(ShopItem item, Runnable updateShopGoldDisplay, android.widget.GridView gridShopItems) {
+        if (item == null) return;
+
+        AvatarConfig config = AvatarConfig.loadFromPreferences(this);
+        String slot = TaskManager.getItemSlotType(item);
+        String resName = item.getResName();
+
+        if ("clothes".equals(slot)) {
+            config.clothesAssetId = resName;
+        } else if ("hat".equals(slot)) {
+            if (resName != null && resName.startsWith("accessory_")) {
+                int lastUnderscore = resName.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    config.hatAssetId = resName.substring(0, lastUnderscore);
+                    config.hatColor = AvatarConfig.parseAccessoryColor(resName.substring(lastUnderscore + 1));
+                } else {
+                    config.hatAssetId = resName;
+                }
+            } else {
+                config.hatAssetId = resName;
+            }
+        } else {
+            if (resName != null && resName.startsWith("accessory_")) {
+                int lastUnderscore = resName.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    config.glassesAssetId = resName.substring(0, lastUnderscore);
+                    config.glassesColor = AvatarConfig.parseAccessoryColor(resName.substring(lastUnderscore + 1));
+                } else {
+                    config.glassesAssetId = resName;
+                }
+            } else {
+                config.glassesAssetId = resName;
+            }
+            config.accessoryAssetId = config.glassesAssetId;
+            config.accessoryColor = config.glassesColor;
+        }
+
+        Bitmap previewBitmap = AvatarCompositor.renderAvatarBitmap(this, config, 640);
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_shop_preview, null);
+        View frameAvatar = dialogView.findViewById(R.id.frame_shop_preview_avatar);
+        if (frameAvatar != null) {
+            frameAvatar.setClipToOutline(true);
+        }
+
+        TextView tvTitle = dialogView.findViewById(R.id.tv_shop_preview_title);
+        TextView tvRarity = dialogView.findViewById(R.id.tv_shop_preview_rarity);
+        ImageView ivAvatar = dialogView.findViewById(R.id.iv_shop_preview_avatar);
+        TextView tvBuyLabel = dialogView.findViewById(R.id.tv_shop_preview_buy_label);
+        View btnBuy = dialogView.findViewById(R.id.btn_shop_preview_buy);
+        Button btnBack = dialogView.findViewById(R.id.btn_shop_preview_back);
+
+        if (ivAvatar != null && previewBitmap != null) {
+            ivAvatar.setImageBitmap(previewBitmap);
+            ivAvatar.post(() -> {
+                int viewWidth = ivAvatar.getWidth();
+                int viewHeight = ivAvatar.getHeight();
+                int bmpWidth = previewBitmap.getWidth();
+                int bmpHeight = previewBitmap.getHeight();
+
+                if (viewWidth > 0 && viewHeight > 0 && bmpWidth > 0 && bmpHeight > 0) {
+                    float scale = Math.min((float) viewWidth / bmpWidth, (float) viewHeight / bmpHeight);
+                    float dx = (viewWidth - (bmpWidth * scale)) / 2.0f;
+                    float dy = viewHeight - (bmpHeight * scale);
+
+                    android.graphics.Matrix matrix = new android.graphics.Matrix();
+                    matrix.setScale(scale, scale);
+                    matrix.postTranslate(dx, dy);
+
+                    ivAvatar.setScaleType(ImageView.ScaleType.MATRIX);
+                    ivAvatar.setImageMatrix(matrix);
+                }
+            });
+        }
+
+        if (tvTitle != null) {
+            String titleStr = (item.getIconEmoji() != null ? item.getIconEmoji() + " " : "") + item.getName();
+            tvTitle.setText(titleStr);
+        }
+
+        if (tvRarity != null) {
+            String categoryStr = item.getCategory() != null ? item.getCategory().toUpperCase() : slot.toUpperCase();
+            tvRarity.setText(item.getRarityTier() + " • " + categoryStr);
+            int tierColor = getShopTierColor(item.getRarityTier());
+            tvRarity.setTextColor(tierColor);
+        }
+
+        if (ivAvatar != null && previewBitmap != null) {
+            ivAvatar.setImageBitmap(previewBitmap);
+        }
+
+        if (tvBuyLabel != null) {
+            tvBuyLabel.setText("Buy for " + item.getPrice());
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnBack != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> dialog.dismiss());
+        }
+
+        if (btnBuy != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnBuy, v -> {
+                dialog.dismiss();
+                TaskManager shopManager = new TaskManager(this);
+                if (shopManager.purchaseShopItem(item)) {
+                    ToastUtils.showToast(this, "Purchased " + item.getName() + "!");
+                    updateGlobalAvatarHeader();
+                    if (updateShopGoldDisplay != null) updateShopGoldDisplay.run();
+                    if (gridShopItems != null && gridShopItems.getAdapter() != null) {
+                        ((android.widget.BaseAdapter) gridShopItems.getAdapter()).notifyDataSetChanged();
+                        adjustGridViewHeight(gridShopItems, 142);
+                    }
+                } else {
+                    ToastUtils.showToast(this, "Not enough Gold!");
+                }
+            });
+        }
+
+        dialog.show();
+    }
+
     private final static android.util.LruCache<String, Bitmap> sAccessoryBitmapCache = new android.util.LruCache<>(200);
 
     private void bindShopItemImagePreview(ShopItem item, ImageView ivItemImage, TextView tvEmoji) {
@@ -1913,17 +2110,38 @@ public class DashboardActivity extends AppCompatActivity {
             }
 
             if (drawableRes != 0) {
+                Bitmap bmpToDisplay = null;
                 if (tintColor != 0) {
-                    Bitmap tintedBitmap = AvatarCompositor.generateAccessoryBitmap(this, drawableRes, tintColor);
-                    if (tintedBitmap != null) {
-                        sAccessoryBitmapCache.put(resName, tintedBitmap);
-                        ivItemImage.setImageBitmap(tintedBitmap);
-                    } else {
-                        ivItemImage.setImageResource(drawableRes);
-                    }
-                } else {
-                    ivItemImage.setImageResource(drawableRes);
+                    bmpToDisplay = AvatarCompositor.generateAccessoryBitmap(this, drawableRes, tintColor);
                 }
+                if (bmpToDisplay == null) {
+                    Drawable d = ContextCompat.getDrawable(this, drawableRes);
+                    if (d != null) {
+                        if (d instanceof BitmapDrawable) {
+                            bmpToDisplay = ((BitmapDrawable) d).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+                        } else {
+                            int w = d.getIntrinsicWidth() > 0 ? d.getIntrinsicWidth() : 320;
+                            int h = d.getIntrinsicHeight() > 0 ? d.getIntrinsicHeight() : 320;
+                            bmpToDisplay = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                            Canvas canvas = new Canvas(bmpToDisplay);
+                            d.setBounds(0, 0, w, h);
+                            d.draw(canvas);
+                        }
+                    }
+                }
+
+                if (bmpToDisplay != null) {
+                    Bitmap croppedBmp = AvatarCompositor.cropTransparentBitmap(bmpToDisplay);
+                    if (croppedBmp != null) {
+                        sAccessoryBitmapCache.put(resName, croppedBmp);
+                        ivItemImage.setImageBitmap(croppedBmp);
+                        ivItemImage.setVisibility(View.VISIBLE);
+                        if (tvEmoji != null) tvEmoji.setVisibility(View.GONE);
+                        return;
+                    }
+                }
+
+                ivItemImage.setImageResource(drawableRes);
                 ivItemImage.setVisibility(View.VISIBLE);
                 if (tvEmoji != null) tvEmoji.setVisibility(View.GONE);
                 return;
@@ -1942,6 +2160,13 @@ public class DashboardActivity extends AppCompatActivity {
         String slot = TaskManager.getItemSlotType(item);
         ShopItem equipped = TaskManager.getEquippedItemForSlot(this, slot);
         return equipped != null && equipped.getId() == item.getId();
+    }
+
+    private int getSlotOrder(String slot) {
+        if ("hat".equalsIgnoreCase(slot)) return 1;
+        if ("glasses".equalsIgnoreCase(slot)) return 2;
+        if ("clothes".equalsIgnoreCase(slot)) return 3;
+        return 4;
     }
 
     private Handler boostTimerHandler = new Handler(Looper.getMainLooper());
@@ -2445,7 +2670,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         View cardStreak = meView.findViewById(R.id.card_streak);
         if (cardStreak != null) {
-            cardStreak.setOnClickListener(v -> startActivity(new Intent(this, StreakInfoActivity.class)));
+            DebouncedOnClickListener.setSafeOnClickListener(cardStreak, v -> startActivity(new Intent(this, StreakInfoActivity.class)));
         }
 
         View badgeStreakUnclaimed = meView.findViewById(R.id.badge_streak_unclaimed_chest);
@@ -2464,7 +2689,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         View cardConsumables = meView.findViewById(R.id.card_consumables);
         if (cardConsumables != null) {
-            cardConsumables.setOnClickListener(v -> showConsumablesDialog(meView));
+            DebouncedOnClickListener.setSafeOnClickListener(cardConsumables, v -> showConsumablesDialog(meView));
         }
         updateConsumablesCardSummary(meView);
     }
@@ -2561,7 +2786,7 @@ public class DashboardActivity extends AppCompatActivity {
         refreshDialogUI.run();
 
         if (btnActivateXp15 != null) {
-            btnActivateXp15.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnActivateXp15, v -> {
                 SoundEffectsHelper.playButton(this);
                 taskManager.useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_XP_BOOST_1_5);
                 taskManager.activateXpBoost(this);
@@ -2571,7 +2796,7 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnActivateGold15 != null) {
-            btnActivateGold15.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnActivateGold15, v -> {
                 SoundEffectsHelper.playButton(this);
                 taskManager.useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_GOLD_BOOST_1_5);
                 taskManager.activateGoldBoost(this);
@@ -2581,7 +2806,7 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnActivateXp != null) {
-            btnActivateXp.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnActivateXp, v -> {
                 SoundEffectsHelper.playButton(this);
                 if (taskManager.activateXpBoost(this)) {
                     ToastUtils.showToast(this, "⚡ 2x XP Boost Activated for Today!");
@@ -2591,7 +2816,7 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnActivateGold != null) {
-            btnActivateGold.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnActivateGold, v -> {
                 SoundEffectsHelper.playButton(this);
                 if (taskManager.activateGoldBoost(this)) {
                     ToastUtils.showToast(this, "🪙 2x Gold Boost Activated for Today!");
@@ -2601,7 +2826,7 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnClose != null) {
-            btnClose.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnClose, v -> {
                 SoundEffectsHelper.playMenuClose(this);
                 dialog.dismiss();
             });
@@ -2641,41 +2866,87 @@ public class DashboardActivity extends AppCompatActivity {
                     int baseTarget = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_TARGET_VALUE));
                     String emoji = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.AchievementEntry.COLUMN_ICON_EMOJI));
 
+                    View cardContainer = convertView.findViewById(R.id.card_achievement_item);
                     View badgeBg = convertView.findViewById(R.id.view_achievement_badge_bg);
                     TextView tvRankBadge = convertView.findViewById(R.id.tv_achievement_rank_badge);
                     TextView tvEmoji = convertView.findViewById(R.id.tv_achievement_emoji);
                     TextView tvGridTitle = convertView.findViewById(R.id.tv_achievement_grid_title);
+                    TextView tvGridDesc = convertView.findViewById(R.id.tv_achievement_grid_desc);
                     TextView tvRankLabel = convertView.findViewById(R.id.tv_achievement_rank_label);
 
-                    int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
-                    androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
-
                     int rankIndex = AchievementTierHelper.getCurrentRankIndex(currentProgress, baseTarget);
-                    tvRankBadge.setText(rankIndex < 0 ? "-" : String.valueOf(rankIndex + 1));
+                    int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
+
+                    // 1. Circle Icon Badge & Lock / Level Overlay Indicator
+                    if (rankIndex < 0) {
+                        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(Color.parseColor("#3E4C33")));
+                        tvRankBadge.setText("🔒");
+                        tvRankBadge.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 9f);
+                    } else {
+                        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
+                        tvRankBadge.setText(String.valueOf(rankIndex + 1));
+                        tvRankBadge.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f);
+                    }
 
                     tvEmoji.setText(emoji);
                     tvGridTitle.setText(title);
+                    androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(
+                            tvGridTitle,
+                            androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM
+                    );
 
-                    TextView tvGridDesc = convertView.findViewById(R.id.tv_achievement_grid_desc);
                     if (tvGridDesc != null) {
                         tvGridDesc.setText(desc);
+                        androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(
+                                tvGridDesc,
+                                androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM
+                        );
                     }
+
+                    // 2. Dynamic Container Card Background
+                    if (cardContainer != null) {
+                        android.graphics.drawable.GradientDrawable cardGd = new android.graphics.drawable.GradientDrawable();
+                        cardGd.setCornerRadius(dpToPx(16f));
+                        cardGd.setColor(Color.parseColor("#FFFDF5")); // Cream surface container
+                        if (rankIndex < 0) {
+                            cardGd.setStroke(dpToPx(1.5f), Color.parseColor("#DCCCAC"));
+                        } else {
+                            cardGd.setStroke(dpToPx(2f), badgeColor);
+                        }
+                        cardContainer.setBackground(cardGd);
+                    }
+
+                    // 3. Dynamic Rank Tag Status Pill
+                    android.graphics.drawable.GradientDrawable pillGd = new android.graphics.drawable.GradientDrawable();
+                    pillGd.setCornerRadius(dpToPx(12f));
 
                     if (rankIndex < 0) {
                         tvRankLabel.setText("Unranked");
-                        tvRankLabel.setTextColor(ContextCompat.getColor(DashboardActivity.this, R.color.dagoal_border_light));
+                        tvRankLabel.setTextColor(Color.parseColor("#64748B")); // Dark Slate for high contrast on light beige
+                        pillGd.setColor(Color.parseColor("#EADEC7"));
+                        pillGd.setStroke(dpToPx(1f), Color.parseColor("#D0C4AC"));
                     } else {
-                        tvRankLabel.setText(AchievementTierHelper.RANK_NAMES[rankIndex]);
+                        String rankName = AchievementTierHelper.RANK_NAMES[rankIndex];
+                        tvRankLabel.setText(rankName);
                         tvRankLabel.setTextColor(badgeColor);
-                    }
 
-                    convertView.setOnClickListener(v -> showAchievementDetailDialog(title, desc, currentProgress, baseTarget, emoji));
+                        int alphaBg = Color.argb(32, Color.red(badgeColor), Color.green(badgeColor), Color.blue(badgeColor));
+                        pillGd.setColor(alphaBg);
+                        pillGd.setStroke(dpToPx(1.5f), badgeColor);
+                    }
+                    tvRankLabel.setBackground(pillGd);
+
+                    DebouncedOnClickListener.setSafeOnClickListener(convertView, v -> showAchievementDetailDialog(title, desc, currentProgress, baseTarget, emoji));
 
                     return convertView;
                 }
             });
-            adjustGridViewHeight(gridAchievements, 174);
+            adjustGridViewHeight(gridAchievements, 178);
         }
+    }
+
+    private int dpToPx(float dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private String getQuestTypeEmoji(String questType) {
@@ -2695,19 +2966,21 @@ public class DashboardActivity extends AppCompatActivity {
                                        boolean isCustom, boolean isCompleted, String packageName,
                                        LinearLayout activeContainer, LinearLayout completedContainer) {
         if (isCompleted) {
-            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
-                    .setTitle("Undo Quest Completion?")
-                    .setMessage("Would you like to undo completing this quest? Doing so will revert its progress and refund its rewards.")
-                    .setPositiveButton("Undo", (dialog, which) -> {
+            showCustomConfirmDialog(
+                    R.drawable.ic_info_circle, Color.parseColor("#EADEC7"), ContextCompat.getColor(this, R.color.dagoal_primary_dark),
+                    "Undo Quest Completion?",
+                    "Would you like to undo completing this quest? Doing so will revert its progress and refund its rewards.",
+                    "Undo", R.drawable.bg_button_primary_pill,
+                    () -> {
                         SoundEffectsHelper.playButton(this);
                         TaskManager taskManager = new TaskManager(this);
                         taskManager.uncompleteTask(taskId, rewardGold, rewardXp);
                         updateChestBarUI();
                         populateQuestLists(activeContainer, completedContainer);
                         ToastUtils.showToast(this, "Quest un-completed. Reverted rewards.");
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+                    },
+                    "Cancel", null
+            );
             return;
         }
         SoundEffectsHelper.playMenuOpen(this);
@@ -2742,7 +3015,7 @@ public class DashboardActivity extends AppCompatActivity {
         if (tvDifficulty != null) {
             tvDifficulty.setVisibility(View.GONE);
         }
-        tvReward.setText("Reward: " + rewardGold + " Gold / " + rewardXp + " XP");
+        tvReward.setText("🪙 " + rewardGold + " Gold   •   ⚡ " + rewardXp + " XP");
 
         int safeTarget = Math.max(target, 1);
         int percent = (int) (((double) currentValue / safeTarget) * 100);
@@ -2750,36 +3023,49 @@ public class DashboardActivity extends AppCompatActivity {
         pbProgress.setProgress(Math.min(percent, 100));
         tvProgressText.setText(currentValue + "/" + target);
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setView(dialogView)
                 .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
 
         if (isCompleted) {
             btnAction.setVisibility(View.GONE);
         } else {
-            btnAction.setImageResource(isCustom ? android.R.drawable.ic_menu_delete : android.R.drawable.ic_menu_close_clear_cancel);
+            if (isCustom) {
+                btnAction.setImageResource(R.drawable.ic_delete_trash);
+                androidx.core.widget.ImageViewCompat.setImageTintList(btnAction, android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dagoal_error)));
+                androidx.core.view.ViewCompat.setBackgroundTintList(btnAction, android.content.res.ColorStateList.valueOf(Color.parseColor("#FEE2E2")));
+            } else {
+                btnAction.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+                androidx.core.widget.ImageViewCompat.setImageTintList(btnAction, android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.dagoal_primary_dark)));
+                androidx.core.view.ViewCompat.setBackgroundTintList(btnAction, android.content.res.ColorStateList.valueOf(Color.parseColor("#EADEC7")));
+            }
 
-            btnAction.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnAction, v -> {
                 String confirmTitle = isCustom ? "Delete this quest?" : "Forfeit this quest?";
                 String confirmMessage = isCustom
                         ? "This will remove the quest. Deleting a custom quest still uses up this week's custom quest slot."
                         : "This quest will be removed and the slot will stay empty for the rest of today.";
 
-                new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
-                        .setTitle(confirmTitle)
-                        .setMessage(confirmMessage)
-                        .setPositiveButton(isCustom ? "Delete" : "Forfeit", (d, w) -> {
+                showCustomConfirmDialog(
+                        R.drawable.ic_delete_trash, Color.parseColor("#FEE2E2"), ContextCompat.getColor(this, R.color.dagoal_error),
+                        confirmTitle, confirmMessage,
+                        isCustom ? "Delete Quest" : "Forfeit Quest", R.drawable.bg_button_pill_danger,
+                        () -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.removeQuest(taskId);
                             populateQuestLists(activeContainer, completedContainer);
                             dialog.dismiss();
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
+                        },
+                        "Cancel", null
+                );
             });
         }
 
-        btnClose.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnClose, v -> {
             SoundEffectsHelper.playMenuClose(this);
             dialog.dismiss();
         });
@@ -2793,21 +3079,50 @@ public class DashboardActivity extends AppCompatActivity {
 
         View badgeBg = dialogView.findViewById(R.id.view_dialog_badge_bg);
         TextView tvEmoji = dialogView.findViewById(R.id.tv_dialog_achievement_emoji);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_dialog_achievement_title);
         TextView tvDesc = dialogView.findViewById(R.id.tv_dialog_achievement_desc);
         TextView tvRankName = dialogView.findViewById(R.id.tv_dialog_rank_name);
         android.widget.ProgressBar pbProgress = dialogView.findViewById(R.id.pb_dialog_rank_progress);
         TextView tvProgressLabel = dialogView.findViewById(R.id.tv_dialog_progress_label);
+        Button btnClose = dialogView.findViewById(R.id.btn_dialog_achievement_close);
 
+        int rankIndex = AchievementTierHelper.getCurrentRankIndex(currentProgress, baseTarget);
         int badgeColor = AchievementTierHelper.getBadgeColor(currentProgress, baseTarget);
-        androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
+
+        if (rankIndex < 0) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(Color.parseColor("#3E4C33")));
+        } else {
+            androidx.core.view.ViewCompat.setBackgroundTintList(badgeBg, android.content.res.ColorStateList.valueOf(badgeColor));
+        }
 
         if (tvEmoji != null) {
             tvEmoji.setText(emoji);
             tvEmoji.setVisibility(View.VISIBLE);
         }
 
-        tvDesc.setText(title + "\n" + description);
-        tvRankName.setText(AchievementTierHelper.getRankName(currentProgress, baseTarget));
+        if (tvTitle != null) tvTitle.setText(title);
+        if (tvDesc != null) tvDesc.setText(description);
+
+        // Rank Status Tag Pill
+        android.graphics.drawable.GradientDrawable pillGd = new android.graphics.drawable.GradientDrawable();
+        pillGd.setCornerRadius(dpToPx(12f));
+
+        if (rankIndex < 0) {
+            tvRankName.setText("Unranked");
+            tvRankName.setTextColor(Color.parseColor("#64748B"));
+            pillGd.setColor(Color.parseColor("#EADEC7"));
+            pillGd.setStroke(dpToPx(1f), Color.parseColor("#D0C4AC"));
+        } else {
+            String rankNameStr = AchievementTierHelper.RANK_NAMES[rankIndex];
+            tvRankName.setText(rankNameStr);
+            tvRankName.setTextColor(badgeColor);
+
+            int alphaBg = Color.argb(32, Color.red(badgeColor), Color.green(badgeColor), Color.blue(badgeColor));
+            pillGd.setColor(alphaBg);
+            pillGd.setStroke(dpToPx(1.5f), badgeColor);
+        }
+        tvRankName.setBackground(pillGd);
+
         pbProgress.setProgress(AchievementTierHelper.getProgressPercentToNextRank(currentProgress, baseTarget));
 
         if (AchievementTierHelper.isMaxRank(currentProgress, baseTarget)) {
@@ -2819,10 +3134,21 @@ public class DashboardActivity extends AppCompatActivity {
             tvProgressLabel.setText(remaining + " more to reach " + nextRank);
         }
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setView(dialogView)
-                .setNegativeButton("Close", (d, w) -> SoundEffectsHelper.playMenuClose(this))
                 .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> {
+                SoundEffectsHelper.playMenuClose(this);
+                dialog.dismiss();
+            });
+        }
+
         dialog.setOnDismissListener(d -> SoundEffectsHelper.playMenuClose(this));
         dialog.show();
     }
@@ -2873,8 +3199,9 @@ public class DashboardActivity extends AppCompatActivity {
             }
         }
 
-        cardChestBar.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(cardChestBar, v -> {
             if (points >= currentTarget) {
+                userDismissedChestPromptForCurrentPoints = false;
                 showChestTierDialog(tier);
             } else {
                 ToastUtils.showToast(this, "Complete quests to fill the Tier " + tier + " chest bar! (" + points + "/" + currentTarget + " pts)");
@@ -2908,7 +3235,7 @@ public class DashboardActivity extends AppCompatActivity {
             tvSlots.setText(slotText);
         }
         if (btnGotIt != null) {
-            btnGotIt.setOnClickListener(v -> dialog.dismiss());
+            DebouncedOnClickListener.setSafeOnClickListener(btnGotIt, v -> dialog.dismiss());
         }
 
         dialog.show();
@@ -2916,6 +3243,9 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void checkAndShowChestTierPrompt() {
         if (activeChestTierDialog != null && activeChestTierDialog.isShowing()) {
+            return;
+        }
+        if (userDismissedChestPromptForCurrentPoints) {
             return;
         }
         int points = TaskManager.getChestBarPoints(this);
@@ -3017,7 +3347,7 @@ public class DashboardActivity extends AppCompatActivity {
         SoundEffectsHelper.playCoin(this);
 
         if (btnCollect != null) {
-            btnCollect.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnCollect, v -> {
                 dialog.dismiss();
                 updateGlobalAvatarHeader();
                 updateChestBarUI();
@@ -3068,8 +3398,9 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (btnUnlock != null) {
-            btnUnlock.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnUnlock, v -> {
                 dialog.dismiss();
+                userDismissedChestPromptForCurrentPoints = false;
                 TaskManager.claimChestTier(DashboardActivity.this, tier);
                 showChestLootRevealDialog(tier);
             });
@@ -3080,8 +3411,9 @@ public class DashboardActivity extends AppCompatActivity {
                 btnKeepGoing.setVisibility(View.GONE);
             } else {
                 btnKeepGoing.setVisibility(View.VISIBLE);
-                btnKeepGoing.setOnClickListener(v -> {
+                DebouncedOnClickListener.setSafeOnClickListener(btnKeepGoing, v -> {
                     SoundEffectsHelper.playButton(DashboardActivity.this);
+                    userDismissedChestPromptForCurrentPoints = false;
                     TaskManager.advanceToNextChestTier(DashboardActivity.this);
                     dialog.dismiss();
                     updateChestBarUI();
@@ -3094,6 +3426,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         dialog.setOnDismissListener(d -> {
             activeChestTierDialog = null;
+            userDismissedChestPromptForCurrentPoints = true;
             SoundEffectsHelper.playMenuClose(this);
         });
         dialog.show();
@@ -3176,7 +3509,7 @@ public class DashboardActivity extends AppCompatActivity {
                 }
 
                 View row = LayoutInflater.from(this).inflate(R.layout.item_reveal_task, (isCompleted == 1) ? completedContainer : activeContainer, false);
-                row.setOnClickListener(v -> showQuestDetailDialog(
+                DebouncedOnClickListener.setSafeOnClickListener(row, v -> showQuestDetailDialog(
                         taskId, title, target, unit, questType, difficultyTier, currentValue,
                         rewardGold, rewardXp, isCustomQuest, rowCompleted, packageName, activeContainer, completedContainer
                 ));
@@ -3205,15 +3538,15 @@ public class DashboardActivity extends AppCompatActivity {
                 btnCompletedLabel.setVisibility(View.GONE);
 
                 if (isStepTracked) {
-                    tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
+                    tvTarget.setText(String.format(java.util.Locale.getDefault(), "%,d / %,d %s | %d XP / %d Gold", currentValue, target, unit, rewardXp, rewardGold));
                     ivAutoTrackedIcon.setVisibility(View.VISIBLE);
                     pbProgress.setVisibility(View.VISIBLE);
                     pbProgress.setMax(target);
                     pbProgress.setProgress(currentValue);
 
-                    // Show distance pill (rough estimation: 1 step = 0.00075 km)
-                    double km = target * 0.00075;
-                    tvTargetPill.setText(String.format(java.util.Locale.getDefault(), "%.1f km", km));
+                    // Show distance pill based on current steps taken (rough estimation: 1 step = 0.00075 km)
+                    double km = currentValue * 0.00075;
+                    tvTargetPill.setText(String.format(java.util.Locale.getDefault(), "%.2f km", km));
                     tvTargetPill.setVisibility(View.VISIBLE);
                 } else if (isIncrementTracked) {
                     tvTarget.setText(currentValue + " / " + target + " " + unit + " | " + rewardXp + " XP / " + rewardGold + " Gold");
@@ -3222,37 +3555,43 @@ public class DashboardActivity extends AppCompatActivity {
                     pbProgress.setProgress(currentValue);
                     if (isCompleted == 0) {
                         btnIncrementProgress.setVisibility(View.VISIBLE);
-                        btnIncrementProgress.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(btnIncrementProgress, v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.incrementQuestProgress(taskId);
+                            userDismissedChestPromptForCurrentPoints = false;
                             populateQuestLists(activeContainer, completedContainer);
+                            checkAndShowChestTierPrompt();
                         });
                     }
                 } else if (isAvoidanceTracked) {
                     if (startTimestamp <= 0) {
                         tvTarget.setText("Goal: " + TaskManager.formatDurationMinutes(target) + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                         btnStartAvoidance.setVisibility(View.VISIBLE);
-                        btnStartAvoidance.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(btnStartAvoidance, v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.startAvoidanceQuest(taskId);
                             startAvoidanceServiceIfNeeded();
                             populateQuestLists(activeContainer, completedContainer);
                         });
                     } else {
-                        int remainingMinutes = Math.max(target - currentValue, 0);
-                        tvTarget.setText(TaskManager.formatDurationMinutes(remainingMinutes) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
+                        long totalTargetSeconds = target * 60L;
+                        long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - startTimestamp) / 1000L);
+                        long remainingSeconds = Math.max(0, totalTargetSeconds - elapsedSeconds);
+
+                        tvTarget.setText(TaskManager.formatDurationSeconds(remainingSeconds) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");
                         pbProgress.setVisibility(View.VISIBLE);
-                        pbProgress.setMax(target);
-                        pbProgress.setProgress(currentValue);
+                        pbProgress.setMax((int) totalTargetSeconds);
+                        pbProgress.setProgress((int) Math.min(elapsedSeconds, totalTargetSeconds));
                     }
                 } else {
                     String targetText = "minutes".equalsIgnoreCase(unit) ? TaskManager.formatDurationMinutes(target) : target + " " + unit;
                     tvTarget.setText("Goal: " + targetText + " | " + rewardXp + " XP / " + rewardGold + " Gold");
                     if (isCompleted == 0 && btnManualComplete != null) {
                         btnManualComplete.setVisibility(View.VISIBLE);
-                        btnManualComplete.setOnClickListener(v -> {
+                        DebouncedOnClickListener.setSafeOnClickListener(btnManualComplete, v -> {
                             TaskManager taskManager = new TaskManager(DashboardActivity.this);
                             taskManager.completeTask(taskId);
+                            userDismissedChestPromptForCurrentPoints = false;
                             populateQuestLists(activeContainer, completedContainer);
                             checkAndShowChestTierPrompt();
                         });
@@ -3272,7 +3611,7 @@ public class DashboardActivity extends AppCompatActivity {
                     btnStartAvoidance.setVisibility(View.GONE);
                     btnIncrementProgress.setVisibility(View.GONE);
                     btnCompletedLabel.setVisibility(View.VISIBLE);
-                    btnCompletedLabel.setOnClickListener(v -> {
+                    DebouncedOnClickListener.setSafeOnClickListener(btnCompletedLabel, v -> {
                         new androidx.appcompat.app.AlertDialog.Builder(DashboardActivity.this, R.style.DaGoalDialogTheme)
                                 .setTitle("Undo Quest Completion?")
                                 .setMessage("Would you like to undo completing this quest? Doing so will revert its progress and refund its rewards.")
@@ -3310,7 +3649,7 @@ public class DashboardActivity extends AppCompatActivity {
                 int used = customManager.getCustomQuestsUsedThisWeek();
                 int remainingSlots = Math.max(allowance - used, 0);
                 tvCustomCounter.setText(remainingSlots + "/" + allowance + " Custom Slots");
-                tvCustomCounter.setOnClickListener(v -> showCustomQuestsInfoDialog());
+                DebouncedOnClickListener.setSafeOnClickListener(tvCustomCounter, v -> showCustomQuestsInfoDialog());
             }
         }
     }

@@ -61,7 +61,7 @@ public class StreakActivity extends AppCompatActivity {
 
         populateWeeklyStreakRow(streakVal);
 
-        btnStreakDialogDismiss.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnStreakDialogDismiss, v -> {
             int currentTarget = TaskManager.getStreakPredictionTarget(this);
             if (currentTarget > 0) {
                 finish();
@@ -70,13 +70,13 @@ public class StreakActivity extends AppCompatActivity {
             }
         });
 
-        if (option3 != null) option3.setOnClickListener(v -> selectOption(3));
-        if (option5 != null) option5.setOnClickListener(v -> selectOption(5));
-        if (option7 != null) option7.setOnClickListener(v -> selectOption(7));
-        if (option14 != null) option14.setOnClickListener(v -> selectOption(14));
+        if (option3 != null) DebouncedOnClickListener.setSafeOnClickListener(option3, 200L, v -> selectOption(3));
+        if (option5 != null) DebouncedOnClickListener.setSafeOnClickListener(option5, 200L, v -> selectOption(5));
+        if (option7 != null) DebouncedOnClickListener.setSafeOnClickListener(option7, 200L, v -> selectOption(7));
+        if (option14 != null) DebouncedOnClickListener.setSafeOnClickListener(option14, 200L, v -> selectOption(14));
 
         if (btnCommitGoal != null) {
-            btnCommitGoal.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnCommitGoal, v -> {
                 TaskManager.setStreakPredictionTarget(this, selectedTarget);
                 ToastUtils.showToast(this, "Committed to a " + selectedTarget + "-Day Streak Goal! 🎯");
 

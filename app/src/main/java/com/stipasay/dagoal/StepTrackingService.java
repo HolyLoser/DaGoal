@@ -29,6 +29,7 @@ public class StepTrackingService extends Service implements SensorEventListener 
 
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
+    private Sensor stepDetectorSensor;
 
     @Override
     public void onCreate() {
@@ -36,6 +37,7 @@ public class StepTrackingService extends Service implements SensorEventListener 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
         }
     }
 
@@ -53,8 +55,13 @@ public class StepTrackingService extends Service implements SensorEventListener 
         startForeground(NOTIFICATION_ID, buildNotificationWithSteps(lastKnownSteps));
 
         if (hasIncompleteStepQuestToday()) {
-            if (sensorManager != null && stepCounterSensor != null) {
-                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            if (sensorManager != null) {
+                if (stepCounterSensor != null) {
+                    sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                }
+                if (stepDetectorSensor != null) {
+                    sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                }
             }
         } else {
             stopSelf();
@@ -78,28 +85,30 @@ public class StepTrackingService extends Service implements SensorEventListener 
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) {
-            return;
-        }
-
-        int totalStepsSinceBoot = (int) event.values[0];
         String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String baselineDate = prefs.getString("baseline_date", "");
-        int baselineSteps = prefs.getInt("baseline_steps", -1);
 
-        if (!todayDateStr.equals(baselineDate) || baselineSteps < 0) {
-            baselineSteps = totalStepsSinceBoot;
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("baseline_date", todayDateStr);
-            editor.putInt("baseline_steps", baselineSteps);
-            editor.apply();
-        }
+        int stepsToday;
 
-        int stepsToday = totalStepsSinceBoot - baselineSteps;
-        if (stepsToday < 0) {
-            stepsToday = 0;
+        if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+            int totalStepsSinceBoot = (int) event.values[0];
+            String baselineDate = prefs.getString("baseline_date", "");
+            int baselineSteps = prefs.getInt("baseline_steps", -1);
+
+            if (!todayDateStr.equals(baselineDate) || baselineSteps < 0) {
+                baselineSteps = totalStepsSinceBoot;
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("baseline_date", todayDateStr);
+                editor.putInt("baseline_steps", baselineSteps);
+                editor.apply();
+            }
+
+            stepsToday = Math.max(0, totalStepsSinceBoot - baselineSteps);
+        } else if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
+            int currentSteps = prefs.getInt("last_reported_steps", 0);
+            stepsToday = currentSteps + Math.round(event.values[0]);
+        } else {
+            return;
         }
 
         SharedPreferences.Editor reportedEditor = prefs.edit();
@@ -179,6 +188,16 @@ public class StepTrackingService extends Service implements SensorEventListener 
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
                 .build();
+    }
+
+    public static int getStepsToday(Context context) {
+        if (context == null) return 0;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        if (todayDateStr.equals(prefs.getString("last_reported_date", ""))) {
+            return prefs.getInt("last_reported_steps", 0);
+        }
+        return 0;
     }
 
     public static void start(Context context) {

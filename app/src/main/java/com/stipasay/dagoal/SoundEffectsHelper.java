@@ -41,8 +41,15 @@ public class SoundEffectsHelper {
         triggerVibration(context, 80);
     }
 
+    private static long lastHighlightTime = 0;
+    private static long lastButtonTime = 0;
+
     public static void playButton(Context context) {
         if (!isSoundEnabled(context)) return;
+        long now = System.currentTimeMillis();
+        if (now - lastButtonTime < 100) return;
+        lastButtonTime = now;
+
         if (!playRawSound(context, "sfx_button")) {
             playSoundTone(context, ToneGenerator.TONE_PROP_BEEP, 80);
         }
@@ -51,6 +58,10 @@ public class SoundEffectsHelper {
 
     public static void playHighlight(Context context) {
         if (!isSoundEnabled(context)) return;
+        long now = System.currentTimeMillis();
+        if (now - lastHighlightTime < 100) return;
+        lastHighlightTime = now;
+
         if (!playRawSound(context, "sfx_highlight")) {
             playSoundTone(context, ToneGenerator.TONE_PROP_BEEP, 60);
         }

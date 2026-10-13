@@ -36,19 +36,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (btnStartSignUp != null) {
             btnStartSignUp.setText("Create an Avatar");
-            btnStartSignUp.setOnClickListener(v -> processCreateAvatarGuest());
+            DebouncedOnClickListener.setSafeOnClickListener(btnStartSignUp, v -> processCreateAvatarGuest());
         }
 
         if (btnStartLogin != null) {
             btnStartLogin.setText("Login");
-            btnStartLogin.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnStartLogin, v -> {
                 Intent intent = new Intent(MainActivity.this, AuthOptionsActivity.class);
                 startActivity(intent);
             });
         }
 
         if (tvTermsFooter != null) {
-            tvTermsFooter.setOnClickListener(v ->
+            DebouncedOnClickListener.setSafeOnClickListener(tvTermsFooter, v ->
                     ToastUtils.showToast(this, "DaGoal Terms of Service & Privacy Policy")
             );
         }

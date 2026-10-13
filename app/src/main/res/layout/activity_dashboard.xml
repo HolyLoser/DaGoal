@@ -314,6 +314,7 @@
                     android:layout_height="@dimen/wardrobe_sidebar_button_size"
                     android:layout_marginBottom="@dimen/spacing_medium"
                     android:clickable="true"
+                    android:elevation="4dp"
                     android:focusable="true">
 
                     <View
@@ -323,11 +324,18 @@
                         android:background="@drawable/bg_circle_bordered"
                         android:backgroundTint="@color/dagoal_gray_disabled" />
 
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_item_inner_ring" />
+
                     <ImageView
                         android:id="@+id/iv_sidebar_icon_hat"
-                        android:layout_width="@dimen/icon_size_giant"
-                        android:layout_height="@dimen/icon_size_giant"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:layout_gravity="center"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"
                         android:src="@drawable/accessory_knit_hat" />
                 </FrameLayout>
@@ -339,6 +347,7 @@
                     android:layout_height="@dimen/wardrobe_sidebar_button_size"
                     android:layout_marginBottom="@dimen/spacing_medium"
                     android:clickable="true"
+                    android:elevation="4dp"
                     android:focusable="true">
 
                     <View
@@ -348,11 +357,18 @@
                         android:background="@drawable/bg_circle_bordered"
                         android:backgroundTint="@color/dagoal_gray_disabled" />
 
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_item_inner_ring" />
+
                     <ImageView
                         android:id="@+id/iv_sidebar_icon_glasses"
-                        android:layout_width="@dimen/icon_size_extra_large"
-                        android:layout_height="@dimen/icon_size_extra_large"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:layout_gravity="center"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"
                         android:src="@drawable/accessory_reading_glasses" />
                 </FrameLayout>
@@ -363,6 +379,7 @@
                     android:layout_width="@dimen/wardrobe_sidebar_button_size"
                     android:layout_height="@dimen/wardrobe_sidebar_button_size"
                     android:clickable="true"
+                    android:elevation="4dp"
                     android:focusable="true">
 
                     <View
@@ -370,13 +387,20 @@
                         android:layout_width="@dimen/wardrobe_sidebar_button_size"
                         android:layout_height="@dimen/wardrobe_sidebar_button_size"
                         android:background="@drawable/bg_circle_bordered"
-                        android:backgroundTint="@color/dagoal_primary" />
+                        android:backgroundTint="@color/dagoal_gray_disabled" />
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_item_inner_ring" />
 
                     <ImageView
                         android:id="@+id/iv_sidebar_icon_clothes"
-                        android:layout_width="@dimen/icon_size_extra_large"
-                        android:layout_height="@dimen/icon_size_extra_large"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:layout_gravity="center"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"
                         android:src="@drawable/tank_top" />
                 </FrameLayout>

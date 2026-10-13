@@ -102,42 +102,22 @@
             android:visibility="gone" />
 
         <View
-            android:id="@+id/color_swatch_black"
-            android:layout_width="@dimen/touch_target_min_width"
-            android:layout_height="@dimen/touch_target_min_height"
-            android:layout_marginVertical="3dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#000000"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <View
             android:id="@+id/color_swatch_brown"
             android:layout_width="@dimen/touch_target_min_width"
             android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#5C3A21"
+            android:backgroundTint="#6D4C41"
             android:clickable="true"
             android:focusable="true" />
 
         <View
-            android:id="@+id/color_swatch_darkred"
+            android:id="@+id/color_swatch_black"
             android:layout_width="@dimen/touch_target_min_width"
             android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#8B0000"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <View
-            android:id="@+id/color_swatch_orange"
-            android:layout_width="@dimen/touch_target_min_width"
-            android:layout_height="@dimen/touch_target_min_height"
-            android:layout_marginVertical="3dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#FF8C00"
+            android:backgroundTint="#1E1E1E"
             android:clickable="true"
             android:focusable="true" />
 
@@ -147,7 +127,37 @@
             android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#FFDAB9"
+            android:backgroundTint="#FFC2B4"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_orange"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#FF7A38"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_darkred"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#800000"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_white"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_preset"
+            android:backgroundTint="#FFFFFF"
             android:clickable="true"
             android:focusable="true" />
 
@@ -157,7 +167,7 @@
     <LinearLayout
         android:id="@+id/sidebar_categories"
         android:layout_width="@dimen/wardrobe_category_sidebar_width"
-        android:layout_height="280dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="88dp"
         android:layout_marginEnd="10dp"
         android:background="@drawable/bg_avatar_sidebar"
@@ -171,7 +181,7 @@
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:scrollbars="none">
 
             <LinearLayout

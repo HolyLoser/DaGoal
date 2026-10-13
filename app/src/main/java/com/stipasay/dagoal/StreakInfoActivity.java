@@ -38,7 +38,7 @@ public class StreakInfoActivity extends AppCompatActivity {
         tvCurrent = findViewById(R.id.tv_streak_info_current);
         tvLongest = findViewById(R.id.tv_streak_info_longest);
 
-        findViewById(R.id.btn_streak_info_back).setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(findViewById(R.id.btn_streak_info_back), v -> {
             SoundEffectsHelper.playMenuClose(this);
             finish();
         });

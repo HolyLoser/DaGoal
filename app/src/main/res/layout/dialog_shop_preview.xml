@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_surface_card_full_radius"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Item Title -->
+    <TextView
+        android:id="@+id/tv_shop_preview_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:gravity="center"
+        android:maxLines="2"
+        app:autoSizeMinTextSize="14sp"
+        app:autoSizeMaxTextSize="20sp"
+        app:autoSizeStepGranularity="1sp"
+        app:autoSizeTextType="uniform"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Item Category & Rarity Badge -->
+    <TextView
+        android:id="@+id/tv_shop_preview_rarity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_stats_badge_light"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Avatar Character Preview Container -->
+    <FrameLayout
+        android:id="@+id/frame_shop_preview_avatar"
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_shop_preview_avatar_frame">
+
+        <ImageView
+            android:id="@+id/iv_shop_preview_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/avatar_content_description" />
+    </FrameLayout>
+
+    <!-- Buy Button Pill -->
+    <LinearLayout
+        android:id="@+id/btn_shop_preview_buy"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_button_pill_dark"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <TextView
+            android:id="@+id/tv_shop_preview_buy_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:singleLine="true"
+            app:autoSizeMinTextSize="12sp"
+            app:autoSizeMaxTextSize="17sp"
+            app:autoSizeStepGranularity="1sp"
+            app:autoSizeTextType="uniform"
+            android:textColor="@color/white"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:contentDescription="@string/coins_desc"
+            android:scaleType="fitCenter"
+            android:src="@drawable/coins_icon" />
+    </LinearLayout>
+
+    <!-- Back Button Pill -->
+    <Button
+        android:id="@+id/btn_shop_preview_back"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_button_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        android:singleLine="true"
+        app:autoSizeMinTextSize="12sp"
+        app:autoSizeMaxTextSize="16sp"
+        app:autoSizeStepGranularity="1sp"
+        app:autoSizeTextType="uniform"
+        android:text="@string/back"
+        android:textAllCaps="false"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+</LinearLayout>
