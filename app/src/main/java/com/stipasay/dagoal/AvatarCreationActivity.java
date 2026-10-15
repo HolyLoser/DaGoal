@@ -36,11 +36,11 @@ public class AvatarCreationActivity extends AppCompatActivity {
 
     private String activeCategory = "Skin";
     private String selectedColorName = "peach"; // black, brown, darkred, orange, peach
-    private String selectedNoseColorName = "black";
+    private String selectedNoseColorName = "darkred";
     private String selectedMouthColorName = "peach";
     private String selectedNoseShape = "triangle_nose"; // triangle_nose, square_nose, oblong_nose
     private String selectedMouthShape = "smile_01"; // smile_01, smile_02, w_01, w_02
-    private int selectedEyeColor = Color.parseColor("#1E90FF");
+    private int selectedEyeColor = Color.parseColor("#000000");
     private String selectedEyeBase = "bigeye";
 
     private int selectedHairColor = Color.parseColor("#3B2219"); // Dark Brown default
@@ -211,12 +211,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
         ImageButton currentTab = getTabButton(activeCategory);
         switchTab(activeCategory, currentTab);
 
-        if ("Cheeks".equals(activeCategory)) {
-            updateBlushLayers();
-        } else {
-            int activeIndex = "Nose".equals(activeCategory) ? selectedNoseIndex : ("Mouth".equals(activeCategory) ? selectedMouthIndex : 0);
-            applyAssetSelection(activeCategory, activeIndex);
-        }
+        int activeIndex = "Nose".equals(activeCategory) ? selectedNoseIndex : ("Mouth".equals(activeCategory) ? selectedMouthIndex : ("Cheeks".equals(activeCategory) ? selectedCheeksIndex : 0));
+        applyAssetSelection(activeCategory, activeIndex);
+        renderLiveAvatarPreview();
     }
 
     private String categoryForSelectColor() {
@@ -602,6 +599,10 @@ public class AvatarCreationActivity extends AppCompatActivity {
         float featherFactor = 0.75f;
         int alpha = 180;
 
+        if (styleIndex == 4) { // Freckles
+            return getTintedEyeBitmap(R.drawable.blush_freckles, colorInt);
+        }
+
         if (styleIndex == 0) { // Matte / Sharp Edge
             featherFactor = 0.25f;
             alpha = 210;
@@ -934,9 +935,9 @@ public class AvatarCreationActivity extends AppCompatActivity {
                 gridAssets.addView(itemImage);
             }
         } else if ("Cheeks".equals(category)) {
-            // Render 5 blush style choices (None, Soft Airbrush, Matte Oval, Cute Round, Sun-Kissed)
+            // Render 6 blush style choices (None, Soft Airbrush, Matte Oval, Cute Round, Sun-Kissed, Freckles)
             int colorInt = getBlushColorInt(selectedColorName);
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 6; i++) {
                 ImageView itemImage = new ImageView(this);
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                         GridLayout.spec(i / 3),

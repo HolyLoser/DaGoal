@@ -28,11 +28,11 @@ public class AvatarConfig {
     public AvatarConfig() {
         this.skinIndex = 0;
         this.selectedColorName = "peach";
-        this.selectedNoseColorName = "black";
+        this.selectedNoseColorName = "darkred";
         this.selectedMouthColorName = "peach";
         this.selectedNoseShape = "triangle_nose";
         this.selectedMouthShape = "smile_01";
-        this.selectedEyeColor = Color.parseColor("#1E90FF");
+        this.selectedEyeColor = Color.parseColor("#000000");
         this.selectedEyeBase = "bigeye";
         this.cheeksIndex = 0;
         this.hairIndex = 0;
@@ -130,11 +130,11 @@ public class AvatarConfig {
 
         int skinIndex = prefs.getInt("pref_avatar_skin", 0);
         String selectedColorName = prefs.getString("pref_avatar_color", "peach");
-        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "black");
+        String selectedNoseColorName = prefs.getString("pref_avatar_nose_color", "darkred");
         String selectedMouthColorName = prefs.getString("pref_avatar_mouth_color", selectedColorName);
         String selectedNoseShape = prefs.getString("pref_avatar_nose_shape", "triangle_nose");
         String selectedMouthShape = prefs.getString("pref_avatar_mouth_shape", "smile_01");
-        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#1E90FF"));
+        int selectedEyeColor = prefs.getInt("pref_avatar_eye_color", Color.parseColor("#000000"));
         String selectedEyeBase = prefs.getString("pref_avatar_eye_base", "bigeye");
         int cheeksIndex = prefs.getInt("pref_avatar_cheeks", 0);
         int hairIndex = prefs.getInt("pref_avatar_hair", 0);

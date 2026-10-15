@@ -54,6 +54,15 @@ public class AppSelectionActivity extends AppCompatActivity {
             }
         }
 
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (fromSettings) {
+                    finish();
+                }
+            }
+        });
+
         android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
         if (avatarContainer != null) {
             AvatarHelper.renderUserAvatar(this, avatarContainer);
@@ -163,6 +172,7 @@ public class AppSelectionActivity extends AppCompatActivity {
                     .apply();
 
             Intent intent = new Intent(AppSelectionActivity.this, DailyRevealActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         }

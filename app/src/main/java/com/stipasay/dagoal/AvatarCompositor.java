@@ -223,23 +223,35 @@ public class AvatarCompositor {
             float cheeksBoxWidthPx = dpToPx(176.0f, density) * scale;
             float cheeksBoxHeightPx = dpToPx(40.0f, density) * scale;
             float cheeksBottomMarginPx = dpToPx(35.0f, density) * scale;
-            float cheekWidthPx = dpToPx(50.0f, density) * scale;
-            float cheekHeightPx = dpToPx(35.0f, density) * scale;
 
             float cheeksBoxLeft = (outputSizePx - cheeksBoxWidthPx) / 2.0f;
             float cheeksBoxTop = topPaddingPx + (outputSizePx - cheeksBoxHeightPx) / 2.0f - cheeksBottomMarginPx;
 
             int blushColor = getBlushColorInt(config.selectedColorName);
-            Bitmap blushBitmap = generateBlushBitmap(blushColor, config.cheeksIndex - 1);
+            int styleIndex = config.cheeksIndex - 1;
+
+            Bitmap blushBitmap = generateBlushBitmap(context, blushColor, styleIndex);
 
             if (blushBitmap != null) {
-                RectF cLeftRect = new RectF(cheeksBoxLeft, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
-                        cheeksBoxLeft + cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
-                RectF cRightRect = new RectF(cheeksBoxLeft + cheeksBoxWidthPx - cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
-                        cheeksBoxLeft + cheeksBoxWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+                if (styleIndex == 4) { // Freckles bounds: wider horizontally and higher vertically
+                    float frecklesWidthPx = dpToPx(170.0f, density) * scale;
+                    float frecklesHeightPx = dpToPx(140.0f, density) * scale;
+                    float frecklesLeft = (outputSizePx - frecklesWidthPx) / 2.0f;
+                    float frecklesTop = topPaddingPx + (outputSizePx - frecklesHeightPx) / 2.0f - dpToPx(38.0f, density) * scale;
+                    RectF centerFrecklesRect = new RectF(frecklesLeft, frecklesTop, frecklesLeft + frecklesWidthPx, frecklesTop + frecklesHeightPx);
+                    canvas.drawBitmap(blushBitmap, null, centerFrecklesRect, paint);
+                } else {
+                    float cheekWidthPx = dpToPx(50.0f, density) * scale;
+                    float cheekHeightPx = dpToPx(35.0f, density) * scale;
 
-                canvas.drawBitmap(blushBitmap, null, cLeftRect, paint);
-                canvas.drawBitmap(blushBitmap, null, cRightRect, paint);
+                    RectF cLeftRect = new RectF(cheeksBoxLeft, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+                    RectF cRightRect = new RectF(cheeksBoxLeft + cheeksBoxWidthPx - cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheeksBoxWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+
+                    canvas.drawBitmap(blushBitmap, null, cLeftRect, paint);
+                    canvas.drawBitmap(blushBitmap, null, cRightRect, paint);
+                }
             }
         }
 
@@ -619,9 +631,14 @@ public class AvatarCompositor {
         return 132;
     }
 
-    private static Bitmap generateBlushBitmap(int colorInt, int styleIndex) {
+    private static Bitmap generateBlushBitmap(Context context, int colorInt, int styleIndex) {
         int widthPx = 110;
         int heightPx = 75;
+
+        if (styleIndex == 4) { // Freckles
+            return generateTintedBitmap(context, R.drawable.blush_freckles, colorInt);
+        }
+
         float featherFactor = 0.75f;
         int alpha = 180;
 

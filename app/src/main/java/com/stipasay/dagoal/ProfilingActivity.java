@@ -132,6 +132,13 @@ public class ProfilingActivity extends AppCompatActivity {
             AvatarHelper.renderUserAvatar(this, avatarContainer);
         }
 
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBackClick();
+            }
+        });
+
         displayQuestion(currentQuestionIndex, true);
     }
 
