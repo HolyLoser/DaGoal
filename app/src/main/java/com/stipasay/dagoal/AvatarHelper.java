@@ -85,8 +85,10 @@ public class AvatarHelper {
 
                 float radius = sizePx / 2.0f;
 
+                int darkGreen = androidx.core.content.ContextCompat.getColor(context, R.color.dagoal_primary_dark);
+
                 // 1. Draw dark green circle background
-                paint.setColor(Color.parseColor("#2D5A27"));
+                paint.setColor(darkGreen);
                 canvas.drawCircle(radius, radius, radius, paint);
 
                 // 2. Draw zoomed face bitmap clipped strictly to circular path
@@ -114,7 +116,7 @@ public class AvatarHelper {
                 // 3. Draw clean circular border
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(dpToPx(context, 3.0f));
-                paint.setColor(Color.parseColor("#2D5A27"));
+                paint.setColor(darkGreen);
                 canvas.drawCircle(radius, radius, radius - dpToPx(context, 1.5f), paint);
 
                 ImageView ivAvatar = null;

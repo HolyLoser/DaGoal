@@ -531,6 +531,48 @@ public class AvatarCompositor {
         return bitmap;
     }
 
+    public static Bitmap cropTransparentBitmap(Bitmap src) {
+        if (src == null) return null;
+        int width = src.getWidth();
+        int height = src.getHeight();
+        if (width <= 0 || height <= 0) return src;
+
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        int[] pixels = new int[width * height];
+        src.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int y = 0; y < height; y++) {
+            int rowOffset = y * width;
+            for (int x = 0; x < width; x++) {
+                int alpha = (pixels[rowOffset + x] >> 24) & 0xff;
+                if (alpha > 20) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            return src;
+        }
+
+        minX = Math.max(0, minX - 2);
+        minY = Math.max(0, minY - 2);
+        maxX = Math.min(width - 1, maxX + 2);
+        maxY = Math.min(height - 1, maxY + 2);
+
+        int cropWidth = maxX - minX + 1;
+        int cropHeight = maxY - minY + 1;
+
+        try {
+            return Bitmap.createBitmap(src, minX, minY, cropWidth, cropHeight);
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
     private static void drawHairLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY, float hairScale) {
         float scaledWidth = outputSizePx * hairScale;
         float scaledHeight = outputSizePx * hairScale;
@@ -691,11 +733,12 @@ public class AvatarCompositor {
     }
 
     private static int getSwatchColorInt(String colorName) {
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#FFFFFF");
         if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#1E1E1E");
-        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#5C3A21");
-        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
-        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7F50");
-        return Color.parseColor("#FF8A8A");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#800000");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7A38");
+        return Color.parseColor("#FFC2B4"); // Soft Nude / Peach
     }
 
     private static int getBlushColorInt(String colorName) {

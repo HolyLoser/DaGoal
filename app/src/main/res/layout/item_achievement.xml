@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:background="#C3D1B5"
+    android:background="@color/dagoal_surface_variant"
     android:padding="16dp"
     android:gravity="center_vertical">
 
@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Achievement Title"
-            android:textColor="#000000"
+            android:textColor="@color/dagoal_primary_dark"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -28,7 +28,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/loading"
-            android:textColor="#4A5568"
+            android:textColor="@color/dagoal_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="4dp" />
     </LinearLayout>
@@ -44,7 +44,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0/5"
-            android:textColor="#000000"
+            android:textColor="@color/dagoal_primary_dark"
             android:textSize="12sp"
             android:textStyle="bold"
             android:layout_marginBottom="4dp" />
@@ -56,8 +56,8 @@
             android:layout_height="8dp"
             android:max="100"
             android:progress="0"
-            android:progressTint="#556B43"
-            android:progressBackgroundTint="#FFFFFF" />
+            android:progressTint="@color/dagoal_primary"
+            android:progressBackgroundTint="@color/white" />
     </LinearLayout>
 
 </LinearLayout>

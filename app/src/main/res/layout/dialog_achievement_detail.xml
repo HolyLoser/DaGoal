@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_achievement_dialog_surface"
     android:orientation="vertical"
-    android:gravity="center"
-    android:background="#556B43"
+    android:gravity="center_horizontal"
     android:padding="24dp">
 
+    <!-- Icon Badge Circle -->
     <FrameLayout
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginBottom="16dp">
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:layout_marginBottom="12dp">
 
         <View
             android:id="@+id/view_dialog_badge_bg"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:layout_gravity="center"
             android:background="@drawable/bg_achievement_badge" />
 
         <TextView
@@ -24,57 +27,84 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="👑"
-            android:textSize="42sp" />
+            android:textSize="36sp" />
     </FrameLayout>
 
+    <!-- Achievement Title -->
     <TextView
-        android:id="@+id/tv_dialog_achievement_desc"
-        android:layout_width="wrap_content"
+        android:id="@+id/tv_dialog_achievement_title"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Achievement Title"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="20sp"
         android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Achievement Description -->
+    <TextView
+        android:id="@+id/tv_dialog_achievement_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reach daily streak milestones."
+        android:textColor="@color/dagoal_text_secondary"
+        android:textSize="13sp"
         android:gravity="center"
         android:layout_marginBottom="16dp" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Rank:"
-        android:textColor="#E2E8F0"
-        android:textSize="14sp"
-        android:gravity="center" />
-
+    <!-- Rank Status Tag Pill -->
     <TextView
         android:id="@+id/tv_dialog_rank_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Bronze"
-        android:textColor="#7ED6FF"
-        android:textSize="20sp"
+        android:text="Unranked"
+        android:textColor="#64748B"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp"
+        android:background="@drawable/bg_achievement_rank_pill_unranked"
         android:layout_marginBottom="16dp" />
 
+    <!-- Progress Bar -->
     <ProgressBar
         android:id="@+id/pb_dialog_rank_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="10dp"
+        android:layout_height="12dp"
         android:max="100"
         android:progress="0"
-        android:progressTint="#7ED6FF"
-        android:progressBackgroundTint="#FFFFFF"
+        android:progressTint="@color/dagoal_primary"
+        android:progressBackgroundTint="#EADEC7"
         android:layout_marginBottom="8dp" />
 
+    <!-- Progress Remaining Label -->
     <TextView
         android:id="@+id/tv_dialog_progress_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="5 until next rank"
-        android:textColor="#E2E8F0"
+        android:text="5 more to reach Bronze"
+        android:textColor="@color/dagoal_primary_dark"
         android:textSize="13sp"
-        android:gravity="center" />
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Close Button -->
+    <Button
+        android:id="@+id/btn_dialog_achievement_close"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_button_primary_pill"
+        app:backgroundTint="@null"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="Close"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

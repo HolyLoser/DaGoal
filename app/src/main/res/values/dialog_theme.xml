@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="CustomQuestDialogTheme" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="android:windowBackground">@drawable/bg_surface_card</item>
-        <item name="android:textColor">#2D3748</item>
-        <item name="colorAccent">#556B43</item>
+        <item name="android:windowBackground">@drawable/bg_surface_card_full_radius</item>
+        <item name="android:textColor">@color/dagoal_primary_dark</item>
+        <item name="colorAccent">@color/dagoal_primary</item>
         <item name="buttonBarPositiveButtonStyle">@style/DialogButtonStyle</item>
         <item name="buttonBarNegativeButtonStyle">@style/DialogButtonStyle</item>
     </style>
 
     <style name="DialogButtonStyle" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
-        <item name="android:textColor">#556B43</item>
+        <item name="android:textColor">@color/dagoal_primary</item>
     </style>
 </resources>

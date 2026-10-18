@@ -36,13 +36,30 @@
     <string name="add_a_goal">+ Add a goal</string>
     <string name="achievements">Achievements</string>
     <string name="keep_it_up_daily">Keep it up daily!</string>
-    <string name="shops">Shops</string>
+    <string name="shop">Shop</string>
     <string name="my_outfits_bag">My Outfits Bag</string>
     <string name="purchase_item">Purchase Item</string>
     <string name="equip_item">Equip Item</string>
     <string name="streak_days">%1$d Streak Day(s)</string>
     <string name="level_info">Level %1$d (%2$d / %3$d XP) | Gold: %4$d</string>
     <string name="create_custom_quest">Create a custom quest</string>
+    <string name="custom_slots_default">0 Custom Slots</string>
+    <string name="placeholder_level">Level 1</string>
+    <string name="placeholder_slots">1 Slot</string>
+    <string name="custom_info_title">🎯 Custom Quest Slots Info</string>
+    <string name="custom_info_intro">Custom Quests allow you to create personalized real-life goals with your choice of Gold and XP rewards!</string>
+    <string name="custom_info_label_current_level">CURRENT LEVEL</string>
+    <string name="custom_info_label_total_slots">TOTAL SLOTS</string>
+    <string name="custom_info_title_schedule">📅 Slot Unlock Schedule</string>
+    <string name="custom_info_desc_schedule">You start with 1 slot at Level 1, gaining +1 slot every 5 Levels (up to 10 slots at Level 45+).</string>
+    <string name="custom_info_title_recurring">🔄 Recurring Quests &amp; Slots</string>
+    <string name="custom_info_desc_recurring">Creating a recurring custom quest (daily or weekly) consumes 1 custom quest slot for as long as it repeats.</string>
+    <string name="custom_info_title_refill">⏳ Weekly Refill</string>
+    <string name="custom_info_desc_refill">Custom quest allowances refill automatically every Monday morning at 12:00 AM (Midnight).</string>
+    <string name="custom_info_got_it">GOT IT!</string>
+    <string name="wardrobe_empty_title">No Items Owned</string>
+    <string name="wardrobe_empty_desc">You haven\'t unlocked any items in this category yet. Check the Shop to find new outfits!</string>
+    <string name="wardrobe_go_to_shop">Go to Shop 🛒</string>
     <string name="title_hint">Title</string>
     <string name="how_to_track">How should this be tracked?</string>
     <string name="target_hint">Target amount</string>
@@ -64,4 +81,32 @@
     <string name="xp_placeholder">%1$d/%2$d</string>
     <string name="gold_placeholder">%1$d</string>
     <string name="avatar_content_description">Avatar</string>
+
+    <!-- Settings Strings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_category_account">Account</string>
+    <string name="settings_category_account_desc">Profile details, cloud sync and account management</string>
+    <string name="settings_category_notifications">Notifications</string>
+    <string name="settings_category_notifications_desc">Alerts, reminders and daily streak popups</string>
+    <string name="settings_category_privacy">Privacy and Permissions</string>
+    <string name="settings_category_privacy_desc">System permissions, battery optimization and blocked apps</string>
+    <string name="settings_category_sound">Sound and Haptics</string>
+    <string name="settings_category_sound_desc">Audio feedback, sound effects and vibrations</string>
+    <string name="settings_category_about">About</string>
+    <string name="settings_category_about_desc">App version, feedback and privacy policy</string>
+
+    <!-- Delete Account Strings -->
+    <string name="delete_account_title">Delete Account?</string>
+    <string name="delete_account_message">This action will permanently delete your account and erase all stored progress. This cannot be undone.</string>
+    <string name="delete_account_erased_header">Data to be permanently erased:</string>
+    <string name="delete_account_erase_item_quests">• Quests, tasks &amp; streak history</string>
+    <string name="delete_account_erase_item_achievements">• Achievements &amp; unlocked rewards</string>
+    <string name="delete_account_erase_item_progression">• Gold, XP &amp; level progression</string>
+    <string name="delete_account_erase_item_avatar">• Custom avatar &amp; saved preferences</string>
+    <string name="delete_account_type_instruction">To proceed, type DELETE below:</string>
+    <string name="delete_account_type_hint">Type DELETE</string>
+    <string name="delete_account_confirm">Delete Account</string>
+    <string name="cancel">Cancel</string>
+    <string name="coins_desc">Coins</string>
+    <string name="avoidance_interrupt_badge">AVOIDANCE INTERRUPT</string>
 </resources>

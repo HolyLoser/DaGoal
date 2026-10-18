@@ -33,6 +33,7 @@ public class DailyRevealActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_daily_reveal);
 
         dbHelper = new DatabaseHelper(this);
@@ -41,11 +42,9 @@ public class DailyRevealActivity extends AppCompatActivity {
         btnAcceptTasks = findViewById(R.id.btn_accept_tasks);
 
         View rootLayout = findViewById(R.id.root_reveal_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
-        });
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         TaskManager taskManager = new TaskManager(this);
         taskManager.generateDailyTasks();
@@ -64,12 +63,13 @@ public class DailyRevealActivity extends AppCompatActivity {
         loadDailyTasksFromDatabase();
         loadDailyTasksFromDatabase();
 
-        btnAcceptTasks.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnAcceptTasks, v -> {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             prefs.edit().putString("last_quest_generation_date", todayDateStr).apply();
 
             Intent intent = new Intent(DailyRevealActivity.this, DashboardActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             finish();
         });
@@ -126,7 +126,7 @@ public class DailyRevealActivity extends AppCompatActivity {
                 if (btnCardShuffle != null) {
                     btnCardShuffle.setVisibility(View.VISIBLE);
                     btnCardShuffle.setImageResource(R.drawable.shuffle_icon);
-                    btnCardShuffle.setOnClickListener(v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                    DebouncedOnClickListener.setSafeOnClickListener(btnCardShuffle, v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
                 }
 
                 if (btnShuffle != null) btnShuffle.setVisibility(View.GONE);

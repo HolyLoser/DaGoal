@@ -5,9 +5,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -17,20 +22,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
-        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
-        boolean isGuestUser = prefs.getBoolean("isGuestUser", false);
-        boolean isOnboardingComplete = prefs.getBoolean("isOnboardingComplete", false);
-
-        if ((isLoggedIn || isGuestUser) && isOnboardingComplete) {
-            Intent intent = new Intent(this, DashboardActivity.class);
-            startActivity(intent);
-            finish();
-            return;
-        }
-
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_main);
+
+        View rootLayout = findViewById(R.id.root_main_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         btnStartSignUp = findViewById(R.id.btn_start_signup);
         btnStartLogin = findViewById(R.id.btn_start_login);
@@ -38,19 +36,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (btnStartSignUp != null) {
             btnStartSignUp.setText("Create an Avatar");
-            btnStartSignUp.setOnClickListener(v -> processCreateAvatarGuest());
+            DebouncedOnClickListener.setSafeOnClickListener(btnStartSignUp, v -> processCreateAvatarGuest());
         }
 
         if (btnStartLogin != null) {
             btnStartLogin.setText("Login");
-            btnStartLogin.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnStartLogin, v -> {
                 Intent intent = new Intent(MainActivity.this, AuthOptionsActivity.class);
                 startActivity(intent);
             });
         }
 
         if (tvTermsFooter != null) {
-            tvTermsFooter.setOnClickListener(v ->
+            DebouncedOnClickListener.setSafeOnClickListener(tvTermsFooter, v ->
                     ToastUtils.showToast(this, "DaGoal Terms of Service & Privacy Policy")
             );
         }

@@ -8,13 +8,18 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -34,7 +39,13 @@ public class SignUpActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_sign_up);
+
+        View rootLayout = findViewById(R.id.root_signup_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         dbHelper = new DatabaseHelper(this);
 
@@ -46,15 +57,15 @@ public class SignUpActivity extends AppCompatActivity {
         TextView tvGoToLogin = findViewById(R.id.tv_go_to_login);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> finish());
         }
 
         if (btnTogglePassword != null) {
-            btnTogglePassword.setOnClickListener(v -> togglePasswordVisibility());
+            DebouncedOnClickListener.setSafeOnClickListener(btnTogglePassword, v -> togglePasswordVisibility());
         }
 
         if (tvGoToLogin != null) {
-            tvGoToLogin.setOnClickListener(v -> finish());
+            DebouncedOnClickListener.setSafeOnClickListener(tvGoToLogin, v -> finish());
         }
 
         TextWatcher watcher = new TextWatcher() {
@@ -85,7 +96,7 @@ public class SignUpActivity extends AppCompatActivity {
         }
 
         if (btnCreateAccount != null) {
-            btnCreateAccount.setOnClickListener(v -> {
+            DebouncedOnClickListener.setSafeOnClickListener(btnCreateAccount, v -> {
                 v.setEnabled(false);
                 processAccountRegistration();
                 v.postDelayed(() -> checkValidation(), 2000);
@@ -104,6 +115,12 @@ public class SignUpActivity extends AppCompatActivity {
         }
 
         editPassword.setSelection(editPassword.getText().length());
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
     }
 
     private void checkValidation() {
@@ -192,12 +209,49 @@ public class SignUpActivity extends AppCompatActivity {
     }
 
     private void showLowConnectivityDialog(String email) {
-        new AlertDialog.Builder(this)
-                .setTitle("Connectivity Notice")
-                .setMessage("Due to low connectivity, we can't communicate with our online database. You can still proceed, but your progress will not be synced to the cloud right now. You can sync your account in settings later.")
-                .setPositiveButton("Proceed Offline", (dialog, which) -> proceedOfflineRegistration(email))
-                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                .show();
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FEF3C7")));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(R.drawable.ic_info_circle);
+            androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.dagoal_primary_dark)));
+        }
+
+        if (tvTitle != null) tvTitle.setText("Connectivity Notice");
+        if (tvMessage != null) tvMessage.setText("Due to low connectivity, we can't communicate with our online database. You can still proceed, but your progress will not be synced to the cloud right now. You can sync your account in settings later.");
+
+        if (btnNeg != null) btnNeg.setText("Cancel");
+        if (btnPos != null) {
+            btnPos.setText("Proceed Offline");
+            btnPos.setBackgroundResource(R.drawable.bg_button_primary_pill);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnNeg != null) DebouncedOnClickListener.setSafeOnClickListener(btnNeg, v -> dialog.dismiss());
+        if (btnPos != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnPos, v -> {
+                dialog.dismiss();
+                proceedOfflineRegistration(email);
+            });
+        }
+
+        dialog.show();
     }
 
     private void proceedOfflineRegistration(String email) {

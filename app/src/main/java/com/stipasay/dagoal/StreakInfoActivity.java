@@ -7,6 +7,8 @@ import android.view.View;
 import android.widget.GridView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -26,12 +28,17 @@ public class StreakInfoActivity extends AppCompatActivity {
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_streak_info);
 
+        View rootLayout = findViewById(R.id.root_streak_info_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
+
         taskManager = new TaskManager(this);
         gridCalendar = findViewById(R.id.grid_streak_calendar);
         tvCurrent = findViewById(R.id.tv_streak_info_current);
         tvLongest = findViewById(R.id.tv_streak_info_longest);
 
-        findViewById(R.id.btn_streak_info_back).setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(findViewById(R.id.btn_streak_info_back), v -> {
             SoundEffectsHelper.playMenuClose(this);
             finish();
         });
@@ -72,14 +79,16 @@ public class StreakInfoActivity extends AppCompatActivity {
         buildCalendar();
     }
 
-    private void showSetPredictionDialog() {
-        startActivity(new android.content.Intent(this, StreakActivity.class));
-    }
-
     private void buildCalendar() {
         Calendar cal = Calendar.getInstance();
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
+
+        TextView tvMonthTitle = findViewById(R.id.tv_streak_month_title);
+        if (tvMonthTitle != null) {
+            SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+            tvMonthTitle.setText(monthFormat.format(cal.getTime()));
+        }
 
         Map<String, int[]> historyMap = taskManager.getStreakHistoryForMonth(year, month);
 
@@ -119,6 +128,15 @@ public class StreakInfoActivity extends AppCompatActivity {
             cells.add(day);
         }
 
+        int rows = (int) Math.ceil((double) cells.size() / 7);
+        float density = getResources().getDisplayMetrics().density;
+        int totalHeight = (int) ((rows * 42 + Math.max(0, rows - 1) * 2) * density);
+        android.view.ViewGroup.LayoutParams params = gridCalendar.getLayoutParams();
+        if (params != null) {
+            params.height = totalHeight;
+            gridCalendar.setLayoutParams(params);
+        }
+
         gridCalendar.setAdapter(new android.widget.BaseAdapter() {
             @Override
             public int getCount() { return cells.size(); }
@@ -136,10 +154,19 @@ public class StreakInfoActivity extends AppCompatActivity {
                 TextView tvDay = convertView.findViewById(R.id.tv_calendar_day_number);
                 TextView tvChest = convertView.findViewById(R.id.tv_calendar_day_chest);
                 View bgView = convertView.findViewById(R.id.view_calendar_day_bg);
+                View viewTodayRing = convertView.findViewById(R.id.view_calendar_today_ring);
+                View viewTodayDot = convertView.findViewById(R.id.view_calendar_today_dot);
+
+                Calendar todayCal = Calendar.getInstance();
+                boolean isToday = (todayCal.get(Calendar.YEAR) == year &&
+                                   todayCal.get(Calendar.MONTH) == month &&
+                                   todayCal.get(Calendar.DAY_OF_MONTH) == dayNumber);
 
                 if (dayNumber == 0) {
                     tvDay.setText("");
                     tvChest.setVisibility(View.GONE);
+                    if (viewTodayRing != null) viewTodayRing.setVisibility(View.GONE);
+                    if (viewTodayDot != null) viewTodayDot.setVisibility(View.GONE);
                     bgView.setAlpha(0f);
                     convertView.setOnClickListener(null);
                     return convertView;
@@ -148,6 +175,14 @@ public class StreakInfoActivity extends AppCompatActivity {
                 bgView.setAlpha(1f);
                 tvDay.setText(String.valueOf(dayNumber));
 
+                if (isToday) {
+                    if (viewTodayRing != null) viewTodayRing.setVisibility(View.VISIBLE);
+                    if (viewTodayDot != null) viewTodayDot.setVisibility(View.VISIBLE);
+                } else {
+                    if (viewTodayRing != null) viewTodayRing.setVisibility(View.GONE);
+                    if (viewTodayDot != null) viewTodayDot.setVisibility(View.GONE);
+                }
+
                 Calendar cellCal = Calendar.getInstance();
                 cellCal.set(year, month, dayNumber, 0, 0, 0);
                 cellCal.set(Calendar.MILLISECOND, 0);
@@ -155,10 +190,12 @@ public class StreakInfoActivity extends AppCompatActivity {
 
                 int[] entry = historyMap.get(cellDateStr);
                 if (entry != null && entry[0] > 0) {
-                    androidx.core.view.ViewCompat.setBackgroundTintList(bgView,
-                            android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#DCCCAC")));
+                    ViewCompat.setBackgroundTintList(bgView,
+                            android.content.res.ColorStateList.valueOf(ContextCompat.getColor(StreakInfoActivity.this, R.color.dagoal_primary)));
+                    tvDay.setTextColor(android.graphics.Color.WHITE);
                 } else {
-                    androidx.core.view.ViewCompat.setBackgroundTintList(bgView, null);
+                    ViewCompat.setBackgroundTintList(bgView, null);
+                    tvDay.setTextColor(ContextCompat.getColor(StreakInfoActivity.this, R.color.dagoal_primary_dark));
                 }
 
                 long activeDayDiff = -1;

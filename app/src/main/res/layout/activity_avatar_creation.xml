@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_avatar_creation_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_edit_character">
 
-    <!-- Character Preview Container (Modular Layer Stack) -->
+    <!-- Character Preview Container -->
     <FrameLayout
         android:id="@+id/preview_container"
         android:layout_width="0dp"
@@ -19,8 +20,8 @@
 
         <FrameLayout
             android:id="@+id/avatar_square_canvas"
-            android:layout_width="320dp"
-            android:layout_height="320dp"
+            android:layout_width="@dimen/avatar_preview_square_size"
+            android:layout_height="@dimen/avatar_preview_square_size"
             android:layout_gravity="bottom|center_horizontal"
             android:clipChildren="false"
             android:clipToPadding="false">
@@ -35,13 +36,13 @@
 
     <ImageButton
         android:id="@+id/btn_back_avatar"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="48dp"
+        android:layout_width="@dimen/icon_button_size"
+        android:layout_height="@dimen/icon_button_size"
+        android:layout_marginStart="@dimen/spacing_extra_large"
+        android:layout_marginTop="@dimen/spacing_giant"
         android:background="@drawable/bg_circle_primary"
         android:contentDescription="@string/back"
-        android:padding="12dp"
+        android:padding="@dimen/spacing_medium"
         android:scaleType="centerInside"
         android:src="@android:drawable/ic_menu_revert"
         android:visibility="gone"
@@ -52,12 +53,12 @@
     <!-- Left Color Palette Sidebar Bar -->
     <LinearLayout
         android:id="@+id/sidebar_colors"
-        android:layout_width="60dp"
+        android:layout_width="@dimen/wardrobe_sidebar_width"
         android:layout_height="wrap_content"
         android:layout_marginTop="88dp"
         android:layout_marginStart="10dp"
         android:background="@drawable/bg_avatar_sidebar"
-        android:elevation="4dp"
+        android:elevation="@dimen/card_elevation"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:paddingTop="10dp"
@@ -70,107 +71,117 @@
             android:layout_height="wrap_content"
             android:text="COLOR"
             android:textColor="@color/dagoal_primary"
-            android:textSize="10sp"
+            android:textSize="@dimen/text_size_micro"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="@dimen/spacing_tiny" />
 
         <TextView
             android:id="@+id/color_swatch_eye_picker"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:text="🎨"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_size_header"
             android:visibility="gone" />
 
         <TextView
             android:id="@+id/color_swatch_hair_picker"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:text="💇"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_size_header"
             android:visibility="gone" />
 
         <View
-            android:id="@+id/color_swatch_black"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginVertical="3dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#000000"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <View
             android:id="@+id/color_swatch_brown"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#5C3A21"
+            android:backgroundTint="#6D4C41"
             android:clickable="true"
             android:focusable="true" />
 
         <View
-            android:id="@+id/color_swatch_darkred"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:id="@+id/color_swatch_black"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#8B0000"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <View
-            android:id="@+id/color_swatch_orange"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginVertical="3dp"
-            android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#FF8C00"
+            android:backgroundTint="#1E1E1E"
             android:clickable="true"
             android:focusable="true" />
 
         <View
             android:id="@+id/color_swatch_peach"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
             android:layout_marginVertical="3dp"
             android:background="@drawable/bg_circle_primary"
-            android:backgroundTint="#FFDAB9"
+            android:backgroundTint="#FFC2B4"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_orange"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#FF7A38"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_darkred"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_primary"
+            android:backgroundTint="#800000"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/color_swatch_white"
+            android:layout_width="@dimen/touch_target_min_width"
+            android:layout_height="@dimen/touch_target_min_height"
+            android:layout_marginVertical="3dp"
+            android:background="@drawable/bg_circle_preset"
+            android:backgroundTint="#FFFFFF"
             android:clickable="true"
             android:focusable="true" />
 
     </LinearLayout>
 
-    <!-- Right Category Sidebar (Order: Skin -> Hair -> Eyes -> Mouth -> Nose -> Cheeks) -->
+    <!-- Right Category Sidebar -->
     <LinearLayout
         android:id="@+id/sidebar_categories"
-        android:layout_width="72dp"
-        android:layout_height="268dp"
+        android:layout_width="@dimen/wardrobe_category_sidebar_width"
+        android:layout_height="wrap_content"
         android:layout_marginTop="88dp"
         android:layout_marginEnd="10dp"
         android:background="@drawable/bg_avatar_sidebar"
-        android:elevation="4dp"
+        android:elevation="@dimen/card_elevation"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
+        android:paddingTop="@dimen/spacing_medium"
+        android:paddingBottom="@dimen/spacing_medium"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:scrollbars="none">
 
             <LinearLayout
@@ -181,67 +192,67 @@
 
                 <ImageButton
                     android:id="@+id/tab_skin"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/skin_color"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/skin_category_icon" />
 
                 <ImageButton
                     android:id="@+id/tab_hair"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/hair"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/hair_category_icon" />
 
                 <ImageButton
                     android:id="@+id/tab_eyes"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/eyes"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/eye_category_icon" />
 
                 <ImageButton
                     android:id="@+id/tab_nose"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/nose"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/nose_category_icon" />
 
                 <ImageButton
                     android:id="@+id/tab_mouth"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/mouth"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/lips_category_icon" />
 
                 <ImageButton
                     android:id="@+id/tab_cheeks"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_width="@dimen/icon_button_size"
+                    android:layout_height="@dimen/icon_button_size"
+                    android:layout_marginVertical="@dimen/spacing_tiny"
                     android:background="@drawable/bg_avatar_category_item"
                     android:contentDescription="@string/cheeks"
-                    android:padding="8dp"
+                    android:padding="@dimen/spacing_small"
                     android:scaleType="centerInside"
                     android:src="@drawable/blush_category_icon" />
 
@@ -256,8 +267,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:background="@drawable/bg_surface_card"
-        android:elevation="8dp"
-        android:padding="16dp"
+        android:elevation="@dimen/card_elevation_raised"
+        android:padding="@dimen/spacing_normal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHeight_percent="0.45"
         app:layout_constraintTop_toBottomOf="@+id/preview_container">
@@ -266,7 +277,7 @@
             android:id="@+id/asset_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/spacing_normal"
             app:layout_constraintBottom_toTopOf="@+id/btn_save_avatar"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -277,22 +288,24 @@
                 android:layout_gravity="center_horizontal"
                 android:alignmentMode="alignBounds"
                 android:columnCount="3"
-                android:padding="8dp"
+                android:padding="@dimen/spacing_small"
                 android:rowOrderPreserved="false" />
         </ScrollView>
 
         <Button
             android:id="@+id/btn_save_avatar"
-            android:layout_width="220dp"
-            android:layout_height="56dp"
-            android:layout_marginBottom="24dp"
-            android:background="@drawable/bg_avatar_create_button"
+            android:layout_width="@dimen/logo_width_large"
+            android:layout_height="54dp"
+            android:layout_marginBottom="@dimen/spacing_extra_large"
+            android:background="@drawable/bg_button_primary_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/create"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            app:backgroundTint="@null"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

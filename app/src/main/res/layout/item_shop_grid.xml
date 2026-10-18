@@ -1,26 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="142dp"
+    android:background="@drawable/bg_shop_item_card"
     android:gravity="center"
+    android:orientation="vertical"
     android:padding="8dp">
 
+    <!-- Uniform Image/Preview Frame -->
     <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="center">
 
+        <!-- Outer Ring Frame -->
+        <View
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_shop_item_outer_ring" />
+
+        <!-- Tinted Rarity Tier Badge Circle -->
         <View
             android:id="@+id/view_shop_badge_bg"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:layout_gravity="center"
             android:background="@drawable/bg_achievement_badge" />
 
+        <!-- High-Contrast Inner Disc for Item Outline -->
+        <View
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_item_inner_ring" />
+
         <ImageView
             android:id="@+id/iv_shop_item_image"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_gravity="center"
             android:scaleType="fitCenter"
             android:visibility="gone" />
@@ -31,14 +49,14 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="\uD83D\uDC55"
-            android:textSize="28sp" />
+            android:textSize="22sp" />
 
         <View
             android:id="@+id/view_shop_lock_overlay"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:background="@drawable/bg_achievement_badge"
+            android:background="@drawable/bg_shop_item_card"
             android:backgroundTint="#99000000"
             android:visibility="gone" />
 
@@ -52,27 +70,32 @@
 
     </FrameLayout>
 
+    <!-- Fixed 2-Line Name Container to ensure uniform height -->
     <TextView
         android:id="@+id/tv_shop_item_name"
-        android:layout_width="88dp"
-        android:layout_height="wrap_content"
-        android:text="Item Name"
-        android:textColor="#2D3748"
-        android:textSize="12sp"
-        android:textStyle="bold"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
         android:gravity="center"
-        android:maxLines="2"
-        android:layout_marginTop="6dp" />
+        android:lines="2"
+        android:text="Item Name"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="11sp"
+        android:textStyle="bold" />
 
+    <!-- Fixed-Height Price / Level Badge -->
     <TextView
         android:id="@+id/tv_shop_item_meta"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="50 Gold"
-        android:textColor="#4B5563"
-        android:textSize="11sp"
-        android:textStyle="bold"
+        android:layout_height="22dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_shop_price_pill"
         android:gravity="center"
-        android:layout_marginTop="2dp" />
+        android:paddingHorizontal="8dp"
+        android:text="50 Gold"
+        android:textColor="@color/dagoal_text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

@@ -3,20 +3,35 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- DaGOAL Design Tokens (Official Redesign Palette) -->
+    <!-- DaGOAL Design Tokens (Exact Redesign Palette from Mockups) -->
     <color name="dagoal_primary">#546B41</color>
-    <color name="dagoal_secondary">#99AD7A</color>
+    <color name="dagoal_primary_dark">#334327</color>
+    <color name="dagoal_secondary">#8EA27A</color>
     <color name="dagoal_surface">#DCCCAC</color>
-    <color name="dagoal_background_light">#FFF8EC</color>
+    <color name="dagoal_background_light">#FFFDF5</color>
 
-    <!-- Semantic Naming Aliases -->
+    <!-- Semantic Naming Aliases & Tonal Tokens -->
     <color name="dagoal_primary_green">@color/dagoal_primary</color>
     <color name="dagoal_muted_green">@color/dagoal_secondary</color>
+    <color name="dagoal_surface_variant">#EADEC7</color>
     <color name="dagoal_beige">@color/dagoal_surface</color>
     <color name="dagoal_off_white">@color/dagoal_background_light</color>
 
+    <!-- Content & Text Colors -->
+    <color name="dagoal_text_primary">#334327</color>
+    <color name="dagoal_text_secondary">#4B5563</color>
+    <color name="dagoal_text_muted">#64748B</color>
+
+    <!-- Accent Tokens -->
+    <color name="dagoal_xp_purple">#8A2BE2</color>
+    <color name="dagoal_gold_amber">#FFD700</color>
+    <color name="dagoal_error">#EF4444</color>
+    <color name="dagoal_red">#E53935</color>
+    <color name="dagoal_gray_disabled">#CBD5E1</color>
+    <color name="dagoal_border_light">#A0AEC0</color>
+
     <!-- UI State Colors -->
-    <color name="dagoal_hint">#80546B41</color>
+    <color name="dagoal_hint">#80334327</color>
 
     <!-- Legacy / Compatibility Colors -->
     <color name="da_goal_green">@color/dagoal_primary</color>

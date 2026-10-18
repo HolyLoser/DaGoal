@@ -1,29 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_auth_options_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#2B2B2B"
-    android:padding="24dp">
+    android:background="@color/dagoal_primary"
+    android:padding="@dimen/spacing_extra_large">
 
     <!-- Top Left Back Button -->
     <ImageButton
         android:id="@+id/btn_back_options"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="@dimen/icon_button_size"
+        android:layout_height="@dimen/icon_button_size"
         android:background="@drawable/bg_auth_pill"
         android:contentDescription="Back"
+        android:padding="@dimen/spacing_small"
         android:src="@android:drawable/ic_menu_revert"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:tint="#1E1E1E" />
+        app:tint="@color/dagoal_primary_dark" />
 
     <!-- DaGoal Logo Centered -->
     <ImageView
         android:id="@+id/img_options_logo"
-        android:layout_width="200dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="32dp"
+        android:layout_width="@dimen/logo_width_medium"
+        android:layout_height="@dimen/logo_height_large"
+        android:layout_marginTop="@dimen/spacing_huge"
         android:contentDescription="DaGoal Logo"
         android:scaleType="fitCenter"
         android:src="@drawable/logo_nobg"
@@ -34,41 +36,41 @@
     <!-- 1. Email Option Button -->
     <Button
         android:id="@+id/btn_opt_email"
-        android:layout_width="match_parent"
-        android:layout_height="58dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="48dp"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/button_height_large"
+        android:layout_marginHorizontal="@dimen/spacing_large"
+        android:layout_marginTop="@dimen/spacing_giant"
         android:background="@drawable/bg_auth_pill"
         android:text="Email"
         android:textAllCaps="false"
-        android:textColor="#1E1E1E"
-        android:textSize="18sp"
+        android:textColor="@color/dagoal_primary_dark"
+        android:textSize="@dimen/text_size_header"
         android:textStyle="bold"
         app:backgroundTint="@null"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/img_options_logo" />
 
-    <!-- 2. Gmail Option Container (Pill with Icon + Text) -->
+    <!-- 2. Gmail Option Container -->
     <LinearLayout
         android:id="@+id/btn_opt_gmail"
-        android:layout_width="match_parent"
-        android:layout_height="58dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="16dp"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/button_height_large"
+        android:layout_marginHorizontal="@dimen/spacing_large"
+        android:layout_marginTop="@dimen/spacing_normal"
         android:background="@drawable/bg_auth_pill"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="@dimen/spacing_large"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_opt_email">
 
         <ImageView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="@dimen/icon_size_large"
+            android:layout_height="@dimen/icon_size_large"
             android:contentDescription="Gmail Icon"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_gmail" />
@@ -76,33 +78,33 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/spacing_medium"
             android:text="Gmail"
-            android:textColor="#1E1E1E"
-            android:textSize="18sp"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_header"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- 3. Facebook Option Container (Pill with Icon + Text) -->
+    <!-- 3. Facebook Option Container -->
     <LinearLayout
         android:id="@+id/btn_opt_facebook"
-        android:layout_width="match_parent"
-        android:layout_height="58dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="16dp"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/button_height_large"
+        android:layout_marginHorizontal="@dimen/spacing_large"
+        android:layout_marginTop="@dimen/spacing_normal"
         android:background="@drawable/bg_auth_pill"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="@dimen/spacing_large"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_opt_gmail">
 
         <ImageView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="@dimen/icon_size_large"
+            android:layout_height="@dimen/icon_size_large"
             android:contentDescription="Facebook Icon"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_facebook" />
@@ -110,10 +112,10 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/spacing_medium"
             android:text="Facebook"
-            android:textColor="#1E1E1E"
-            android:textSize="18sp"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="@dimen/text_size_header"
             android:textStyle="bold" />
     </LinearLayout>
 

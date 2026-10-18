@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/bg_surface_card"
+    android:background="@drawable/bg_surface_card_full_radius"
     android:padding="24dp">
 
     <TextView
@@ -11,27 +12,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Welcome to DaGoal! 📜"
-        android:textColor="@color/dagoal_primary"
+        android:textColor="@color/dagoal_primary_dark"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="12dp" />
 
     <TextView
         android:id="@+id/tv_tutorial_step_desc"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="DaGoal helps you turn self-care habits and daily productivity into an RPG adventure!"
-        android:textColor="@color/dagoal_primary"
+        android:text="New to DaGoal? You can tap the Info icon (ℹ️) on the ME tab anytime to view the interactive App Tutorial!"
+        android:textColor="@color/dagoal_primary_dark"
         android:textSize="14sp"
         android:lineSpacingMultiplier="1.2"
-        android:layout_marginBottom="24dp" />
-
-    <LinearLayout
-        android:id="@+id/container_tutorial_dots"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
         android:layout_marginBottom="24dp" />
 
     <LinearLayout
@@ -40,27 +33,34 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_tutorial_prev"
+            android:id="@+id/btn_tutorial_dismiss"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="50dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:backgroundTint="@color/dagoal_secondary"
-            android:text="Back"
+            android:background="@drawable/bg_button_pill"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Got It"
             android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:visibility="gone" />
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <Button
-            android:id="@+id/btn_tutorial_next"
+            android:id="@+id/btn_tutorial_start"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/dagoal_primary"
-            android:text="Next"
+            android:background="@drawable/bg_button_pill_dark"
+            app:backgroundTint="@null"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="Begin Tutorial"
             android:textAllCaps="false"
             android:textColor="@color/white"
+            android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
 

@@ -11,7 +11,11 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -27,23 +31,43 @@ public class SettingsActivity extends AppCompatActivity {
         AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_settings);
 
+        View rootLayout = findViewById(R.id.root_settings_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
+
         dbHelper = new DatabaseHelper(this);
         prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
 
         contentFrame = findViewById(R.id.settings_content_frame);
         tvScreenTitle = findViewById(R.id.tv_settings_screen_title);
 
-        findViewById(R.id.btn_settings_back).setOnClickListener(v -> {
-            if (!"MAIN".equals(currentScreen)) {
-                SoundEffectsHelper.playMenuClose(this);
-                showMainMenu();
-            } else {
-                SoundEffectsHelper.playMenuClose(this);
-                finish();
+        DebouncedOnClickListener.setSafeOnClickListener(findViewById(R.id.btn_settings_back), v -> handleSettingsBackNavigation());
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleSettingsBackNavigation();
             }
         });
 
         showMainMenu();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void handleSettingsBackNavigation() {
+        if (!"MAIN".equals(currentScreen)) {
+            SoundEffectsHelper.playMenuClose(this);
+            showMainMenu();
+        } else {
+            SoundEffectsHelper.playMenuClose(this);
+            finish();
+        }
     }
 
     @Override
@@ -61,12 +85,11 @@ public class SettingsActivity extends AppCompatActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.view_settings_main, contentFrame, false);
         contentFrame.addView(view);
 
-        view.findViewById(R.id.row_settings_account).setOnClickListener(v -> showScreen("ACCOUNT"));
-        view.findViewById(R.id.row_settings_notifications).setOnClickListener(v -> showScreen("NOTIFICATIONS"));
-        view.findViewById(R.id.row_settings_privacy).setOnClickListener(v -> showScreen("PRIVACY"));
-        view.findViewById(R.id.row_settings_sound).setOnClickListener(v -> showScreen("SOUND"));
-        view.findViewById(R.id.row_settings_appearance).setOnClickListener(v -> showScreen("APPEARANCE"));
-        view.findViewById(R.id.row_settings_about).setOnClickListener(v -> showScreen("ABOUT"));
+        DebouncedOnClickListener.setSafeOnClickListener(view.findViewById(R.id.row_settings_account), v -> showScreen("ACCOUNT"));
+        DebouncedOnClickListener.setSafeOnClickListener(view.findViewById(R.id.row_settings_notifications), v -> showScreen("NOTIFICATIONS"));
+        DebouncedOnClickListener.setSafeOnClickListener(view.findViewById(R.id.row_settings_privacy), v -> showScreen("PRIVACY"));
+        DebouncedOnClickListener.setSafeOnClickListener(view.findViewById(R.id.row_settings_sound), v -> showScreen("SOUND"));
+        DebouncedOnClickListener.setSafeOnClickListener(view.findViewById(R.id.row_settings_about), v -> showScreen("ABOUT"));
     }
 
     private void showScreen(String screen) {
@@ -89,10 +112,6 @@ public class SettingsActivity extends AppCompatActivity {
             case "SOUND":
                 tvScreenTitle.setText("Sound & Haptics");
                 buildSoundScreen();
-                break;
-            case "APPEARANCE":
-                tvScreenTitle.setText("Appearance");
-                buildAppearanceScreen();
                 break;
             case "ABOUT":
                 tvScreenTitle.setText("About");
@@ -145,7 +164,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         if (onClick != null) {
-            row.setOnClickListener(v -> onClick.run());
+            DebouncedOnClickListener.setSafeOnClickListener(row, v -> onClick.run());
         } else {
             row.setClickable(false);
         }
@@ -189,10 +208,12 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (isLoggedIn || firebaseUser != null) {
             addInfoRow(container, "Log Out", "Tap to Log Out", () -> {
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Log Out?")
-                        .setMessage("Are you sure you want to log out of your account?")
-                        .setPositiveButton("Log Out", (d, w) -> {
+                showCustomConfirmDialog(
+                        R.drawable.ic_info_circle, android.graphics.Color.parseColor("#FEE2E2"), androidx.core.content.ContextCompat.getColor(this, R.color.dagoal_error),
+                        "Log Out?",
+                        "Are you sure you want to log out of your account?",
+                        "Log Out", R.drawable.bg_button_pill_danger,
+                        () -> {
                             try {
                                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
                             } catch (Exception ignored) {}
@@ -211,68 +232,102 @@ public class SettingsActivity extends AppCompatActivity {
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startActivity(intent);
                             finish();
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
+                        },
+                        "Cancel", null
+                );
             });
         }
 
         addInfoRow(container, "Delete Account", "", () -> {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Delete Account?")
-                    .setMessage("This will delete your account and erase all quests, achievements, gold, XP, and levels. This cannot be undone.")
-                    .setPositiveButton("Delete Account", (d, w) -> {
-                        String uid = prefs.getString("user_uid", null);
-                        com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+            android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_delete_account, null);
+            builder.setView(dialogView);
 
-                        Runnable performLocalReset = () -> {
-                            try {
-                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
-                            } catch (Exception ignored) {}
+            androidx.appcompat.app.AlertDialog dialog = builder.create();
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            }
 
-                            SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
-                            writableDb.execSQL("DROP TABLE IF EXISTS user");
-                            writableDb.execSQL("DROP TABLE IF EXISTS daily_tasks");
-                            writableDb.execSQL("DROP TABLE IF EXISTS achievements");
-                            writableDb.execSQL("DROP TABLE IF EXISTS inventory");
-                            writableDb.execSQL("DROP TABLE IF EXISTS inventory_consumables");
-                            writableDb.execSQL("DROP TABLE IF EXISTS preferences");
-                            writableDb.execSQL("DROP TABLE IF EXISTS task_templates");
-                            writableDb.execSQL("DROP TABLE IF EXISTS blocked_apps");
-                            writableDb.execSQL("DROP TABLE IF EXISTS streak_history");
-                            dbHelper.onCreate(writableDb);
+            android.widget.Button btnCancel = dialogView.findViewById(R.id.btn_delete_cancel);
+            android.widget.Button btnConfirm = dialogView.findViewById(R.id.btn_delete_confirm);
+            android.widget.EditText etInput = dialogView.findViewById(R.id.et_delete_confirm_input);
 
-                            prefs.edit().clear().putBoolean("isFirstRun", true).apply();
-                            AvatarCompositor.clearCache();
+            btnConfirm.setEnabled(false);
+            btnConfirm.setAlpha(0.4f);
 
-                            ToastUtils.showToast(this, "Account and progress reset.");
-                            Intent intent = new Intent(this, MainActivity.class);
-                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                            startActivity(intent);
-                            finish();
-                        };
+            if (etInput != null) {
+                etInput.addTextChangedListener(new android.text.TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-                        if (uid != null && !uid.isEmpty()) {
-                            try {
-                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                        .collection("users").document(uid).delete();
-                            } catch (Exception ignored) {}
-                        }
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        boolean isValid = s != null && "DELETE".equalsIgnoreCase(s.toString().trim());
+                        btnConfirm.setEnabled(isValid);
+                        btnConfirm.setAlpha(isValid ? 1.0f : 0.4f);
+                    }
 
-                        if (fUser != null) {
-                            fUser.delete().addOnCompleteListener(task -> {
-                                if (task.isSuccessful()) {
-                                    performLocalReset.run();
-                                } else {
-                                    showReAuthAndDeleteDialog(fUser, uid, performLocalReset);
-                                }
-                            });
-                        } else {
+                    @Override
+                    public void afterTextChanged(android.text.Editable s) {}
+                });
+            }
+
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+            btnConfirm.setOnClickListener(v -> {
+                dialog.dismiss();
+
+                String uid = prefs.getString("user_uid", null);
+                com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+                Runnable performLocalReset = () -> {
+                    try {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                    } catch (Exception ignored) {}
+
+                    SQLiteDatabase writableDb = dbHelper.getWritableDatabase();
+                    writableDb.execSQL("DROP TABLE IF EXISTS user");
+                    writableDb.execSQL("DROP TABLE IF EXISTS daily_tasks");
+                    writableDb.execSQL("DROP TABLE IF EXISTS achievements");
+                    writableDb.execSQL("DROP TABLE IF EXISTS inventory");
+                    writableDb.execSQL("DROP TABLE IF EXISTS inventory_consumables");
+                    writableDb.execSQL("DROP TABLE IF EXISTS preferences");
+                    writableDb.execSQL("DROP TABLE IF EXISTS task_templates");
+                    writableDb.execSQL("DROP TABLE IF EXISTS blocked_apps");
+                    writableDb.execSQL("DROP TABLE IF EXISTS streak_history");
+                    dbHelper.onCreate(writableDb);
+
+                    prefs.edit().clear().putBoolean("isFirstRun", true).apply();
+                    AvatarCompositor.clearCache();
+
+                    ToastUtils.showToast(this, "Account and progress reset.");
+                    Intent intent = new Intent(this, MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                };
+
+                if (uid != null && !uid.isEmpty()) {
+                    try {
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                .collection("users").document(uid).delete();
+                    } catch (Exception ignored) {}
+                }
+
+                if (fUser != null) {
+                    fUser.delete().addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
                             performLocalReset.run();
+                        } else {
+                            showReAuthAndDeleteDialog(fUser, uid, performLocalReset);
                         }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+                    });
+                } else {
+                    performLocalReset.run();
+                }
+            });
+
+            dialog.show();
         });
 
         contentFrame.addView(container);
@@ -314,7 +369,7 @@ public class SettingsActivity extends AppCompatActivity {
         container.addView(editPassword);
         container.addView(btnEye);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new androidx.appcompat.app.AlertDialog.Builder(this, R.style.DaGoalDialogTheme)
                 .setTitle("Confirm Password")
                 .setMessage("Deleting your cloud account requires recent verification. Please enter your password to confirm.")
                 .setView(container)
@@ -358,7 +413,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         android.widget.EditText editUsername = new android.widget.EditText(this);
         editUsername.setText(currentUsername);
-        editUsername.setSelection(currentUsername.length());
+        editUsername.setHint("Enter username (max 16 characters)");
+        editUsername.setFilters(new android.text.InputFilter[]{ new android.text.InputFilter.LengthFilter(16) });
+        editUsername.setSelection(Math.min(currentUsername.length(), 16));
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
         editUsername.setPadding(padding, padding, padding, padding);
 
@@ -371,8 +428,8 @@ public class SettingsActivity extends AppCompatActivity {
                         ToastUtils.showToast(this, "Username cannot be empty.");
                         return;
                     }
-                    if (newUsername.length() > 20) {
-                        ToastUtils.showToast(this, "Username must be 20 characters or fewer.");
+                    if (newUsername.length() > 16) {
+                        ToastUtils.showToast(this, "Username must be 16 characters or fewer.");
                         return;
                     }
 
@@ -621,20 +678,6 @@ public class SettingsActivity extends AppCompatActivity {
         contentFrame.addView(container);
     }
 
-    private void buildAppearanceScreen() {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        addSwitchRow(container, "Follow System Theme", "When off, DaGoal always uses its light theme regardless of your device's dark mode setting.",
-                prefs.getBoolean("pref_follow_system_theme", false),
-                isChecked -> {
-                    prefs.edit().putBoolean("pref_follow_system_theme", isChecked).apply();
-                    AppearanceHelper.applyPreferredNightMode(this);
-                });
-
-        contentFrame.addView(container);
-    }
-
     private void buildAboutScreen() {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
@@ -663,5 +706,66 @@ public class SettingsActivity extends AppCompatActivity {
         addInfoRow(container, "Privacy Policy", "Not yet published", null);
 
         contentFrame.addView(container);
+    }
+
+    private void showCustomConfirmDialog(int iconRes, int badgeBgColor, int iconTintColor,
+                                         String title, String message,
+                                         String posText, int posBtnBgRes, Runnable onPositive,
+                                         String negText, Runnable onNegative) {
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirmation_prompt, null);
+
+        android.view.View frameIconBg = dialogView.findViewById(R.id.frame_confirm_icon_bg);
+        android.widget.ImageView ivIcon = dialogView.findViewById(R.id.iv_confirm_icon);
+        android.widget.TextView tvTitle = dialogView.findViewById(R.id.tv_confirm_title);
+        android.widget.TextView tvMessage = dialogView.findViewById(R.id.tv_confirm_message);
+        android.widget.Button btnNeg = dialogView.findViewById(R.id.btn_confirm_negative);
+        android.widget.Button btnPos = dialogView.findViewById(R.id.btn_confirm_positive);
+
+        if (frameIconBg != null && badgeBgColor != 0) {
+            androidx.core.view.ViewCompat.setBackgroundTintList(frameIconBg, android.content.res.ColorStateList.valueOf(badgeBgColor));
+        }
+        if (ivIcon != null) {
+            ivIcon.setImageResource(iconRes != 0 ? iconRes : R.drawable.ic_info_circle);
+            if (iconTintColor != 0) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(ivIcon, android.content.res.ColorStateList.valueOf(iconTintColor));
+            }
+        }
+
+        if (tvTitle != null) tvTitle.setText(title);
+        if (tvMessage != null) tvMessage.setText(message);
+
+        if (btnNeg != null) {
+            btnNeg.setText(negText != null ? negText : "Cancel");
+        }
+        if (btnPos != null) {
+            btnPos.setText(posText != null ? posText : "Confirm");
+            if (posBtnBgRes != 0) {
+                btnPos.setBackgroundResource(posBtnBgRes);
+            }
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        if (btnNeg != null) {
+            btnNeg.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onNegative != null) onNegative.run();
+            });
+        }
+
+        if (btnPos != null) {
+            btnPos.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onPositive != null) onPositive.run();
+            });
+        }
+
+        dialog.show();
     }
 }

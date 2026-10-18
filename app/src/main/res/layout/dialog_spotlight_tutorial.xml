@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_spotlight_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,33 +10,53 @@
 
     <LinearLayout
         android:id="@+id/card_spotlight_tooltip"
-        android:layout_width="280dp"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@drawable/bg_surface_card"
+        android:background="@drawable/bg_surface_card_full_radius"
         android:elevation="12dp"
         android:orientation="vertical"
         android:padding="20dp">
 
-        <TextView
-            android:id="@+id/tv_spotlight_step_title"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="1. Daily Quests 📜"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_spotlight_step_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="1. Daily Quests 📜"
+                android:textColor="@color/dagoal_primary_dark"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_spotlight_step_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stats_badge_primary"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="1/6"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_spotlight_step_desc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tap here to view your Daily Quests and create Custom Goals!"
-            android:textColor="@color/dagoal_primary"
-            android:textSize="13sp"
+            android:layout_marginBottom="20dp"
             android:lineSpacingMultiplier="1.2"
-            android:layout_marginBottom="20dp" />
+            android:text="Tap here to view your Daily Quests and create Custom Goals!"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="13sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -45,25 +66,33 @@
             <Button
                 android:id="@+id/btn_spotlight_prev"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
-                android:layout_weight="1"
+                android:layout_height="48dp"
                 android:layout_marginEnd="8dp"
-                android:backgroundTint="@color/dagoal_secondary"
+                android:layout_weight="1"
+                android:background="@drawable/bg_button_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
                 android:text="Back"
                 android:textAllCaps="false"
-                android:textColor="@color/white"
+                android:textColor="@color/dagoal_primary_dark"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
             <Button
                 android:id="@+id/btn_spotlight_next"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
+                android:layout_height="48dp"
                 android:layout_weight="1"
-                android:backgroundTint="@color/dagoal_primary"
+                android:background="@drawable/bg_button_primary_pill"
+                app:backgroundTint="@null"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
                 android:text="Next"
                 android:textAllCaps="false"
                 android:textColor="@color/white"
+                android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

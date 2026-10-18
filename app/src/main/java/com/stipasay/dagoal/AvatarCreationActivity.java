@@ -231,67 +231,42 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
 
         View preview = dialogView.findViewById(R.id.view_eye_color_preview);
-        SeekBar sbRed = dialogView.findViewById(R.id.sb_eye_red);
-        SeekBar sbGreen = dialogView.findViewById(R.id.sb_eye_green);
-        SeekBar sbBlue = dialogView.findViewById(R.id.sb_eye_blue);
-        TextView tvRed = dialogView.findViewById(R.id.tv_eye_red_val);
-        TextView tvGreen = dialogView.findViewById(R.id.tv_eye_green_val);
-        TextView tvBlue = dialogView.findViewById(R.id.tv_eye_blue_val);
+        TextView tvName = dialogView.findViewById(R.id.tv_eye_color_name);
+        TextView tvHex = dialogView.findViewById(R.id.tv_eye_hex_val);
         Button btnApply = dialogView.findViewById(R.id.btn_apply_eye_color);
 
-        int initR = Color.red(selectedEyeColor);
-        int initG = Color.green(selectedEyeColor);
-        int initB = Color.blue(selectedEyeColor);
-
-        if (sbRed != null) sbRed.setProgress(initR);
-        if (sbGreen != null) sbGreen.setProgress(initG);
-        if (sbBlue != null) sbBlue.setProgress(initB);
+        final int[] tempColor = { selectedEyeColor };
 
         Runnable updatePreview = () -> {
-            int r = (sbRed != null) ? sbRed.getProgress() : 30;
-            int g = (sbGreen != null) ? sbGreen.getProgress() : 144;
-            int b = (sbBlue != null) ? sbBlue.getProgress() : 255;
-
-            if (tvRed != null) tvRed.setText(String.valueOf(r));
-            if (tvGreen != null) tvGreen.setText(String.valueOf(g));
-            if (tvBlue != null) tvBlue.setText(String.valueOf(b));
-
-            int c = Color.rgb(r, g, b);
+            int c = tempColor[0];
             if (preview != null) {
                 preview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(c));
             }
+            if (tvHex != null) {
+                tvHex.setText(String.format("#%06X", (0xFFFFFF & c)));
+            }
         };
 
-        SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) { updatePreview.run(); }
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        };
-
-        if (sbRed != null) sbRed.setOnSeekBarChangeListener(listener);
-        if (sbGreen != null) sbGreen.setOnSeekBarChangeListener(listener);
-        if (sbBlue != null) sbBlue.setOnSeekBarChangeListener(listener);
-
-        setupPresetColor(dialogView, R.id.preset_blue, Color.parseColor("#1E90FF"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_green, Color.parseColor("#2E8B57"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_brown, Color.parseColor("#8B4513"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_hazel, Color.parseColor("#DAA520"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_purple, Color.parseColor("#8A2BE2"), sbRed, sbGreen, sbBlue, updatePreview);
-        setupPresetColor(dialogView, R.id.preset_crimson, Color.parseColor("#DC143C"), sbRed, sbGreen, sbBlue, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_black, Color.parseColor("#1E1E1E"), "Deep Black", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_darkbrown, Color.parseColor("#3B2219"), "Dark Brown", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_brown, Color.parseColor("#8B4513"), "Chestnut Brown", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_hazel, Color.parseColor("#DAA520"), "Warm Hazel", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_amber, Color.parseColor("#FF8C00"), "Amber Gold", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_green, Color.parseColor("#2E8B57"), "Emerald Green", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_turquoise, Color.parseColor("#008080"), "Deep Turquoise", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_sapphire, Color.parseColor("#1E90FF"), "Sapphire Blue", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_skyblue, Color.parseColor("#87CEEB"), "Sky Blue", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_gray, Color.parseColor("#708090"), "Steel Gray", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_purple, Color.parseColor("#8A2BE2"), "Royal Purple", tempColor, tvName, updatePreview);
+        setupIrisPreset(dialogView, R.id.preset_iris_crimson, Color.parseColor("#DC143C"), "Ruby Red", tempColor, tvName, updatePreview);
 
         updatePreview.run();
 
         if (btnApply != null) {
             btnApply.setOnClickListener(v -> {
-                int r = (sbRed != null) ? sbRed.getProgress() : 30;
-                int g = (sbGreen != null) ? sbGreen.getProgress() : 144;
-                int b = (sbBlue != null) ? sbBlue.getProgress() : 255;
-                selectedEyeColor = Color.rgb(r, g, b);
+                selectedEyeColor = tempColor[0];
 
-                updateEyeLayers();
+                renderLiveAvatarPreview();
 
                 // Refresh grid thumbnails to show tinted eyes
                 ImageButton currentTab = getTabButton(activeCategory);
@@ -302,6 +277,19 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
 
         dialog.show();
+    }
+
+    private void setupIrisPreset(View dialogView, int viewId, int color, String name, int[] tempColor, TextView tvName, Runnable update) {
+        View preset = dialogView.findViewById(viewId);
+        if (preset != null) {
+            preset.setBackgroundResource(R.drawable.bg_circle_preset);
+            preset.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
+            preset.setOnClickListener(v -> {
+                tempColor[0] = color;
+                if (tvName != null) tvName.setText(name);
+                update.run();
+            });
+        }
     }
 
     private void showHairColorPickerDialog() {

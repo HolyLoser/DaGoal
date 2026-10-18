@@ -22,6 +22,7 @@
     </queries>
 
     <application
+        android:name=".DaGoalApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -47,40 +48,41 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".SignUpActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".AuthOptionsActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".AuthEmailActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".AuthPasswordActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".ProfilingActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".AvatarCreationActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".AppSelectionActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".DailyRevealActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".DashboardActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".StreakActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
         <activity
             android:name=".SettingsActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
         <activity
             android:name=".StreakInfoActivity"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.DaGoal" />
 
         <service
             android:name=".StepTrackingService"

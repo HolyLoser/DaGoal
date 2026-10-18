@@ -284,6 +284,29 @@ public class TaskManager {
         return hours + "h " + mins + "m";
     }
 
+    public static String formatDurationSeconds(long totalSeconds) {
+        if (totalSeconds <= 0) {
+            return "0s";
+        }
+        long hours = totalSeconds / 3600;
+        long mins = (totalSeconds % 3600) / 60;
+        long secs = totalSeconds % 60;
+
+        if (hours > 0) {
+            if (secs > 0) {
+                return String.format(Locale.getDefault(), "%dh %02dm %02ds", hours, mins, secs);
+            } else if (mins > 0) {
+                return String.format(Locale.getDefault(), "%dh %02dm", hours, mins);
+            } else {
+                return String.format(Locale.getDefault(), "%dh", hours);
+            }
+        } else if (mins > 0) {
+            return String.format(Locale.getDefault(), "%dm %02ds", mins, secs);
+        } else {
+            return String.format(Locale.getDefault(), "%ds", secs);
+        }
+    }
+
     private int[] computeScaledQuestReward(int baseGold, int baseXp, int userLevel, float scaleMultiplier) {
         int scaledGold = Math.round((baseGold + (userLevel - 1) * 2) * scaleMultiplier);
         int scaledXp = Math.round((baseXp + (userLevel - 1) * 3) * scaleMultiplier);
@@ -1590,7 +1613,9 @@ public class TaskManager {
         String[] projection = {
                 DatabaseContract.DailyTaskEntry._ID,
                 DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
-                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
+                DatabaseContract.DailyTaskEntry.COLUMN_IS_CUSTOM
         };
 
         String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
@@ -1607,12 +1632,32 @@ public class TaskManager {
                 int taskId = cursor.getInt(0);
                 int targetValue = cursor.getInt(1);
                 int isCompleted = cursor.getInt(2);
+                long startStepBaseline = cursor.getLong(3);
+                int isCustom = cursor.getInt(4);
 
                 if (isCompleted == 1) {
                     continue;
                 }
 
-                int clampedValue = Math.min(newValue, targetValue);
+                int taskProgress;
+                if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType) && isCustom == 1) {
+                    if (startStepBaseline <= 0 && newValue > 0) {
+                        startStepBaseline = newValue;
+                        ContentValues initValues = new ContentValues();
+                        initValues.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, startStepBaseline);
+                        db.update(
+                                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                                initValues,
+                                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                                new String[]{ String.valueOf(taskId) }
+                        );
+                    }
+                    taskProgress = (int) Math.max(0, newValue - startStepBaseline);
+                } else {
+                    taskProgress = newValue;
+                }
+
+                int clampedValue = Math.min(taskProgress, targetValue);
 
                 ContentValues progressValues = new ContentValues();
                 progressValues.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, clampedValue);
@@ -1685,7 +1730,7 @@ public class TaskManager {
         );
     }
 
-    public void checkAndCompleteAvoidanceQuests() {
+    public boolean checkAndCompleteAvoidanceQuests() {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
@@ -1705,6 +1750,7 @@ public class TaskManager {
                 projection, selection, selectionArgs, null, null, null
         );
 
+        boolean completedAny = false;
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 int taskId = cursor.getInt(0);
@@ -1729,16 +1775,33 @@ public class TaskManager {
 
                 if (clampedElapsed >= targetMinutes) {
                     completeTask(taskId);
+                    completedAny = true;
                 }
             }
             cursor.close();
         }
+        return completedAny;
     }
 
     public static class ActiveAvoidanceQuest {
         public int taskId;
         public String title;
         public java.util.List<String> targetPackages;
+        public int targetValue;
+        public long startTimestamp;
+
+        public long getRemainingSeconds() {
+            if (startTimestamp <= 0) {
+                return targetValue * 60L;
+            }
+            long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - startTimestamp) / 1000L);
+            return Math.max(0, (targetValue * 60L) - elapsedSeconds);
+        }
+
+        public String getRemainingTimeFormatted() {
+            long secs = getRemainingSeconds();
+            return TaskManager.formatDurationSeconds(secs) + " remaining";
+        }
     }
 
     public java.util.List<ActiveAvoidanceQuest> getStartedAvoidanceQuests() {
@@ -1749,7 +1812,9 @@ public class TaskManager {
         String[] projection = {
                 DatabaseContract.DailyTaskEntry._ID,
                 DatabaseContract.DailyTaskEntry.COLUMN_TITLE,
-                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME
+                DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME,
+                DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,
+                DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP
         };
 
         String selection = DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE + " = ? AND " +
@@ -1769,10 +1834,18 @@ public class TaskManager {
                 quest.taskId = cursor.getInt(0);
                 quest.title = cursor.getString(1);
                 String packageName = cursor.getString(2);
+                quest.targetValue = cursor.getInt(3);
+                quest.startTimestamp = cursor.getLong(4);
 
                 quest.targetPackages = new java.util.ArrayList<>();
-                if (packageName != null && !packageName.isEmpty()) {
-                    quest.targetPackages.add(packageName);
+                if (packageName != null && !packageName.trim().isEmpty()) {
+                    String[] pkgs = packageName.split(",");
+                    for (String p : pkgs) {
+                        String trimmed = p.trim();
+                        if (!trimmed.isEmpty()) {
+                            quest.targetPackages.add(trimmed);
+                        }
+                    }
                 } else {
                     java.util.List<String[]> blockedApps = getBlockedApps(db);
                     for (String[] app : blockedApps) {
@@ -1829,19 +1902,55 @@ public class TaskManager {
     public int handleIgnorePressed(int taskId) {
         SoundEffectsHelper.playPause(appContext);
         int stage = getIgnoreStage(taskId);
-        if (stage >= 3) {
-            resetAvoidanceQuest(taskId);
-            return -1;
-        }
 
         int newStage = stage + 1;
-        int minutes = newStage == 1 ? 5 : (newStage == 2 ? 10 : 15);
+        int minutes = 5;
         long snoozeUntil = System.currentTimeMillis() + (long) minutes * 60000L;
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{
+                        DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD,
+                        DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP
+                },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        long currentStartTimestamp = System.currentTimeMillis();
+        int rewardGold = 0;
+        int rewardXp = 0;
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                currentStartTimestamp = cursor.getLong(0);
+                rewardGold = cursor.getInt(1);
+                rewardXp = cursor.getInt(2);
+            }
+            cursor.close();
+        }
+
+        // Pause timer by shifting startTimestamp forward by the ignored duration (minutes)
+        long baseTimestamp = currentStartTimestamp > 0 ? currentStartTimestamp : System.currentTimeMillis();
+        long newStartTimestamp = baseTimestamp + (long) minutes * 60000L;
+
+        // Deduct 25% penalty from quest rewards
+        int goldPenalty = Math.max(1, (int) Math.round(rewardGold * 0.25));
+        int xpPenalty = Math.max(1, (int) Math.round(rewardXp * 0.25));
+        int newRewardGold = Math.max(0, rewardGold - goldPenalty);
+        int newRewardXp = Math.max(0, rewardXp - xpPenalty);
+
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_IGNORE_STAGE, newStage);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, newStartTimestamp);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, newRewardGold);
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, newRewardXp);
+
         db.update(
                 DatabaseContract.DailyTaskEntry.TABLE_NAME,
                 values,
@@ -1849,7 +1958,57 @@ public class TaskManager {
                 new String[]{ String.valueOf(taskId) }
         );
 
+        ToastUtils.showToast(appContext, "Timer paused for " + minutes + "m. Quest reward reduced (-" + goldPenalty + " Gold, -" + xpPenalty + " XP)");
+
         return minutes;
+    }
+
+    public void cancelSnoozeAndResumeTimer(int taskId, long unusedMs) {
+        if (unusedMs <= 0) return;
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                new String[]{ DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP },
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) },
+                null, null, null
+        );
+
+        long currentStartTimestamp = 0;
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                currentStartTimestamp = cursor.getLong(0);
+            }
+            cursor.close();
+        }
+
+        if (currentStartTimestamp > 0) {
+            long newStartTimestamp = Math.max(0, currentStartTimestamp - unusedMs);
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, newStartTimestamp);
+
+            db.update(
+                    DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                    values,
+                    DatabaseContract.DailyTaskEntry._ID + " = ?",
+                    new String[]{ String.valueOf(taskId) }
+            );
+        }
+    }
+
+    public void snoozeAvoidanceQuestSeconds(int taskId, int seconds) {
+        long snoozeUntil = System.currentTimeMillis() + (long) seconds * 1000L;
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
+        db.update(
+                DatabaseContract.DailyTaskEntry.TABLE_NAME,
+                values,
+                DatabaseContract.DailyTaskEntry._ID + " = ?",
+                new String[]{ String.valueOf(taskId) }
+        );
     }
 
     public void resetAvoidanceQuest(int taskId) {
@@ -1971,6 +2130,12 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, currentDate);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+        if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
+            int currentSteps = StepTrackingService.getStepsToday(appContext);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, (long) currentSteps);
+        }
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, "Custom");
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_GOLD, goldPicked);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_REWARD_XP, xpReward);
