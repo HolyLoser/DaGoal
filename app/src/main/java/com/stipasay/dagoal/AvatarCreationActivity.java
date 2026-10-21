@@ -1145,6 +1145,14 @@ public class AvatarCreationActivity extends AppCompatActivity {
         }
     }
 
+    public static void preloadAvatarAssets(android.content.Context context) {
+        if (context == null) return;
+        try {
+            AvatarConfig config = AvatarConfig.loadFromPreferences(context);
+            AvatarCompositor.renderAvatarBitmap(context, config, 640);
+        } catch (Exception ignored) {}
+    }
+
     private void saveAvatarSnapshotImage(View avatarSquareView) {
         if (avatarSquareView == null) return;
 

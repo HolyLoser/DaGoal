@@ -256,8 +256,8 @@ public class AvatarCompositor {
         }
 
         // 4. Layer 4: Nose (Independent selectedNoseColorName; pure black #1E1E1E when "black")
-        boolean isSmallNose = "square_nose".equals(config.selectedNoseShape);
-        float baseNoseSizeDp = isSmallNose ? 34.0f : 50.0f;
+        boolean isSmallNose = "square_nose".equals(config.selectedNoseShape) || "oblong_nose".equals(config.selectedNoseShape);
+        float baseNoseSizeDp = "square_nose".equals(config.selectedNoseShape) ? 34.0f : ("oblong_nose".equals(config.selectedNoseShape) ? 30.0f : 50.0f);
         float noseSizePx = dpToPx(baseNoseSizeDp, density) * scale;
         float noseBottomMarginPx = dpToPx(48.0f, density) * scale;
 

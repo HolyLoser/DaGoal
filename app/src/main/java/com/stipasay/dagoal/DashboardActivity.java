@@ -2329,18 +2329,18 @@ public class DashboardActivity extends AppCompatActivity {
         String[] stepTitles = {
                 "1. QUEST Tab 📜",
                 "2. Create Custom Quest 🎯",
-                "3. WARDROBE Tab 💇",
-                "4. SHOP Catalog 🛒",
-                "5. Chest Milestone Bar 🎁",
+                "3. Chest Milestone Bar 🎁",
+                "4. WARDROBE Tab 💇",
+                "5. SHOP Catalog 🛒",
                 "6. ME Tab & Info Icon ℹ️"
         };
 
         String[] stepDescs = {
                 "View your active Daily Quests and track your daily progress in one place!",
                 "Tap '+ Add a Goal' to create Custom Quests! Define tracking options (Tap to complete, Steps, Repetitions, or Focus Timer with App Blocker), repeat schedules, and custom rewards!",
+                "Every 3 daily quests completed fills your Chest Bar to unlock Wooden, Silver, Gold, and Platinum Chests!",
                 "Tap WARDROBE to customize your character avatar with hairstyles, skin tones, hats, glasses, and outfits!",
                 "Tap SHOP to spend earned Gold and unlock new clothing and accessory items!",
-                "Every 3 daily quests completed fills your Chest Bar to unlock Wooden, Silver, Gold, and Platinum Chests!",
                 "Tap ME to view your Level, Streaks, and Achievements! You can tap your avatar circle to customize your character appearance, or use the Info icon ℹ️ to relaunch this tutorial!"
         };
 
@@ -2379,11 +2379,11 @@ public class DashboardActivity extends AppCompatActivity {
                     targetView = tabViewQuest.findViewById(R.id.btn_dashboard_add_goal);
                 }
             } else if (step == 2) {
-                targetView = navWardrobe;
-            } else if (step == 3) {
-                targetView = navShop;
-            } else if (step == 4) {
                 targetView = findViewById(R.id.card_chest_bar);
+            } else if (step == 3) {
+                targetView = navWardrobe;
+            } else if (step == 4) {
+                targetView = navShop;
             } else if (step == 5) {
                 targetView = navMe;
             }
@@ -2483,11 +2483,11 @@ public class DashboardActivity extends AppCompatActivity {
                     }
                 }
             } else if (step == 2) {
-                selectTab("WARDROBE");
-            } else if (step == 3) {
-                selectTab("SHOP");
-            } else if (step == 4) {
                 selectTab("QUEST");
+            } else if (step == 3) {
+                selectTab("WARDROBE");
+            } else if (step == 4) {
+                selectTab("SHOP");
             } else if (step == 5) {
                 selectTab("ME");
             }

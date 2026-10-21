@@ -116,6 +116,7 @@ public class TaskManager {
 
         int remainingSlots = Math.max(totalSlots - usedSlots, 0);
         insertRandomAdditionalTasks(db, currentDate, remainingSlots);
+        insertSurveyDrivenHobbyTasks(db, currentDate, currentLevel);
     }
 
     private java.util.List<ContentValues> collectDueRecurringCustomQuests(SQLiteDatabase db, String currentDate) {
@@ -351,7 +352,7 @@ public class TaskManager {
                 float stepRatio = 1.0f;
 
                 if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(newQuestType) || "Walk steps".equalsIgnoreCase(title)) {
-                    finalTarget = 3000 + new Random().nextInt(7001);
+                    finalTarget = calculateSurveyStepTarget(appContext);
                     stepRatio = finalTarget / 3000.0f;
                 } else if ("day".equalsIgnoreCase(unit)) {
                     finalTarget = 1;
@@ -382,6 +383,55 @@ public class TaskManager {
                 }
                 break;
             }
+        }
+    }
+
+    public void insertSurveyDrivenHobbyTasks(SQLiteDatabase db, String dateStr, int userLevel) {
+        android.content.SharedPreferences prefs = appContext.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String q10 = prefs.getString("survey_ans_q10_hobby", "");
+        String q11 = prefs.getString("survey_ans_q11_time", "");
+        String q12 = prefs.getString("survey_ans_q12_hobbies", "");
+
+        int scopeMultiplier = 1;
+        if (q11.contains("15–30")) scopeMultiplier = 2;
+        else if (q11.contains("30–60")) scopeMultiplier = 3;
+        else if (q11.contains("Over an hour")) scopeMultiplier = 4;
+
+        java.util.List<String[]> questList = new java.util.ArrayList<>();
+
+        if (q10.contains("Journaling") || q10.contains("Writing")) {
+            questList.add(new String[]{"Write a " + scopeMultiplier + "-stanza poem about your day", "Creative Writing"});
+            questList.add(new String[]{"Create an original character profile & backstory", "Creative Writing"});
+        } else if (q10.contains("Arts") || q10.contains("Drawing")) {
+            questList.add(new String[]{"Take a photo of nature as inspiration for a sketch", "Art & Design"});
+            questList.add(new String[]{"Doodle a 5-minute warm-up sketch in your sketchbook", "Art & Design"});
+        } else if (q10.contains("Reading")) {
+            questList.add(new String[]{"Read " + (scopeMultiplier * 5) + " pages of your current book", "Literature"});
+            questList.add(new String[]{"Write down 3 memorable quotes from your reading", "Literature"});
+        } else if (q10.contains("Puzzles") || q10.contains("Games")) {
+            questList.add(new String[]{"Solve a daily Wordle or word puzzle", "Mind Games"});
+            questList.add(new String[]{"Complete a daily Sudoku grid", "Mind Games"});
+        }
+
+        if (q12.contains("Gym")) questList.add(new String[]{"Complete a 15-minute bodyweight workout", "Fitness"});
+        if (q12.contains("Music")) questList.add(new String[]{"Practice playing an instrument for 15 minutes", "Music"});
+        if (q12.contains("Crafting")) questList.add(new String[]{"Craft or assemble a physical project or origami", "Crafts"});
+        if (q12.contains("Organizing")) questList.add(new String[]{"Clean and organize your study desk space", "Home"});
+        if (q12.contains("Cooking")) questList.add(new String[]{"Prepare a healthy homemade meal or snack", "Culinary"});
+
+        for (String[] quest : questList) {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TITLE, quest[0]);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE, 1);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_UNIT, "time");
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_IS_COMPLETED, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_DATE, dateStr);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_CATEGORY_TAG, quest[1]);
+            applyTierReward(values, DatabaseContract.DailyTaskEntry.TIER_EASY);
+            db.insert(DatabaseContract.DailyTaskEntry.TABLE_NAME, null, values);
         }
     }
 
@@ -421,11 +471,55 @@ public class TaskManager {
         return sb.toString();
     }
 
+    public int calculateSurveyStepTarget(Context context) {
+        if (context == null) return 3000;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String q4 = prefs.getString("survey_ans_q4_steps", "");
+        String q5 = prefs.getString("survey_ans_q5_days", "");
+        String q6 = prefs.getString("survey_ans_q6_pain", "");
+
+        int baseSteps = 3000;
+        if (q4.contains("Under 2,000")) baseSteps = 2000;
+        else if (q4.contains("2,000")) baseSteps = 3500;
+        else if (q4.contains("5,000")) baseSteps = 6000;
+        else if (q4.contains("8,000")) baseSteps = 8500;
+
+        if (q5.contains("1–2")) baseSteps += 500;
+        else if (q5.contains("3–5")) baseSteps += 1000;
+        else if (q5.contains("6+")) baseSteps += 1500;
+
+        if (q6.contains("frequent discomfort")) baseSteps = Math.min(baseSteps, 4000);
+        else if (q6.contains("Occasional stiffness")) baseSteps = Math.min(baseSteps, 6500);
+
+        return (int) (Math.round(baseSteps / 500.0) * 500);
+    }
+
+    public int calculateSurveyAvoidanceMinutes(Context context) {
+        if (context == null) return 180;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
+        String q7 = prefs.getString("survey_ans_q7_screen", "");
+        String q8 = prefs.getString("survey_ans_q8_scroll", "");
+        String q9 = prefs.getString("survey_ans_q9_detox", "");
+
+        double baseHours = 1.0;
+        if (q7.contains("3–5")) baseHours = 2.0;
+        else if (q7.contains("6–8")) baseHours = 3.0;
+        else if (q7.contains("More than 8")) baseHours = 4.0;
+
+        if (q8.contains("Constantly")) baseHours += 2.0;
+        else if (q8.contains("Frequently")) baseHours += 1.5;
+        else if (q8.contains("Occasionally")) baseHours += 0.5;
+
+        if (q9.contains("Reclaim") || q9.contains("Improve focus")) baseHours += 1.0;
+        else if (q9.contains("Lower anxiety")) baseHours += 0.5;
+
+        return (int) (Math.round(baseHours * 2) * 30);
+    }
+
     private ContentValues buildAvoidanceValues(java.util.List<String[]> blockedApps, double multiplier, String dateStr) {
         Random random = new Random();
         boolean useGroupQuest = random.nextBoolean();
-        int baseMinutes = 180;
-        int targetMinutes = (int) (baseMinutes * multiplier);
+        int targetMinutes = calculateSurveyAvoidanceMinutes(appContext);
 
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_USER_REF, 1);
@@ -1903,8 +1997,21 @@ public class TaskManager {
         SoundEffectsHelper.playPause(appContext);
         int stage = getIgnoreStage(taskId);
 
-        int newStage = stage + 1;
+        // Tier 4: Ignore for today -> resets quest to 0 progress
+        if (stage >= 3) {
+            resetAvoidanceQuest(taskId);
+            ToastUtils.showToast(appContext, "Avoidance quest reset to 0 progress. Tap 'Start' on Dashboard to restart!");
+            return -1;
+        }
+
         int minutes = 5;
+        if (stage == 1) {
+            minutes = 10;
+        } else if (stage == 2) {
+            minutes = 15;
+        }
+
+        int newStage = stage + 1;
         long snoozeUntil = System.currentTimeMillis() + (long) minutes * 60000L;
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();

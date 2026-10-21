@@ -62,7 +62,7 @@ public class ProfilingActivity extends AppCompatActivity {
             "What is your main objective for initiating a digital detox?",
             "When you are completely offline, which activities do you naturally enjoy the most?",
             "How much time are you willing to allocate to an alternate offline hobby daily?",
-            "Choose a secondary non-screen activity archetype you want to develop:"
+            "What are some other secondary hobbies you participate in?"
     };
 
     private final String[][] optionsMatrix = {
@@ -75,9 +75,9 @@ public class ProfilingActivity extends AppCompatActivity {
             {"Under 3 hours", "3–5 hours", "6–8 hours", "More than 8 hours"},
             {"Constantly", "Frequently", "Occasionally", "Never"},
             {"Reclaim lost time", "Improve focus on school/work", "Lower anxiety and mental clutter"},
-            {"Arts & Drawing", "Journaling & Writing", "Reading books", "Board games & Solo puzzles"},
+            {"Arts & Drawing", "Journaling & Writing", "Reading books", "Solo Puzzles & Brain Games"},
             {"10–15 minutes", "15–30 minutes", "30–60 minutes", "Over an hour"},
-            {"Artistic sketching", "Mindfulness journaling", "Reading literature", "Manual organizing"}
+            {"Gym & Fitness", "Music & Instruments", "Art & Crafting", "Literature & Writing", "Home Organizing", "Cooking & Culinary"}
     };
 
     private final String[] userAnswers = new String[12];
@@ -497,6 +497,15 @@ public class ProfilingActivity extends AppCompatActivity {
                 .putBoolean("isFirstRun", false)
                 .putInt("pref_onboarding_step", 3)
                 .putString("user_nickname", chosenNickname)
+                .putString("survey_ans_q4_steps", userAnswers[3] != null ? userAnswers[3] : "")
+                .putString("survey_ans_q5_days", userAnswers[4] != null ? userAnswers[4] : "")
+                .putString("survey_ans_q6_pain", userAnswers[5] != null ? userAnswers[5] : "")
+                .putString("survey_ans_q7_screen", userAnswers[6] != null ? userAnswers[6] : "")
+                .putString("survey_ans_q8_scroll", userAnswers[7] != null ? userAnswers[7] : "")
+                .putString("survey_ans_q9_detox", userAnswers[8] != null ? userAnswers[8] : "")
+                .putString("survey_ans_q10_hobby", userAnswers[9] != null ? userAnswers[9] : "")
+                .putString("survey_ans_q11_time", userAnswers[10] != null ? userAnswers[10] : "")
+                .putString("survey_ans_q12_hobbies", userAnswers[11] != null ? userAnswers[11] : "")
                 .apply();
 
         double physicalMultiplier = 1.0;

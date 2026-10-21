@@ -36,6 +36,11 @@ public class LoadingActivity extends AppCompatActivity {
                 dbHelper.getReadableDatabase();
             }
 
+            try {
+                AppSelectionActivity.preloadInstalledApps(LoadingActivity.this);
+                AvatarCreationActivity.preloadAvatarAssets(LoadingActivity.this);
+            } catch (Exception ignored) {}
+
             Intent nextIntent = determineNextDestination();
 
             long elapsedTime = System.currentTimeMillis() - startTime;

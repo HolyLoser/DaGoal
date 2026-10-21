@@ -63,8 +63,15 @@ public class AvoidanceOverlayManager {
         SoundEffectsHelper.playWarning(context);
 
         TaskManager taskManager = new TaskManager(context);
+        int stage = taskManager.getIgnoreStage(quest.taskId);
+
         if (btnIgnore != null) {
-            btnIgnore.setText(R.string.ignore_5_mins);
+            if (stage >= 3) {
+                btnIgnore.setText("Ignore for today");
+            } else {
+                int ignoreMins = (stage == 0) ? 5 : ((stage == 1) ? 10 : 15);
+                btnIgnore.setText("Ignore for " + ignoreMins + " mins");
+            }
         }
 
         DebouncedOnClickListener.setSafeOnClickListener(btnIgnore, v -> {
@@ -74,7 +81,6 @@ public class AvoidanceOverlayManager {
         });
 
         DebouncedOnClickListener.setSafeOnClickListener(btnUnderstand, v -> {
-            taskManager.snoozeAvoidanceQuestSeconds(quest.taskId, 15);
             Intent homeIntent = new Intent(Intent.ACTION_MAIN);
             homeIntent.addCategory(Intent.CATEGORY_HOME);
             homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

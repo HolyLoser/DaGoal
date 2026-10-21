@@ -1,64 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_app_selection_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dagoal_primary"
-    android:orientation="vertical"
     android:padding="@dimen/spacing_large">
 
-    <!-- Top Navigation Bar (Back Button) -->
-    <RelativeLayout
-        android:layout_width="match_parent"
+    <!-- Top Navigation Bar Header -->
+    <TextView
+        android:id="@+id/tv_app_selection_header"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/spacing_normal">
-
-        <ImageButton
-            android:id="@+id/btn_app_selection_back"
-            android:layout_width="@dimen/icon_button_size"
-            android:layout_height="@dimen/icon_button_size"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:background="@drawable/bg_auth_pill"
-            android:contentDescription="Back"
-            android:padding="@dimen/spacing_small"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/dagoal_primary_dark" />
-
-        <TextView
-            android:id="@+id/tv_app_selection_header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:text="App Tracking"
-            android:textColor="@color/white"
-            android:textSize="@dimen/text_size_headline"
-            android:textStyle="bold" />
-    </RelativeLayout>
+        android:layout_marginTop="8dp"
+        android:text="App Tracking"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_size_headline"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_app_selection_subheader"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/spacing_normal"
+        android:layout_marginTop="12dp"
         android:alpha="0.9"
         android:gravity="center"
         android:lineSpacingMultiplier="1.2"
         android:text="We selected some apps that we think take most of your time.\nFeel free to deselect or add more apps that take up your time."
         android:textColor="@color/dagoal_background_light"
-        android:textSize="@dimen/text_size_caption" />
+        android:textSize="@dimen/text_size_caption"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_app_selection_header" />
 
-    <!-- App Checklist Container Frame (Flexible Weight) -->
+    <!-- App Checklist Container Frame -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/card_app_checklist_container"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginBottom="@dimen/spacing_medium"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/bg_surface_card_full_radius"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_medium">
+        android:padding="@dimen/spacing_medium"
+        app:layout_constraintBottom_toTopOf="@id/btn_app_selection_continue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_app_selection_subheader">
 
         <ScrollView
             android:layout_width="match_parent"
@@ -74,18 +65,10 @@
         </ScrollView>
     </LinearLayout>
 
-    <!-- Bottom Character Display Canvas (Fixed Custom Avatar) -->
-    <FrameLayout
-        android:id="@+id/avatar_host_container"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/avatar_host_height_medium"
-        android:layout_gravity="center_horizontal" />
-
     <Button
         android:id="@+id/btn_app_selection_continue"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="54dp"
-        android:layout_marginTop="@dimen/spacing_small"
         android:layout_marginBottom="@dimen/spacing_small"
         android:background="@drawable/bg_button_pill_surface"
         android:text="Proceed"
@@ -93,6 +76,9 @@
         android:textColor="@color/dagoal_primary_dark"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:backgroundTint="@null" />
+        app:backgroundTint="@null"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
