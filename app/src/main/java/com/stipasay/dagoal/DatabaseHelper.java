@@ -188,8 +188,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         addTaskTemplate(db, "Creative Activity Multiplier", "Try a new recipe", 1, "recipe", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Prepare and try a new dish or recipe");
         addTaskTemplate(db, "Creative Activity Multiplier", "Attempt a Wordle", 1, "game", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Play and attempt today's Wordle or word puzzle");
         addTaskTemplate(db, "Creative Activity Multiplier", "Do a power nap", 1, "nap", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Take a 20-30 minute nap break");
-        addTaskTemplate(db, "Detox Duration Multiplier", "Avoid caffeine", 1, "day", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Avoid coffee or energy drinks for the rest of the day");
-        addTaskTemplate(db, "Detox Duration Multiplier", "Don't drink", 1, "day", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Avoid alcoholic beverages today");
+        addTaskTemplate(db, "Detox Duration Multiplier", "Avoid social media", 180, "minutes", DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, "Warns you every time you open an app in your block list during active screen avoidance.");
+
+        // Survey-Driven Creative & Hobby Quest Templates
+        addTaskTemplate(db, "Creative Writing", "Write a 2-stanza poem about your day", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Express your thoughts or capture a moment today in 2 short poetic stanzas.");
+        addTaskTemplate(db, "Creative Writing", "Create an original character profile & backstory", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Draft a character name, personality traits, and a short background story in your journal.");
+        addTaskTemplate(db, "Art & Design", "Take a photo of nature as inspiration for a sketch", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Snap a photo of outdoor plants, sky, or scenery to use as visual drawing reference.");
+        addTaskTemplate(db, "Art & Design", "Doodle a 5-minute warm-up sketch in your sketchbook", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Set a 5-minute timer and doodle simple shapes, faces, or objects in your sketchbook.");
+        addTaskTemplate(db, "Literature", "Read 10 pages of your current book", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Unplug and read 10 pages of your current book without phone distractions.");
+        addTaskTemplate(db, "Literature", "Write down 3 memorable quotes from your reading", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Note 3 inspiring or memorable quotes from your book into your journal.");
+        addTaskTemplate(db, "Mind Games", "Solve a daily Wordle or word puzzle", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Exercise your vocabulary by solving today's Wordle or daily word game online.");
+        addTaskTemplate(db, "Mind Games", "Complete a daily Sudoku grid", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Challenge your logic skills by solving 1 daily Sudoku puzzle grid.");
+        addTaskTemplate(db, "Fitness", "Complete a 15-minute bodyweight workout", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Do a quick 15-minute workout consisting of bodyweight exercises or stretching.");
+        addTaskTemplate(db, "Music", "Practice playing an instrument for 15 minutes", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Play scales, chords, or a favorite song on your instrument for 15 minutes.");
+        addTaskTemplate(db, "Crafts", "Craft or assemble a physical project or origami", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Unplug and fold an origami figure or assemble a small physical craft project.");
+        addTaskTemplate(db, "Home", "Clean and organize your study desk space", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Tidy up your desk, clear loose papers, and organize your study space.");
+        addTaskTemplate(db, "Culinary", "Prepare a healthy homemade meal or snack", 1, "time", DatabaseContract.DailyTaskEntry.QUEST_TYPE_GENERIC, "Cook or assemble a fresh, nutritious homemade meal or healthy snack.");
     }
 
     public static void addTaskTemplate(SQLiteDatabase db, String category, String title, int baseValue, String unit, String questType, String description) {

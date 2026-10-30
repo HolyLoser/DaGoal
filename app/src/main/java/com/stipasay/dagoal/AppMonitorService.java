@@ -6,7 +6,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
@@ -24,7 +23,7 @@ public class AppMonitorService extends Service {
 
     private static final String CHANNEL_ID = "dagoal_app_monitor_channel";
     private static final int NOTIFICATION_ID = 601;
-    private static final long POLL_INTERVAL_MS = 3000;
+    private static final long POLL_INTERVAL_MS = 800;
 
     private final Handler pollHandler = new Handler(Looper.getMainLooper());
     private Runnable pollRunnable;
@@ -82,6 +81,8 @@ public class AppMonitorService extends Service {
     private long packageFirstDetectedTime = 0L;
 
     private void checkForegroundApp() {
+        pollHandler.removeCallbacksAndMessages(null);
+
         TaskManager taskManager = new TaskManager(this);
         List<TaskManager.ActiveAvoidanceQuest> activeQuests = taskManager.getStartedAvoidanceQuests();
 
@@ -90,8 +91,14 @@ public class AppMonitorService extends Service {
             return;
         }
 
-        String foregroundPackage = getForegroundPackageName();
         long now = System.currentTimeMillis();
+
+        if (currentlyInterruptingTaskId != null) {
+            pollHandler.postDelayed(this::checkForegroundApp, POLL_INTERVAL_MS);
+            return;
+        }
+
+        String foregroundPackage = getForegroundPackageName();
 
         Set<String> allBlockedPackages = new HashSet<>();
         for (TaskManager.ActiveAvoidanceQuest quest : activeQuests) {
@@ -100,76 +107,30 @@ public class AppMonitorService extends Service {
             }
         }
 
-        if (foregroundPackage == null || !allBlockedPackages.contains(foregroundPackage)) {
+        if (foregroundPackage != null && allBlockedPackages.contains(foregroundPackage)) {
+            if (!foregroundPackage.equals(lastDetectedPackage)) {
+                lastDetectedPackage = foregroundPackage;
+                packageFirstDetectedTime = now;
+            }
+
             for (TaskManager.ActiveAvoidanceQuest quest : activeQuests) {
+                boolean isBlockedAppInForeground = quest.targetPackages != null && quest.targetPackages.contains(foregroundPackage);
                 long snoozeUntil = taskManager.getSnoozeUntil(quest.taskId);
-                if (snoozeUntil > now) {
-                    long unusedMs = snoozeUntil - now;
-                    taskManager.cancelSnoozeAndResumeTimer(quest.taskId, unusedMs);
+
+                if (!isBlockedAppInForeground || now < snoozeUntil) {
+                    continue;
+                }
+
+                if (currentlyInterruptingTaskId == null) {
+                    currentlyInterruptingTaskId = quest.taskId;
+                    overlayManager.show(quest, () -> currentlyInterruptingTaskId = null);
                 }
             }
-
+        } else {
             lastDetectedPackage = null;
-            if (currentlyInterruptingTaskId != null) {
-                if (overlayManager != null) {
-                    overlayManager.dismiss();
-                }
-                currentlyInterruptingTaskId = null;
-            }
-            return;
         }
 
-        if (!foregroundPackage.equals(lastDetectedPackage)) {
-            lastDetectedPackage = foregroundPackage;
-            packageFirstDetectedTime = now;
-        }
-
-        if (currentlyInterruptingTaskId != null) {
-            boolean stillInBlockedApp = false;
-            for (TaskManager.ActiveAvoidanceQuest quest : activeQuests) {
-                if (quest.taskId == currentlyInterruptingTaskId && quest.targetPackages != null && quest.targetPackages.contains(foregroundPackage)) {
-                    stillInBlockedApp = true;
-                    break;
-                }
-            }
-            if (!stillInBlockedApp) {
-                if (overlayManager != null) {
-                    overlayManager.dismiss();
-                }
-                currentlyInterruptingTaskId = null;
-            }
-        }
-
-        for (TaskManager.ActiveAvoidanceQuest quest : activeQuests) {
-            boolean isBlockedAppInForeground = quest.targetPackages != null && quest.targetPackages.contains(foregroundPackage);
-            long snoozeUntil = taskManager.getSnoozeUntil(quest.taskId);
-
-            if (!isBlockedAppInForeground) {
-                if (snoozeUntil > now) {
-                    long unusedMs = snoozeUntil - now;
-                    taskManager.cancelSnoozeAndResumeTimer(quest.taskId, unusedMs);
-                }
-                continue;
-            }
-
-            if (now < snoozeUntil) {
-                long delay = snoozeUntil - now;
-                pollHandler.postDelayed(this::checkForegroundApp, Math.min(delay + 100, POLL_INTERVAL_MS));
-                continue;
-            }
-
-            boolean isIgnoreExpiry = (snoozeUntil > 0);
-            if (!isIgnoreExpiry && (now - packageFirstDetectedTime < 3000L)) {
-                long delay = 3000L - (now - packageFirstDetectedTime);
-                pollHandler.postDelayed(this::checkForegroundApp, Math.max(100L, delay));
-                continue;
-            }
-
-            if (currentlyInterruptingTaskId == null) {
-                currentlyInterruptingTaskId = quest.taskId;
-                overlayManager.show(quest, () -> currentlyInterruptingTaskId = null);
-            }
-        }
+        pollHandler.postDelayed(this::checkForegroundApp, POLL_INTERVAL_MS);
     }
 
     private String getForegroundPackageName() {
@@ -178,70 +139,27 @@ public class AppMonitorService extends Service {
             return null;
         }
 
-        long endTime = System.currentTimeMillis();
-        long startTime = endTime - 60000;
+        long now = System.currentTimeMillis();
+        long startTime = now - 600000L;
 
-        String foregroundPackage = null;
-        long maxForegroundTime = 0;
-
-        try {
-            UsageEvents usageEvents = usageStatsManager.queryEvents(startTime, endTime);
-            if (usageEvents != null) {
-                UsageEvents.Event event = new UsageEvents.Event();
-                java.util.Map<String, Long> lastForegroundTimes = new java.util.HashMap<>();
-                java.util.Map<String, Long> lastBackgroundTimes = new java.util.HashMap<>();
-
-                while (usageEvents.hasNextEvent()) {
-                    usageEvents.getNextEvent(event);
-                    String pkg = event.getPackageName();
-                    int type = event.getEventType();
-                    long time = event.getTimeStamp();
-
-                    if (type == 1 || type == 7) {
-                        lastForegroundTimes.put(pkg, time);
-                    } else if (type == 2 || type == 8) {
-                        lastBackgroundTimes.put(pkg, time);
-                    }
-                }
-
-                for (java.util.Map.Entry<String, Long> entry : lastForegroundTimes.entrySet()) {
-                    String pkg = entry.getKey();
-                    long fgTime = entry.getValue();
-                    Long bgTimeObj = lastBackgroundTimes.get(pkg);
-                    long bgTime = bgTimeObj != null ? bgTimeObj : 0L;
-
-                    if (fgTime > bgTime && fgTime > maxForegroundTime) {
-                        maxForegroundTime = fgTime;
-                        foregroundPackage = pkg;
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-
-        if (foregroundPackage != null && !foregroundPackage.equals(getPackageName())) {
-            return foregroundPackage;
-        }
-
-        // Fallback using queryUsageStats
         try {
             List<android.app.usage.UsageStats> statsList = usageStatsManager.queryUsageStats(
                     UsageStatsManager.INTERVAL_DAILY,
-                    endTime - 120000,
-                    endTime
+                    startTime,
+                    now
             );
             if (statsList != null && !statsList.isEmpty()) {
                 android.app.usage.UsageStats recentStats = null;
                 for (android.app.usage.UsageStats stats : statsList) {
+                    if (stats == null || stats.getPackageName() == null) continue;
+                    if (getPackageName().equalsIgnoreCase(stats.getPackageName())) continue;
+
                     if (recentStats == null || stats.getLastTimeUsed() > recentStats.getLastTimeUsed()) {
                         recentStats = stats;
                     }
                 }
-                if (recentStats != null && (endTime - recentStats.getLastTimeUsed()) < 60000) {
-                    String pkg = recentStats.getPackageName();
-                    if (!pkg.equals(getPackageName())) {
-                        return pkg;
-                    }
+                if (recentStats != null) {
+                    return recentStats.getPackageName();
                 }
             }
         } catch (Exception ignored) {

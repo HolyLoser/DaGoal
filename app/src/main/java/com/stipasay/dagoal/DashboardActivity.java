@@ -251,6 +251,91 @@ public class DashboardActivity extends AppCompatActivity {
         startAvoidanceServiceIfNeeded();
         requestBatteryOptimizationExemption();
         startFirestoreUserProfileListener();
+        startDashboardTimerTicker();
+    }
+
+    public static class TaskRowHolder {
+        public int taskId;
+        public TextView tvTarget;
+        public ProgressBar pbProgress;
+        public String questType;
+        public int target;
+        public long startTimestamp;
+        public int rewardGold;
+        public int rewardXp;
+
+        public TaskRowHolder(int taskId, TextView tvTarget, ProgressBar pbProgress, String questType, int target, long startTimestamp, int rewardGold, int rewardXp) {
+            this.taskId = taskId;
+            this.tvTarget = tvTarget;
+            this.pbProgress = pbProgress;
+            this.questType = questType;
+            this.target = target;
+            this.startTimestamp = startTimestamp;
+            this.rewardGold = rewardGold;
+            this.rewardXp = rewardXp;
+        }
+    }
+
+    private final Handler dashboardTimerHandler = new Handler(Looper.getMainLooper());
+    private Runnable dashboardTimerRunnable;
+
+    private void startDashboardTimerTicker() {
+        stopDashboardTimerTicker();
+        dashboardTimerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (currentActiveQuestContainer != null && "QUEST".equalsIgnoreCase(currentActiveTab)) {
+                    updateActiveQuestCardTimers();
+                }
+                dashboardTimerHandler.postDelayed(this, 1000L);
+            }
+        };
+        dashboardTimerHandler.postDelayed(dashboardTimerRunnable, 1000L);
+    }
+
+    private void updateActiveQuestCardTimers() {
+        if (currentActiveQuestContainer == null) return;
+        int count = currentActiveQuestContainer.getChildCount();
+        boolean needsRefresh = false;
+        for (int i = 0; i < count; i++) {
+            View row = currentActiveQuestContainer.getChildAt(i);
+            if (row == null) continue;
+            Object tag = row.getTag();
+            if (tag instanceof TaskRowHolder) {
+                TaskRowHolder holder = (TaskRowHolder) tag;
+                if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(holder.questType) && holder.startTimestamp > 0) {
+                    long totalTargetSeconds = holder.target * 60L;
+                    long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - holder.startTimestamp) / 1000L);
+                    long remainingSeconds = Math.max(0, totalTargetSeconds - elapsedSeconds);
+
+                    if (holder.tvTarget != null) {
+                        holder.tvTarget.setText(TaskManager.formatDurationSeconds(remainingSeconds) + " remaining | " + holder.rewardXp + " XP / " + holder.rewardGold + " Gold");
+                    }
+                    if (holder.pbProgress != null) {
+                        holder.pbProgress.setVisibility(View.VISIBLE);
+                        holder.pbProgress.setMax((int) totalTargetSeconds);
+                        holder.pbProgress.setProgress((int) Math.min(elapsedSeconds, totalTargetSeconds));
+                    }
+                    if (remainingSeconds <= 0) {
+                        needsRefresh = true;
+                    }
+                }
+            }
+        }
+        if (needsRefresh && currentActiveQuestContainer != null && currentCompletedQuestContainer != null) {
+            TaskManager refreshManager = new TaskManager(this);
+            if (refreshManager.checkAndCompleteAvoidanceQuests()) {
+                userDismissedChestPromptForCurrentPoints = false;
+            }
+            populateQuestLists(currentActiveQuestContainer, currentCompletedQuestContainer);
+            checkAndShowChestTierPrompt();
+        }
+    }
+
+    private void stopDashboardTimerTicker() {
+        if (dashboardTimerHandler != null && dashboardTimerRunnable != null) {
+            dashboardTimerHandler.removeCallbacks(dashboardTimerRunnable);
+        }
     }
 
     private void startFirestoreUserProfileListener() {
@@ -371,6 +456,7 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        stopDashboardTimerTicker();
         unregisterReceiver(taskProgressReceiver);
         if (prefChangeListener != null) {
             getSharedPreferences("DaGoalPrefs", MODE_PRIVATE)
@@ -3002,10 +3088,14 @@ public class DashboardActivity extends AppCompatActivity {
         TaskManager tm = new TaskManager(this);
         String blockedAppsList = tm.getCustomAppNamesFormatted(packageName);
 
-        if ("Avoid social media".equalsIgnoreCase(title) || (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType) && (difficultyTier == null || difficultyTier.isEmpty() || difficultyTier.startsWith("EASY") || difficultyTier.startsWith("HARD")))) {
+        boolean hasSpecificApps = packageName != null && !packageName.trim().isEmpty();
+        boolean isSystemAvoidance = "Avoid social media".equalsIgnoreCase(title) || (title != null && title.startsWith("Avoid "));
+
+        if (isSystemAvoidance) {
             tvDescription.setText("Warns you every time you open an app in your block list during active screen avoidance.\nBlocked apps: " + blockedAppsList);
-        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
-            tvDescription.setText(difficultyTier + "\nBlocked apps: " + blockedAppsList);
+        } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType) && hasSpecificApps) {
+            String baseDesc = (difficultyTier != null && !difficultyTier.isEmpty() && !difficultyTier.startsWith("EASY") && !difficultyTier.startsWith("HARD")) ? difficultyTier : "Stay off selected apps while active.";
+            tvDescription.setText(baseDesc + "\nBlocked apps: " + blockedAppsList);
         } else if (difficultyTier != null && !difficultyTier.isEmpty() && !difficultyTier.startsWith("EASY") && !difficultyTier.startsWith("MEDIUM") && !difficultyTier.startsWith("HARD")) {
             tvDescription.setText(difficultyTier);
         } else {
@@ -3522,6 +3612,8 @@ public class DashboardActivity extends AppCompatActivity {
                 Button btnIncrementProgress = row.findViewById(R.id.btn_increment_progress);
                 android.widget.ProgressBar pbProgress = row.findViewById(R.id.pb_task_progress);
                 Button btnCompletedLabel = row.findViewById(R.id.btn_quest_completed_label);
+
+                row.setTag(new TaskRowHolder(taskId, tvTarget, pbProgress, questType, target, startTimestamp, rewardGold, rewardXp));
 
                 Button btnManualComplete = row.findViewById(R.id.btn_manual_complete);
                 ImageButton btnCardShuffle = row.findViewById(R.id.btn_card_shuffle);

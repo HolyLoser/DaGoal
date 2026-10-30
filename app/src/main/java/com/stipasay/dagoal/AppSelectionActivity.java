@@ -194,11 +194,14 @@ public class AppSelectionActivity extends AppCompatActivity {
     private static boolean isPopularTimeConsumingAppStatic(String packageName) {
         if (packageName == null) return false;
         String pkg = packageName.toLowerCase(Locale.ROOT);
+        if (pkg.contains("facebook.orca") || pkg.contains("messenger") || pkg.contains("discord")) {
+            return false;
+        }
         return pkg.contains("facebook") || pkg.contains("instagram") || pkg.contains("tiktok")
                 || pkg.contains("youtube") || pkg.contains("twitter") || pkg.contains("x.android")
                 || pkg.contains("snapchat") || pkg.contains("reddit") || pkg.contains("pinterest")
                 || pkg.contains("netflix") || pkg.contains("roblox") || pkg.contains("mobile.legends")
-                || pkg.contains("genshin") || pkg.contains("twitch") || pkg.contains("discord")
+                || pkg.contains("genshin") || pkg.contains("twitch")
                 || pkg.contains("telegram") || pkg.contains("bilibili") || pkg.contains("wattpad")
                 || pkg.contains("threads") || pkg.contains("shopee") || pkg.contains("lazada")
                 || pkg.contains("hbo") || pkg.contains("disney") || pkg.contains("primevideo")
@@ -311,7 +314,7 @@ public class AppSelectionActivity extends AppCompatActivity {
                 || pkg.contains("youtube") || pkg.contains("twitter") || pkg.contains("x.android")
                 || pkg.contains("snapchat") || pkg.contains("reddit") || pkg.contains("pinterest")
                 || pkg.contains("netflix") || pkg.contains("roblox") || pkg.contains("mobile.legends")
-                || pkg.contains("genshin") || pkg.contains("twitch") || pkg.contains("discord")
+                || pkg.contains("genshin") || pkg.contains("twitch")
                 || pkg.contains("telegram") || pkg.contains("bilibili") || pkg.contains("wattpad")
                 || pkg.contains("threads") || pkg.contains("shopee") || pkg.contains("lazada")
                 || pkg.contains("hbo") || pkg.contains("disney") || pkg.contains("primevideo")

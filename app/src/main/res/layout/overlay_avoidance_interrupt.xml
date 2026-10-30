@@ -75,6 +75,18 @@
             android:textColor="@color/dagoal_text_primary"
             android:textSize="14sp" />
 
+        <!-- Current Quest Rewards Badge -->
+        <TextView
+            android:id="@+id/tv_overlay_quest_rewards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="🪙 10 Gold   •   ⚡ 15 XP"
+            android:textColor="@color/dagoal_primary_dark"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
         <!-- Primary Action Button: I Understand / Return to DaGoal -->
         <Button
             android:id="@+id/btn_overlay_understand"
@@ -112,7 +124,7 @@
             android:paddingEnd="16dp"
             android:singleLine="true"
             android:ellipsize="end"
-            android:text="@string/ignore_5_mins"
+            android:text="Dismiss"
             android:textAllCaps="false"
             android:textColor="@color/dagoal_primary_dark"
             android:textSize="15sp"

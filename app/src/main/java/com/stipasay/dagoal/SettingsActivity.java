@@ -202,11 +202,8 @@ public class SettingsActivity extends AppCompatActivity {
         addInfoRow(container, "Username", username, () -> showEditUsernameDialog());
         addInfoRow(container, "Level", String.valueOf(level), null);
 
-        addSwitchRow(container, "Show Network Badge on Shop", "Display online tag in Shop header",
-                prefs.getBoolean("pref_show_network_badge", false),
-                isChecked -> prefs.edit().putBoolean("pref_show_network_badge", isChecked).apply());
-
         if (isLoggedIn || firebaseUser != null) {
+            addInfoRow(container, "Change Password", "Update your account password", "", () -> showChangePasswordDialog());
             addInfoRow(container, "Log Out", "Tap to Log Out", () -> {
                 showCustomConfirmDialog(
                         R.drawable.ic_info_circle, android.graphics.Color.parseColor("#FEE2E2"), androidx.core.content.ContextCompat.getColor(this, R.color.dagoal_error),
@@ -394,6 +391,145 @@ public class SettingsActivity extends AppCompatActivity {
                             fUser.delete().addOnCompleteListener(deleteTask -> performLocalReset.run());
                         } else {
                             String err = reAuthTask.getException() != null ? reAuthTask.getException().getMessage() : "Verification failed";
+                            ToastUtils.showToast(this, "Verification failed: " + err);
+                        }
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showChangePasswordDialog() {
+        com.google.firebase.auth.FirebaseUser fUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (fUser == null || fUser.getEmail() == null) {
+            ToastUtils.showToast(this, "No logged-in cloud account found.");
+            return;
+        }
+
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (20 * getResources().getDisplayMetrics().density);
+        dialogLayout.setPadding(padding, padding / 2, padding, padding / 2);
+
+        LinearLayout currentPassContainer = new LinearLayout(this);
+        currentPassContainer.setOrientation(LinearLayout.HORIZONTAL);
+        currentPassContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        android.widget.EditText editCurrentPass = new android.widget.EditText(this);
+        editCurrentPass.setHint("Current Password");
+        editCurrentPass.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        editCurrentPass.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEyeCurrent = new android.widget.ImageButton(this);
+        btnEyeCurrent.setImageResource(android.R.drawable.ic_menu_view);
+        btnEyeCurrent.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEyeCurrent.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isCurrentVisible = {false};
+        btnEyeCurrent.setOnClickListener(v -> {
+            isCurrentVisible[0] = !isCurrentVisible[0];
+            editCurrentPass.setInputType(isCurrentVisible[0]
+                    ? (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD)
+                    : (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD));
+            editCurrentPass.setSelection(editCurrentPass.getText().length());
+        });
+
+        currentPassContainer.addView(editCurrentPass);
+        currentPassContainer.addView(btnEyeCurrent);
+
+        LinearLayout newPassContainer = new LinearLayout(this);
+        newPassContainer.setOrientation(LinearLayout.HORIZONTAL);
+        newPassContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        android.widget.EditText editNewPass = new android.widget.EditText(this);
+        editNewPass.setHint("New Password (min 6 chars)");
+        editNewPass.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        editNewPass.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEyeNew = new android.widget.ImageButton(this);
+        btnEyeNew.setImageResource(android.R.drawable.ic_menu_view);
+        btnEyeNew.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEyeNew.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isNewVisible = {false};
+        btnEyeNew.setOnClickListener(v -> {
+            isNewVisible[0] = !isNewVisible[0];
+            editNewPass.setInputType(isNewVisible[0]
+                    ? (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD)
+                    : (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD));
+            editNewPass.setSelection(editNewPass.getText().length());
+        });
+
+        newPassContainer.addView(editNewPass);
+        newPassContainer.addView(btnEyeNew);
+
+        LinearLayout confirmPassContainer = new LinearLayout(this);
+        confirmPassContainer.setOrientation(LinearLayout.HORIZONTAL);
+        confirmPassContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        android.widget.EditText editConfirmPass = new android.widget.EditText(this);
+        editConfirmPass.setHint("Confirm New Password");
+        editConfirmPass.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        editConfirmPass.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        android.widget.ImageButton btnEyeConfirm = new android.widget.ImageButton(this);
+        btnEyeConfirm.setImageResource(android.R.drawable.ic_menu_view);
+        btnEyeConfirm.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        btnEyeConfirm.setPadding(padding / 2, padding / 2, padding / 2, padding / 2);
+
+        final boolean[] isConfirmVisible = {false};
+        btnEyeConfirm.setOnClickListener(v -> {
+            isConfirmVisible[0] = !isConfirmVisible[0];
+            editConfirmPass.setInputType(isConfirmVisible[0]
+                    ? (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD)
+                    : (android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD));
+            editConfirmPass.setSelection(editConfirmPass.getText().length());
+        });
+
+        confirmPassContainer.addView(editConfirmPass);
+        confirmPassContainer.addView(btnEyeConfirm);
+
+        dialogLayout.addView(currentPassContainer);
+        dialogLayout.addView(newPassContainer);
+        dialogLayout.addView(confirmPassContainer);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Change Password")
+                .setMessage("Enter your current password and desired new password.")
+                .setView(dialogLayout)
+                .setPositiveButton("Update Password", (dialog, which) -> {
+                    String currentPass = editCurrentPass.getText().toString().trim();
+                    String newPass = editNewPass.getText().toString().trim();
+                    String confirmPass = editConfirmPass.getText().toString().trim();
+
+                    if (currentPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
+                        ToastUtils.showToast(this, "Please fill in all password fields.");
+                        return;
+                    }
+                    if (!newPass.equals(confirmPass)) {
+                        ToastUtils.showToast(this, "New passwords do not match.");
+                        return;
+                    }
+                    if (newPass.length() < 6) {
+                        ToastUtils.showToast(this, "New password must be at least 6 characters.");
+                        return;
+                    }
+
+                    com.google.firebase.auth.AuthCredential credential =
+                            com.google.firebase.auth.EmailAuthProvider.getCredential(fUser.getEmail(), currentPass);
+
+                    fUser.reauthenticate(credential).addOnCompleteListener(reAuthTask -> {
+                        if (reAuthTask.isSuccessful()) {
+                            fUser.updatePassword(newPass).addOnCompleteListener(updateTask -> {
+                                if (updateTask.isSuccessful()) {
+                                    ToastUtils.showToast(this, "Password updated successfully! 🔒");
+                                } else {
+                                    String err = updateTask.getException() != null ? updateTask.getException().getMessage() : "Update failed";
+                                    ToastUtils.showToast(this, "Password update failed: " + err);
+                                }
+                            });
+                        } else {
+                            String err = reAuthTask.getException() != null ? reAuthTask.getException().getMessage() : "Current password incorrect";
                             ToastUtils.showToast(this, "Verification failed: " + err);
                         }
                     });

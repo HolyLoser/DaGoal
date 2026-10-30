@@ -151,16 +151,6 @@
             android:clickable="true"
             android:focusable="true" />
 
-        <View
-            android:id="@+id/color_swatch_white"
-            android:layout_width="@dimen/touch_target_min_width"
-            android:layout_height="@dimen/touch_target_min_height"
-            android:layout_marginVertical="3dp"
-            android:background="@drawable/bg_circle_preset"
-            android:backgroundTint="#FFFFFF"
-            android:clickable="true"
-            android:focusable="true" />
-
     </LinearLayout>
 
     <!-- Right Category Sidebar -->
