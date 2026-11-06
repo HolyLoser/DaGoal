@@ -166,6 +166,7 @@ public class SignUpActivity extends AppCompatActivity {
                         String uid = firebaseUser != null ? firebaseUser.getUid() : "";
 
                         // Store user document in Firestore cloud
+                        String newSessionId = java.util.UUID.randomUUID().toString();
                         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
                         Map<String, Object> userMap = new HashMap<>();
                         String defaultUsername = email.contains("@") ? email.split("@")[0] : "Adventurer";
@@ -175,6 +176,7 @@ public class SignUpActivity extends AppCompatActivity {
                         userMap.put("gold", 0);
                         userMap.put("xp", 0);
                         userMap.put("streak", 0);
+                        userMap.put("session_id", newSessionId);
 
                         firestore.collection("users").document(uid).set(userMap);
 
@@ -185,6 +187,7 @@ public class SignUpActivity extends AppCompatActivity {
                                 .putString("user_email", email)
                                 .putString("user_uid", uid)
                                 .putString("user_nickname", defaultUsername)
+                                .putString("pref_session_id", newSessionId)
                                 .apply();
 
                         createInitialUserAccountInDb(email);

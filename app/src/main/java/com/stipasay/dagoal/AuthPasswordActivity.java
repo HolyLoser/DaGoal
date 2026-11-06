@@ -164,6 +164,11 @@ public class AuthPasswordActivity extends AppCompatActivity {
                         String uid = firebaseUser != null ? firebaseUser.getUid() : "";
 
                         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+                        String newSessionId = java.util.UUID.randomUUID().toString();
+                        java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
+                        sessionMap.put("session_id", newSessionId);
+                        firestore.collection("users").document(uid).set(sessionMap, com.google.firebase.firestore.SetOptions.merge());
+
                         firestore.collection("users").document(uid).get()
                                 .addOnSuccessListener(doc -> {
                                     SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
@@ -171,7 +176,8 @@ public class AuthPasswordActivity extends AppCompatActivity {
                                     editor.putBoolean("isLoggedIn", true)
                                           .putBoolean("isGuestUser", false)
                                           .putString("user_email", userEmail)
-                                          .putString("user_uid", uid);
+                                          .putString("user_uid", uid)
+                                          .putString("pref_session_id", newSessionId);
 
                                     if (doc != null && doc.exists()) {
                                         String username = doc.getString("username");

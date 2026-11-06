@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.stipasay.dagoal"
-        minSdk = 29
+        minSdk = 23
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

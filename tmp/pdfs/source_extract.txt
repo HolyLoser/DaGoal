@@ -1,0 +1,1006 @@
+--- PAGE 1 ---\nDAGOAL: A GAMIFIED DAILY ACTIVITY PLANNER FOR
+SCREEN TIME REDUCTION
+A Capstone Project
+Presented to the Faculty of the
+Information and Communications Technology Program
+STI College Pasay-EDSA
+In Partial Fulfilment
+of the Requirements for the Degree
+Bachelor of Science in Information Technology
+Gabas, Altheah Y.
+Naje, Marlou Jewel A.
+Ocana, Shaun Lee F.
+Rosario, Jheru G.
+November 2026\n\n--- PAGE 2 ---\nENDORSEMENT FORM FOR ORAL DEFENSE
+TITLE OF RESEARCH: DaGoal: A Gamified Daily Activity Planner for
+Screen Time Reduction
+NAME OF PROPONENTS: Gabas, Altheah Y.
+Naje, Marlou Jewel A.
+Ocana, Shaun Lee F.
+Rosario, Jheru G.
+In Partial Fulfilment of the Requirements
+for the degree Bachelor of Science in Information Technology
+has been examined and is recommended for Oral Defense
+ENDORSED BY:
+Albert S. Anislag
+Capstone Project Adviser
+APPROVED FOR ORAL DEFENSE:
+Mr. Joel S. Jimenez
+Capstone Project Coordinator
+NOTED BY:
+Mr. Julio E. Fernandez
+Academic Head
+November 2026
+STI College Pasay EDSA ii\n\n--- PAGE 3 ---\nAPPROVAL SHEET
+This capstone project titled DaGoal: A Gamified Daily Activity Planner for Screen
+Time Reduction, prepared and submitted by Altheah Y. Gabas, Marlou Jewel A. Naje,
+Ocana, Shaun Lee F., and Jheru G. Rosario, in partial fulfillment of the requirements
+for the degree of Bachelor of Science in Information Technology, has been examined and
+is recommended for acceptance and approval.
+Albert S. Anislag
+Capstone Project Adviser
+Accepted and approved by the Capstone Project Review Panel
+in partial fulfillment of the requirements for the degree of
+Bachelor of Science in Information Technology
+Jun-Louie A. Bungar Joshua Dimla
+Panel Member Panel Member
+Redwin Calzado
+Lead Panelist
+Noted:
+Mr. Joel S. Jimenez Mr. Julio E. Fernandez
+Capstone Project Coordinator Academic Head
+November 2026
+STI College Pasay EDSA iii\n\n--- PAGE 4 ---\nACKNOWLEDGEMENTS
+The researchers would like to express their sincere appreciation to the individuals
+and groups who contributed to the completion of this capstone project.
+The researchers extend their gratitude to Mr. Albert S. Anislag, Capstone Project
+Adviser, for his guidance, support, and valuable feedback throughout the
+development and documentation of the project.
+They also thank Mr. Joel S. Jimenez, Capstone Project Coordinator, for his
+assistance, coordination, and guidance in ensuring that the researchers were able to
+meet the requirements of the capstone project.
+The researchers are also grateful to the panel members for their time, evaluation,
+and helpful recommendations. Their comments and suggestions helped improve
+both the DaGoal system and the overall documentation of the study.
+Special appreciation is also given to the researchers' parents and guardians for their
+continuous encouragement, patience, moral support, and financial assistance
+throughout their studies and the completion of this project.
+The researchers also thank their friends and classmates for sharing ideas, providing
+assistance, and offering encouragement during the development and testing of the
+application.
+Finally, the researchers would like to thank everyone who, in any way, provided
+advice, support, feedback, or assistance that contributed to the successful
+completion of this capstone project.
+STI College Pasay EDSA iv\n\n--- PAGE 5 ---\nABSTRACT
+Title of Research: DaGoal: A Gamified Daily Activity Planner for
+Screen Time Reduction
+Researchers: Altheah Y. Gabas
+Marlou Jewel A. Naje
+Shaun Lee F. Ocana
+Jheru G. Rosario
+Degree: Bachelor of Science in Information Technology
+Date of Completion: November 2026
+Keywords: screen time reduction, gamification, daily
+activity planner, digital wellness, Android
+application
+DaGoal is a gamified daily activity planner developed to encourage users to reduce
+excessive screen time by participating in productive real-world activities. The application
+generates personalized daily quests based on user preferences, including physical, mental,
+and creative activities. It also applies gamification through experience points, gold
+currency, levels, streaks, achievements, avatar customization, and cosmetic rewards to
+encourage continued participation. Selected timed quests may also restrict distracting
+applications to help users remain focused on their activities. DaGoal
+The system was developed as an Android application that supports both online and offline
+use. It provides different methods of task verification, including manual confirmation,
+repetition-based progress, timed activities, and step tracking. Firebase supports account
+authentication and online synchronization, while local storage allows important features to
+remain available without an internet connection. DaGoal
+The application underwent manual functional testing involving 97 test cases, all of which
+received a Passed status under the conditions used during testing. The developed system
+was also evaluated by 57 respondents after a three-day testing period. The software quality
+evaluation produced a grand mean of 3.31 with a standard deviation of 0.30, interpreted as
+Strongly Agree. The respondents gave positive evaluations in terms of usability, enjoyment
+and engagement, screen time management, performance, and overall experience.
+Overall, the findings indicate that DaGoal successfully implemented its intended functions
+and was generally accepted by respondents as an engaging application that may support
+better screen time awareness and encourage participation in productive daily activities
+.
+.
+STI College Pasay EDSA v\n\n--- PAGE 6 ---\nTABLE OF CONTENTS
+Title Page i
+Endorsement Form for Oral Defense ii
+Approval Sheet iii
+Acknowledgements iv
+Abstract v
+Table of Contents vi
+List of Figures vii
+List of Tables viii
+List of Notations ix
+Introduction 1
+Project Context 1
+Purpose and Description 3
+Objectives 5
+Scope and Limitations 6
+Review of Related Literature 8
+Review of Related Studies 8
+Review of Related Systems 9
+Synthesis 11
+Methodology 12
+Technical Background 12
+Requirements Analysis 17
+Requirements Documentation 22
+Design of Software, System, Product, and/or Processes 25
+Development 38
+Results and Discussion 39
+Testing 39
+Description of Prototype 40
+Implementation Plan 41
+Implementation Results 41
+Conclusion 43
+References 44
+STI College Pasay EDSA vi\n\n--- PAGE 7 ---\nLIST OF FIGURES
+Figure 1. Java 12
+Figure 2. XML 12
+Figure 3. Github 13
+Figure 4. SQLite 13
+Figure 5. Gantt Chart of Activities 14
+Figure 6. Android Studio 15
+Figure 7. Firebase 15
+Figure 8. Smartphone 16
+Figure 9. Personal Computer (PC) 16
+Figure 10. Use Case Diagram – DaGoal System 17
+Figure 11. Wireframe – New user startup 22
+Figure 12. Existing user startup 23
+Figure 13. Existing user startup 24
+Figure 14. Agile capstone methodology diagram 25
+Figure 15. ERD – DaGoal Entity Relationship Diagram 26
+Figure 16. DFD Level 0 - User Setup, Preference Processing, and Daily Quest Generation 27
+Figure 17. DFD Level 1 - User Setup, Preference Processing, and Daily Quest Generation 28
+Figure 18. DFD Level 1 - Task Execution, Verification, and Reward System 29
+Figure 19. DFD Level 1 - Shop System and Avatar Customization Process 29
+Figure 20. Application User Process Diagram 30
+Figure 21. Blocked application process diagram 30
+Figure 22. User profile storyboard 31
+Figure 23. Avatar creation storyboard 31
+Figure 24. Homepage storyboard 32
+Figure 25. Final homepage storyboard 32
+Figure 26. Flowchart of User Onboarding and Preference-Based Setup 33
+Figure 27. Flowchart of Daily Quest Generation 34
+Figure 28. Task Verification and Completion Workflow 35
+Figure 29. Task verification and progression process diagram 36
+Figure 30. App blocking for time-based quests process 37
+STI College Pasay EDSA vii\n\n--- PAGE 8 ---\nLIST OF TABLES
+Table 1. Usability Assessment of DaGoal Activity Planner 42
+STI College Pasay EDSA viii\n\n--- PAGE 9 ---\nLIST OF NOTATIONS
+API Application Programming Interface
+APK Android Package Kit
+DFD Data Flow Diagram
+ERD Entity Relationship Diagram
+IDE Integrated Development Environment
+iOS iPhone Operating System
+n Number of respondents
+PC Personal Computer
+RPG Role-Playing Game
+SD Standard Deviation
+UI User Interface
+WHO World Health Organization
+XML Extensible Markup Language
+XP Experience Points
+STI College Pasay EDSA ix\n\n--- PAGE 10 ---\nINTRODUCTION
+Project Context
+People spend excessive hours looking at digital screens both globally and locally.
+A report by DataReportal (2023) states that internet users worldwide spend more
+than six hours daily online, while users in the Philippines average more than nine
+hours per day, making screen consumption a significant lifestyle concern. At the
+same time, the World Health Organization (n.d.) emphasizes that physical inactivity
+and sedentary behavior remain major contributors to health risks and reduced
+overall well-being. These conditions may lead to reduced physical movement,
+lower productivity, and limited engagement in hobbies.
+The proponents selected this research problem based on observed experiences
+among students and young adults who frequently engage in prolonged screen use
+for social media, entertainment, gaming, and academic tasks. To further validate
+these observations, the researchers conducted a survey among selected respondents
+and determined their daily screen time habits, lifestyle routines, and level of interest
+in a gamified activity planner.
+This project will investigate how gamified daily planning may help reduce
+excessive screen time and promote healthier routines. Specifically, it seeks to
+determine what types of physical, mental, and creative activities may effectively
+replace passive screen consumption, how virtual rewards influence user
+consistency, and what level of scheduling flexibility encourages long-term use.
+Gamification serves as the central behavioral framework of the proposed system.
+Previous studies suggest that reward systems, virtual progression, and avatar
+customization may improve user engagement and long-term retention in wellness
+applications. These mechanics may motivate users to consistently complete real-
+world activities by providing experience points, virtual currency, streak
+progression, and cosmetic rewards.
+To address these concerns, the proponents propose a mobile application called
+DaGoal, a gamified daily activity planner designed to help users replace passive
+screen time with productive hobbies. The application generates personalized daily
+STI College Pasay-EDSA 1\n\n--- PAGE 11 ---\nquests based on user preferences collected through an initial questionnaire and
+applies controlled randomization to maintain task variety. These quests include
+physical activities such as walking and exercise, mental activities such as reading
+and journaling, and creative hobbies such as drawing and writing.
+The system is designed to support both online and offline use, allowing users to
+access their quests, progress records, rewards, and avatar customization features
+even without an internet connection. When internet access is available, the system
+can use features that require online connectivity. In addition, selected quests may
+include a social media blocking feature that temporarily restricts access to user-
+selected applications for a specific period to further support screen time reduction.
+To support the application’s app-blocking feature, DaGoal will use the App Usage
+Stats API together with Usage Access Permission to detect when selected
+distracting applications are opened. Accessibility Services may also be used to
+improve foreground app detection and allow the system to interrupt or restrict
+access during active timed quests. Through these Android capabilities, DaGoal can
+support controlled app blocking while still following the device’s security and
+permission requirements.
+The significance of this study lies in its potential to provide users with a practical
+and engaging method for building healthier habits, improving productivity, and
+reducing sedentary digital routines. Through the integration of gamification and
+structured activity planning, DaGoal aims to offer a meaningful alternative to
+excessive screen consumption among students and young adults.
+STI College Pasay-EDSA 2\n\n--- PAGE 12 ---\nPurpose and Description
+DaGoal is a gamified daily activity planner and wellness mobile application
+designed to help users reduce excessive screen time by encouraging them to
+spend more time on useful real-world activities. The project aims to give users
+a simple and engaging way to improve their daily routines by suggesting
+activities that can support productivity, physical activity, creativity, and
+healthier use of digital devices.
+One major function of DaGoal is its daily quest system. When users first use
+the application, they answer a short questionnaire about their interests, preferred
+activities, and daily habits. Based on these preferences, the application provides
+daily quests that may include physical activities such as walking and exercising,
+mental activities such as reading and journaling, and creative activities such as
+drawing and writing. This helps users receive activities that are more suitable to
+their interests instead of being given the same tasks every day.
+Another major function is the flexible task management system. Users are
+allowed to skip or replace selected quests when an activity does not match their
+schedule, situation, or available time. This gives users more control over their
+daily activities and prevents the application from becoming too strict or difficult
+to follow. Through this feature, users can continue using the application even
+when their daily routines change.
+DaGoal also includes a screen time control activity for selected quests. Some
+activities may challenge users to avoid chosen social media or distracting
+applications for a specific period of time. This feature helps users focus on the
+activity they are completing instead of immediately returning to scrolling,
+gaming, or other digital distractions. It supports the main purpose of the project
+by encouraging users to spend more time away from unnecessary screen use.
+STI College Pasay-EDSA 3\n\n--- PAGE 13 ---\nAnother important function is the progress tracking system. The application
+keeps track of completed quests, daily progress, streaks, and other
+accomplishments. This allows users to see how consistently they are completing
+their activities and how their progress develops over time. Seeing their progress
+may also encourage users to continue following healthier and more productive
+routines.
+The application also uses a reward and customization system to make daily
+activities more enjoyable. Users can earn experience points, gold,
+achievements, and other rewards after completing quests. The earned gold may
+be used to purchase cosmetic items and customize the user's in-app avatar.
+These rewards give users additional motivation to complete their daily activities
+and maintain their progress.
+What makes DaGoal unique is that it does not only monitor how much time
+users spend on their devices. Instead, it provides users with specific real-world
+activities that they can do as alternatives to unnecessary screen use. By
+combining personalized daily quests, flexible task choices, screen time control
+activities, progress tracking, rewards, and avatar customization, DaGoal
+provides a more active and engaging approach to digital wellness. The project
+is relevant to students and young adults who regularly spend long periods using
+digital devices and want a practical way to build healthier and more productive
+daily routines.
+Overall, DaGoal is designed to provide users with a practical and engaging way
+to manage their screen time while building healthier daily habits. By combining
+real-world activities, flexible task options, progress tracking, rewards, and
+screen time control, the application gives users more than just a way to monitor
+device usage. It encourages them to take action, stay consistent, and make better
+use of their time through meaningful activities outside the screen.
+STI College Pasay-EDSA 4\n\n--- PAGE 14 ---\nObjectives
+This study aims to develop a simple and engaging mobile application that helps
+users reduce excessive screen time by encouraging participation in productive
+activities through a gamified system.
+Specifically, the study aims to:
+• Develop an Android-based mobile application that generates
+personalized daily tasks based on the user’s preferences and interests.
+• Encourage users to reduce excessive screen time by replacing passive
+digital consumption with physical, mental, and creative activities.
+• Integrate a gamified reward system, including experience points (XP),
+gold currency, streak progression, and avatar customization, to motivate
+users to complete daily goals consistently.
+The objectives of the proposed project establish a clear direction for the
+development and evaluation of DaGoal as a practical solution to excessive
+screen time and sedentary behavior. By focusing on the creation of a mobile
+application that generates personalized daily activities, the study emphasizes the
+importance of structured guidance in helping users shift from passive digital
+consumption to more productive and engaging routines. The integration of a
+reward-based system further strengthens this approach by encouraging
+consistency and reinforcing positive behavior through measurable progress and
+incentives.
+In addition, the project aims to determine whether these features can effectively
+influence long-term habit formation among users. By combining
+personalization, flexibility, and gamification, the system is designed not only to
+promote immediate action but also to sustain user engagement over time.
+Ultimately, these objectives ensure that the application is not merely functional,
+but also purposeful, providing users with a reliable tool to improve their daily
+routines and overall well-being.
+STI College Pasay-EDSA 5\n\n--- PAGE 15 ---\nScope and Limitations
+Scope
+The study focuses on the design, development, and initial evaluation of DaGoal,
+a gamified daily activity planner designed to help reduce excessive screen time
+and encourage productive activities. The scope of the study includes the
+following:
+• The system generates daily quests based on the user’s preferences with
+a controlled level of randomness. These activities may include walking
+goals, simple exercises, reading, journaling, drawing, writing, and other
+practical hobbies.
+• When quests are given to the user, they can skip or replace a limited
+number of quests.
+• The application includes a gamification system that uses experience
+points (XP), gold currency, streaks, achievements, and level
+progression.
+• The application will produce rewards for each completed tasks that the
+user finishes, allowing them to purchase cosmetic items and customize
+their in-app avatar.
+• The system includes different task verification methods such as manual
+confirmation, time-based completion, count-based progress, and sensor-
+based step tracking using the mobile device’s built-in pedometer.
+• Selected quests may include a temporary app-blocking feature where
+users avoid selected social media applications for a specified period of
+time.
+In conclusion, the scope of this project is strictly defined to ensure the
+development of a functional and engaging tool. While external factors may
+influence user consistency, the study remains committed to evaluating how
+gamified rewards and personalized task generation can effectively transition
+users from digital consumption to healthier routines.
+STI College Pasay-EDSA 6\n\n--- PAGE 16 ---\nLimitations
+The following limitations define the constraints and boundaries of the study,
+which may affect the scope of implementation and the interpretation of results
+during the development and evaluation of the proposed system.
+The study is subject to the following limitations:
+• Sensor-based tasks such as step counting depend on the accuracy and
+hardware capabilities of the user’s mobile device.
+• The effectiveness of the application may vary depending on the
+motivation, honesty, and consistency of the user.
+• The system is limited to Android devices only and will not be developed
+for iOS or other mobile platforms.
+• The initial evaluation of the application will involve only selected
+respondents, which may limit the generalizability of the findings.
+Despite these limitations, the proposed system remains a practical and feasible
+solution for promoting healthier habits and reducing excessive screen time
+through structured and gamified real-world activities.
+Overall, the defined scope and limitations establish clear boundaries for the
+study while ensuring that the development of DaGoal remains focused on its
+primary objective of encouraging productive behavior and reducing passive
+digital consumption among its target use.
+STI College Pasay-EDSA 7\n\n--- PAGE 17 ---\nReview of Related Literature
+The proposed project, is a gamified wellness mobile app designed to help users
+reduce excessive screen time by encouraging them to engage in physical,
+mental, and creative activities. The system generates personalized daily quests
+that support healthy routines, mental stimulation, and skill-building hobbies.
+Users can complete quests to gain rewards like digital currency and experience
+points that can be used to buy cosmetic items for avatar customization, helping
+improve engagement and long-term motivation.
+This review of related literature, studies, and systems examines existing works
+on screen time reduction, gamification, habit-forming apps, wellness systems,
+and reward-based productivity tools to provide the practical and theoretical
+foundation of the proposed project.
+Review of Related Studies
+Local
+A report by Purnell (2023) states that the Philippines has consistently been
+identified as one of the countries with the highest average daily screen time
+usage, with reports indicating that Filipinos spend several hours daily on
+smartphones, computers, and other connected devices. This excessive exposure
+to sedentary lifestyles and repetitive routines particularly among students and
+young adults.
+Additionally, Dy et al. (2023) finds that excessive screen time on digital
+platforms like social media, games, or entertainment can negatively affect an
+individual’s behavioral development and daily functioning, with evidence
+suggesting that excessive sedentary lifestyle being associated with unhealthy
+diets, obesity, and poorer quality of life in children, risking developmental
+delays, attention problems, and poorer academic performance for young
+children and students.
+STI College Pasay EDSA 8\n\n--- PAGE 18 ---\nThese findings directly justify the need for a local intevation such as the
+proposed project, DaGoal. Although some of these findings are focused on
+younger users, the finding still strengthen the theoretical foundation that
+prolonged screen time exposure can affect behavior and routines.
+Foreign
+A recent study by Ashchentrup et al.(2024) found that gamified digital
+platforms significantly improved user motivation and consistency in wellness
+applications. Supporting this, Pieh et al. (2025) stated that digital wellness
+systems that combine activities with gamified rewards positively affect both the
+physical wellness and mental health of users. Additionally, Kelly (2025)
+concluded that reducing smartphone screen time led to measurable
+improvements in emotional well-being, attention span, and daily productivity.
+These studies show that reward-based systems in digital wellness applications
+create positive effects on user motivation and consistency in reaching health
+goals, helping users build healthier routines and maintain long-term
+engagement. It also highlights that planned activities such as walking tasks,
+exercises, and creative hobbies like drawing help users move away from passive
+scrolling and sedentary behavior. These findings strongly support
+the objective of the proposed project, which is to help users replace excessive
+screen use with meaningful real-world activities.
+Review of Related Systems
+Local
+Locally, many users rely on built-in screen time trackers and productivity tools
+such as Google Digital Wellbeing, or Apple Screen Time, both of which are
+widely available to users in the Philippines through their Android or iOS
+devices. These systems mainly focus on monitoring device usage, setting
+restrictions, and organizing daily schedules.
+STI College Pasay-EDSA 9\n\n--- PAGE 19 ---\nAdditionally, local wellness platforms such as mWell Philippines, a digital
+health and wellness application, provide users with health tracking, step
+monitoring, and mental wellness tools that encourage healthier daily routines.
+This shows that digital wellness applications are already being adopted locally.
+However, unlike the proposed project, these systems often provide limited
+feedback in terms of visual progress and long-term motivation. While they may
+show usage reports or completed checklists, they do not offer a gamified system
+that lets users clearly track their growth over time.
+DaGoal addresses this limitation by allowing users to monitor their progress
+through experience points, level progression, and virtual currency rewards.
+Users can use the earned in-app currency to buy cosmetic items and customize
+their avatars, creating a stronger sense of achievement and connection to the
+application.
+Foreign
+One closely related system is Habitica, a widely used gamified task
+management application. Habitica turns daily tasks and habits into RPG-style
+quests where users gain gold, experience points, pets, and cosmetic items after
+completing tasks. Habitica functions as a flexible task management tool where
+users define their own goals, whereas the proposed system focuses specifically
+on reducing screen time by providing predefined and targeted activities.
+Lastly, a system with a similar core function is Forest, a mobile application that
+helps users reduce phone usage through a timer-based focus mechanism. While
+Forest relies on restricting device use for a set period, the proposed system
+differs by encouraging active participation in structured, real-world tasks.
+Instead of simple avoidance, it allows users to select specific distracting
+applications and temporarily restricts or interrupts access through overlay or
+redirection to them while a timer-based quest is active, combining restriction
+with goal-oriented activity.
+STI College Pasay-EDSA 10\n\n--- PAGE 20 ---\nSynthesis
+The reviewed literature and existing systems show that excessive screen time
+can affect a person’s daily routine, productivity, physical activity, and overall
+well-being. Foreign and local sources also suggest that reducing unnecessary
+screen use and encouraging real-world activities can support healthier habits. In
+addition, the reviewed studies indicate that gamification features such as
+rewards, experience points, progress tracking, and virtual customization can
+help improve user motivation, consistency, and long-term engagement.
+The related systems also show that several applications already support
+productivity, digital wellness, and habit-building. Habitica uses game-like
+rewards to motivate users in completing tasks, while Forest encourages users to
+reduce phone usage through timed focus sessions. Google Digital Wellbeing
+and Apple Screen Time provide tools for monitoring and controlling device
+usage, while mWell Philippines offers wellness-related features such as activity
+and health tracking. However, these systems mainly focus on task management,
+monitoring, restriction, or wellness tracking as separate functions.
+Based on the reviewed literature, studies, and systems, there is a clear need for
+a system that combines screen time reduction with personalized real-world
+activities and gamification in one application. DaGoal addresses this need by
+providing daily physical, mental, and creative quests based on user preferences,
+while also using rewards such as experience points, gold, level progression,
+achievements, and avatar customization to encourage continued participation.
+Its app-blocking feature also supports users in avoiding selected distracting
+applications while completing time-based activities.
+Overall, the reviewed sources support the development of DaGoal as a practical
+digital wellness application. The project is needed because it does not only
+monitor or restrict screen usage, but also encourages users to replace excessive
+screen time with meaningful and productive activities.
+STI College Pasay-EDSA 11\n\n--- PAGE 21 ---\nMETHODOLOGY
+Technical Background
+Technologies to be used
+The development of DaGoal will use several technologies to support mobile
+application development, offline access, online synchronization, screen time
+control, and activity tracking. Android Studio will be used as the main
+development environment of the application. It provides tools for coding,
+designing interfaces, testing, debugging, and running the application on
+Android devices or emulators.
+Figure 1. Java
+Java will be used as the main programming language for developing the
+functions and logic of DaGoal. It will handle features such as daily quest
+generation, progress tracking, rewards, user accounts, and other application
+processes.
+Figure 2. XML
+XML will be used to design the user interface of the application. It will define
+the layout and appearance of buttons, text, images, menus, and other visual
+elements of DaGoal.
+STI College Pasay-EDSA 12\n\n--- PAGE 22 ---\nFigure 3. Github
+GitHub will be used to store and manage the project’s source code. It will help
+the developers track changes, maintain backups, and organize updates
+throughout the development of the application.
+Figure 4. SQLite
+Lastly, SQLite, SharedPreferences, and local files will support the offline
+functions of DaGoal. SQLite will store structured application data,
+SharedPreferences will save smaller settings and preferences, and local files
+will store other information needed directly on the device.
+The application will also use the Android Usage Stats API and Accessibility
+Service to support the app-blocking feature. These technologies will help detect
+selected distracting applications and restrict or interrupt their use during active
+timed quests.
+For physical activities, DaGoal will use the device’s step counter or pedometer
+sensor to track walking-based quests and help verify task completion.
+STI College Pasay-EDSA 13\n\n--- PAGE 23 ---\nCalendar of Activities
+Figure 5. Gantt Chart of Activities
+STI College Pasay EDSA 14\n\n--- PAGE 24 ---\nResources
+Software
+Figure 6. Android Studio
+Android Studio is the official integrated development environment (IDE) for
+Android application development. It provides tools for writing code, designing
+user interfaces, testing applications, and debugging errors within a single
+centralized platform. Android Studio supports Java and XML, making it
+suitable for building structured Android application. It also includes built-in
+emulators that allow developers to test applications on virtual devices.
+Figure 7. Firebase
+Firebase is a cloud-based platform used to support the online features of the
+application. It provides services for user authentication and online data storage,
+allowing users to create accounts and synchronize their progress when
+connected to the internet. Firebase helps keep important user information such
+as profiles, levels, rewards, and progress available across sessions.
+STI College Pasay EDSA 15\n\n--- PAGE 25 ---\nHardware
+Figure 8. Smartphone
+Smartphone is a mobile device used for testing and running the DaGoal
+application. It allows the developers to test features such as daily quests, step
+tracking, app blocking, notifications, and user interaction on an actual Android
+device. The smartphone also helps ensure that the application works properly
+under real device conditions.
+Figure 9. Personal Computer (PC)
+Personal Computer (PC) is the main hardware used for developing and
+managing the DaGoal application. It is used to run Android Studio, write and
+debug code, manage Firebase and GitHub, create system diagrams, and prepare
+project documentation. The PC also provides the processing power and storage
+needed for application development and testing.
+STI College Pasay-EDSA 16\n\n--- PAGE 26 ---\nRequirements Analysis
+Use Case Diagram
+Figure 10. Use Case Diagram – DaGoal System
+Figure 10 presents the Use Case Diagram of DaGoal, showing the main
+activities that a user can perform while using the application. The user can create
+or synchronize an account, log in, log out, complete the onboarding process,
+create an avatar, view daily quests, replace or forfeit selected quests, view
+achievements, purchase cosmetic items, and wear purchased cosmetics. These
+functions represent the main interactions between the user and the DaGoal
+system.
+STI College Pasay-EDSA 17\n\n--- PAGE 27 ---\nDuring onboarding, the user sets up the necessary information that allows the
+application to prepare a more personalized experience. After the setup is
+completed, the system can generate daily quests that are shown through the
+View Daily Quests function. These quests may include physical, mental, or
+creative activities depending on the user’s preferences and the system’s task
+selection. If a quest is not suitable for the user’s current situation or schedule,
+the user may replace or forfeit the quest.
+When the user completes a quest, DaGoal verifies the activity using methods
+such as step tracking, manual input, or timed completion depending on the type
+of quest. After successful verification, the system awards experience points
+(XP) and gold, updates the user’s progress, and may increase the user’s level
+once enough XP is earned. For selected timed quests, users may also choose
+distracting applications to block during the activity, helping them stay focused,
+avoid unnecessary screen use, and complete their assigned real-world tasks
+more effectively.
+The diagram also shows the reward and customization features of the
+application. Users can view their achievements, use earned gold to purchase
+cosmetic items, and apply those items to their avatar. These features are
+intended to make progress more engaging and give users additional motivation
+to continue completing quests.
+Overall, the use case diagram shows how DaGoal combines account
+management, personalized quests, task verification, progress tracking, rewards,
+avatar customization, and screen time control in one application.
+STI College Pasay-EDSA 18\n\n--- PAGE 28 ---\nFunctional Requirements
+Authenticate User
+• The user shall be able to create an account using an email address and
+password.
+• The user shall be able to log in to the application using registered
+account credentials.
+• The user shall be able to log out of the application.
+Manage User Preferences
+• The user shall be able to complete an initial questionnaire about
+interests, preferred activities, and daily habits.
+• The system shall save the user’s preferences for daily quest generation.
+• The user shall be able to update selected preferences.
+Generate Daily Quests
+• The system shall generate daily quests based on the user’s saved
+preferences.
+• The system shall provide physical, mental, and creative activities.
+• The user shall be able to view the generated daily quests.
+• The user shall be able to skip or replace a limited number of quests.
+Manage Quest Completion
+• The user shall be able to mark supported quests as completed.
+• The system shall support manual, time-based, count-based, and sensor-
+based task verification.
+• The system shall use the device’s step counter for supported walking
+activities.
+• The system shall record completed quests and update the user’s
+progress.
+• The user can undo quests marked as complete within the day.
+STI College Pasay-EDSA 19\n\n--- PAGE 29 ---\nManage Rewards and Progress
+• The system shall award experience points and gold after successful quest
+completion.
+• The system shall update the user’s level, streak, and achievement
+progress.
+• The user shall be able to view their current progress and earned rewards.
+Manage Avatar and Cosmetic Items
+• The user shall be able to purchase cosmetic items using earned gold.
+• The user shall be able to customize their in-app avatar using purchased
+items.
+• The system shall save the user’s selected avatar customization.
+Synchronize User Data
+• The system shall store important application data locally for offline use.
+• The user can choose to sync their progress to the cloud through the
+settings menu.
+• The user can log out or delete their user data.
+• The system shall retrieve synchronized account and progress data after
+the user logs in.
+Non-Functional Requirements
+Operational Requirements
+• The system shall operate on supported Android devices.
+• The application shall use SQLite, SharedPreferences, and local files to
+support offline use.
+• The system shall connect to Firebase when internet access is available
+for authentication and data synchronization.
+• The system shall require appropriate Android permissions for step
+tracking, application usage detection, and app-blocking functions.
+STI College Pasay-EDSA 20\n\n--- PAGE 30 ---\nPerformance Requirements
+• The system shall display locally stored quests and progress without
+requiring an internet connection.
+• The system shall update rewards and progress immediately after a quest
+is successfully completed.
+• The system shall synchronize updated user data with Firebase when a
+stable internet connection is available.
+• The system shall generate the user’s daily quests without causing
+unnecessary delay during normal use.
+Security Requirements
+• The system shall use Firebase Authentication to verify registered users.
+• Users shall only be able to access and manage their own account and
+progress information through the application.
+• The system shall request user permission before accessing application
+usage information or other protected Android features.
+• User passwords shall be handled through Firebase Authentication rather
+than being directly stored by the DaGoal application.
+• Online user data shall only be synchronized after the user has
+successfully authenticated.
+Cultural and Political Requirements
+• The application shall use the English language for its interface,
+instructions, quests, and system messages.
+• The system shall provide activities that are general and appropriate for
+its intended users without requiring political participation or political
+affiliation..
+STI College Pasay-EDSA 21\n\n--- PAGE 31 ---\nRequirements Documentation
+Wireframe
+Figure 11. Wireframe – New user startup
+Figure 11 exemplifies how a new user would navigate through the application
+if they just installed the application.
+STI College Pasay-EDSA 22\n\n--- PAGE 32 ---\nFigure 12. Existing user startup
+STI College Pasay-EDSA 23\n\n--- PAGE 33 ---\nFigure 13. Existing user startup
+Figure 12 and 13 shows how an existing user would likely navigate the
+application. This displays all the tabs the user can switch to, along with the
+settings screen and streak screen.
+STI College Pasay-EDSA 24\n\n--- PAGE 34 ---\nDesign of Software, System, Product, and/or Processes
+Software Development Life Cycle
+Figure 14. Agile capstone methodology diagram
+The development of the proposed system will follow the Agile methodology,
+which is an iterative and flexible approach to software development. Instead of
+completing the project in a fixed sequence, Agile divides the development
+process into smaller cycles or iterations, allowing features to be developed,
+tested, and improved continuously. This approach enables the proponents to
+refine system components such as quest generation, reward mechanisms, and
+user interface design based on ongoing testing and feedback. Agile also supports
+adaptability, making it suitable for projects where features may evolve during
+development.
+The Agile methodology is appropriate for this system because it allows
+continuous improvement and adjustment of features based on user needs and
+testing results. Given that the application focuses on user behavior and
+engagement, this approach ensures that the system remains responsive,
+functional, and aligned with its objective of reducing screen time through
+effective and practical features.
+STI College Pasay-EDSA 25\n\n--- PAGE 35 ---\nEntity Relationship Diagram
+Figure 15. ERD – DaGoal Entity Relationship Diagram
+The Entity Relationship Diagram (ERD) illustrates the database structure of the
+system, showing how users interact with quests, daily assignments, progress
+tracking, preferences, and the in-app shop. It defines key relationships where
+users are assigned daily quests, complete quests that are recorded in progress
+logs, and earn rewards such as XP and gold. These rewards are linked to a shop
+system through user-owned items, while user preferences guide the generation
+of personalized tasks
+STI College Pasay EDSA 26\n\n--- PAGE 36 ---\nData Flow Diagram
+Level 0
+Figure 16. DFD Level 0 - User Setup, Preference Processing, and Daily Quest Generation
+DFD Level 0 is also called a Context Diagram. It’s a basic overview of the
+whole system or process being analyzed or modeled. It’s designed to be an at-
+a-glance view, showing the system as a single high-level process, with its
+relationship to external entities. It should be easily understood by a wide
+audience, including stakeholders, business analysts, data analysts and
+developers.
+STI College Pasay-EDSA 27\n\n--- PAGE 37 ---\nLevel 1
+Figure 17. DFD Level 1 - User Setup, Preference Processing, and Daily Quest Generation
+This figure illustrates the initial stages of the system, starting from user
+onboarding up to daily quest delivery. The process begins when the user inputs
+personal data and completes the preference questionnaire. This information is
+stored in the User Data and Preferences Data stores. The system then retrieves
+both preference data and predefined quest data to generate a personalized daily
+quest list through the quest generation process. The resulting daily quests are
+stored in the Daily Quest Data store and delivered back to the user for
+completion.
+STI College Pasay-EDSA 28\n\n--- PAGE 38 ---\nFigure 18. DFD Level 1 - Task Execution, Verification, and Reward System
+This figure shows the core activity loop of the system, where the user performs
+and completes assigned tasks. The Execute & Verify Task process receives user
+actions and validates them through manual confirmation, step tracking, or timer-
+based app blocking. Verified task results are recorded in the Progress Data store.
+Once a task is confirmed as completed, the Reward System process updates the
+User Data by adding experience points, gold currency, and streak progression.
+This creates a continuous feedback loop between task completion and user
+progression.
+Figure 19. DFD Level 1 - Shop System and Avatar Customization Process
+This figure presents the system’s reward utilization component. The user
+interacts with the Shop and Avatar Management process by selecting items or
+customization options. The system retrieves available items from the Shop
+Items Data store and processes user purchases using earned in-app currency
+stored in User Data.
+STI College Pasay-EDSA 29\n\n--- PAGE 39 ---\nSwimlane Flowchart
+Figure 20. Application User Process Diagram
+The application starts with a user onboarding process, where the user is required
+to complete an initial preference questionnaire upon first use. This step enables
+the system to collect key information, including hobbies, preferred activity
+types, physical activity level, and estimated daily screen time.
+Figure 21. Blocked application process diagram
+This diagram shows the process that the application will undergo when a timed
+quest starts. This will act as a focus tool for users, blocking the apps they select
+to improve focus and spend their time on activities that are not centered around
+social media or digital applications.
+STI College Pasay-EDSA 30\n\n--- PAGE 40 ---\nGame Storyboard
+Figure 22. User profile storyboard
+Figure 22 shows the initial plans for what the profile screen of the user should
+look like
+Figure 23. Avatar creation storyboard
+Figure 23 shows the mockup for what the avatar customization screen would
+look like in the final application.
+STI College Pasay-EDSA 31\n\n--- PAGE 41 ---\nFigure 24. Homepage storyboard
+This figure shows the initial plans on what the homepage of the application will
+look like, adding plans like the home page, quests screen, shop screen, and
+profile screen
+Figure 25. Final homepage storyboard
+This figure shows the initial final look of the homepage, with quests given, the
+character experience and the avatar being on the center of the screen.
+STI College Pasay-EDSA 32\n\n--- PAGE 42 ---\nFlowchart
+Figure 26. Flowchart of User Onboarding and Preference-Based Setup
+The application begins with the user onboarding process, where the user is first
+required to complete an initial preference questionnaire upon opening the
+application for the first time. This process allows the system to gather essential
+information such as the user’s hobbies, preferred activity types, physical activity
+level, and estimated daily screen time. The collected data is then used by the
+application’s quest generation logic to personalize daily activities according to
+the user’s preference.
+STI College Pasay-EDSA 33\n\n--- PAGE 43 ---\nFigure 27. Flowchart of Daily Quest Generation
+After the initial setup, the system will proceed to the daily quest generation
+process. Based on the stored user preferences, the application will generate a set
+of daily quests categorized into physical, mental, and creative tasks. The system
+will also consider the quest’s difficulty and task variation to ensure that users
+are provided with balanced and engaging daily objectives. Users are given the
+option to skip or replace a limited number of tasks per day to maintain
+flexibility.
+STI College Pasay-EDSA 34\n\n--- PAGE 44 ---\nFigure 28. Task Verification and Completion Workflow
+Once quests are generated, The system enters the task completion and
+verification process. During this stage, users can manually confirm if they have
+completed the assigned tasks, while some quests can be automatically be
+marked as completed based on sensor validation such as step tracking through
+the device’s pedometer. The application then verifies the task completion and
+records the corresponding progress data.
+STI College Pasay-EDSA 35\n\n--- PAGE 45 ---\nFigure 29. Task verification and progression process diagram
+Figure 29 illustrates the verification workflow of the proposed application.
+Tasks may be completed through time-based, count-based, or sensor-based
+methods depending on the quest type. After successful verification, the system
+executes the reward and progression process. Experience points, gold currency,
+and achievement progress are automatically updated based on the completed
+quest. The application then reflects these changes in the user’s profile, level
+progression, streak count, and in-app currency balance. This process strengthens
+the gamification aspect of the system and encourages long-term habit formation.
+STI College Pasay-EDSA 36\n\n--- PAGE 46 ---\nFigure 30. App blocking for time-based quests process
+In addition, the proposed system includes an application blocking feature as part
+of the time-based quests. Users may select social media applications to
+temporarily restrict for a specified duration. Once activated, the application
+monitors attempts to open selected apps and prevents access until the quest
+timer is completed.
+STI College Pasay-EDSA 37\n\n--- PAGE 47 ---\nDevelopment
+The application was developed using Android Studio, with Java used for the
+main program logic and XML used for the user interface. The system was
+divided into major functions such as account management, onboarding, user
+preferences, daily quest generation, task verification, rewards, avatar
+customization, shop features, and settings. GitHub was also used to store the
+source code, track changes, and maintain backups during development. DaGoal
+DaGoal
+For data management, DaGoal uses SQLite, SharedPreferences, and local files
+to support offline use. Firebase Authentication is used for registered user
+accounts, while Firebase supports online synchronization of user data such as
+profiles, progress, levels, and rewards. This setup allows the application to
+continue working with locally stored data while also giving users the option to
+synchronize their information when an internet connection is available. DaGoal
+DaGoal
+Device-level features were also integrated into the application. The step counter
+or pedometer sensor is used for supported walking quests, while the Usage Stats
+API, Usage Access Permission, and Accessibility Service support the screen
+time control feature. These features were implemented with the required
+Android permissions so that protected device functions are only accessed after
+user approval. DaGoal DaGoal
+Throughout development, each major feature was tested and refined before
+being included in the working prototype. This helped ensure that DaGoal
+remained functional, organized, and aligned with its objectives of providing
+personalized activities, gamified progress, and screen time management in a
+single Android application.
+STI College Pasay-EDSA 38\n\n--- PAGE 48 ---\nRESULTS AND DISCUSSION
+Testing
+The DaGoal application underwent manual functional testing to determine
+whether its features performed according to their expected behavior. Each test
+case included the required conditions, testing steps, expected result, and actual
+status. The testing covered the major functions of the application, beginning
+with application startup, account registration, login, offline access, and user
+authentication. It also included validation of user input to ensure that incorrect
+or incomplete information is properly handled by the system.
+The onboarding and personalization features were also tested. These included
+avatar creation and customization, user profiling, preference selection, and the
+selection of applications to be restricted during selected activities. The tests
+verified that user choices are properly saved and that the application proceeds
+correctly through the onboarding process.
+The main quest functions of DaGoal were tested through daily quest generation,
+task replacement, manual completion, repetition-based progress, step tracking,
+timed activities, custom quests, and quest forfeiting. The reward system was
+also evaluated to confirm that successful quest completion correctly updates
+experience points, gold, progress, and other rewards. The testing also covered
+the shop and wardrobe features to verify the purchasing, ownership, equipping,
+and removal of cosmetic items.
+Additional testing was performed on the user's profile, streaks, achievements,
+consumables, settings, permissions, and account synchronization. Background
+functions such as step tracking and app-blocking were also tested to confirm
+that the required Android permissions are requested and that selected distracting
+applications can trigger the avoidance feature during an active quest.
+Overall, 97 functional test cases were performed, and all recorded test cases
+received a Passed status. The results indicate that the tested functions of DaGoal
+operated according to their expected behavior under the conditions used during
+testing.
+STI College Pasay-EDSA 39\n\n--- PAGE 49 ---\nDescription of Prototype
+The DaGoal prototype is an Android-based gamified daily activity planner
+developed to encourage users to reduce excessive screen time by participating
+in physical, mental, and creative activities. The prototype provides personalized
+daily quests based on the user's profile and preferences and allows users to
+complete, replace, or forfeit activities depending on their daily situation. Task
+completion may be verified through manual confirmation, repetition-based
+progress, timed activities, or step tracking using the device's available sensors.
+DaGoal
+The prototype begins with account access and onboarding, where users can
+create an account or continue using a local profile. Users can create and
+customize an avatar, answer profiling questions, and select applications that
+may be restricted during timed quests. After onboarding, the application
+generates daily activities and presents them through the main dashboard, where
+users can monitor their active and completed quests.
+Gamification is a major part of the prototype. Completing activities allows users
+to earn experience points, gold, levels, streak progress, achievements, and other
+rewards. Gold can be used in the application shop to purchase cosmetic items,
+which can then be equipped through the wardrobe to customize the user's avatar.
+These features provide visible progress and rewards that encourage users to
+continue completing their daily activities.
+The prototype also includes account settings, local and online data support, user
+progress synchronization, notifications, appearance settings, activity
+permissions, step tracking, and screen time control. Selected timed quests can
+monitor applications chosen by the user and display an interruption when a
+restricted application is opened.
+Overall, the prototype demonstrates the main functions planned for DaGoal.
+Functional testing showed that these features operated as expected under the
+tested conditions, providing a working prototype that can proceed to user
+evaluation and implementation testing.
+STI College Pasay-EDSA 40\n\n--- PAGE 50 ---\nImplementation Plan
+The implementation of DaGoal involved distributing an APK copy of the
+application to selected respondents through GitHub. The respondents
+downloaded and installed the application on their Android smartphones and
+were given access to the system for a period of three days. During this period,
+they were encouraged to explore the application’s main features, including
+onboarding, daily quests, progress tracking, rewards, avatar customization, shop
+features, and screen time management functions.
+The respondents were allowed to use DaGoal either online or offline. Internet
+access was mainly required for account authentication and synchronization
+through Firebase, while the application’s main functions remained available
+through locally stored data. During the testing period, the researchers also
+collected feedback regarding bugs, usability concerns, and suggested
+improvements.
+After the three-day testing period, 57 respondents completed an online software
+quality evaluation questionnaire. The questionnaire evaluated DaGoal in terms
+of Usability, Enjoyment and Engagement, Screen Time Management,
+Performance, and Overall Experience using a four-point scale from 1 – Strongly
+Disagree to 4 – Strongly Agree.
+Implementation Results
+The implementation results were based on the responses of 56 participants who
+tested DaGoal for three days. The respondents were between 19 and 26 years
+old, with most respondents within the college-age range. Of the respondents,
+59.65% were male and 40.35% were female.
+STI College Pasay-EDSA 41\n\n--- PAGE 51 ---\nMean
+Domain SD Interpretation
+(n=57)
+Usability 3.42 0.39 Strongly Agree
+Enjoyment and Engagement 3.22 0.46 Agree
+Screen Time Management 3.40 0.38 Strongly Agree
+Performance 3.25 0.40 Agree
+Overall Experience 3.26 0.41 Strongly Agree
+Grand Mean 3.31 0.30 Strongly Agree
+Legend: 3.26–4.00 = Strongly Agree; 2.51–3.25 = Agree; 1.76–2.50 = Disagree; 1.00–1.75 = Strongly
+Disagree.
+Table 1. Usability Assessment of DaGoal Activity Planner
+DaGoal received a grand mean of 3.31 with a standard deviation of 0.30,
+interpreted as Strongly Agree. Usability received a mean of 3.42, indicating that
+respondents generally found the application easy to understand and use.
+Enjoyment and Engagement obtained 3.22, showing that respondents generally
+found the application enjoyable and engaging.
+Screen Time Management received a mean of 3.40, indicating that respondents
+generally felt DaGoal increased their awareness of screen time and encouraged
+better screen time habits. Performance obtained a mean of 3.25, showing
+generally positive feedback regarding the application's responsiveness and
+operation. Overall Experience received a mean of 3.26, indicating that
+respondents were generally satisfied with DaGoal.
+Overall, the results show that DaGoal received a positive evaluation from the
+respondents. The Strongly Agree grand mean of 3.31 suggests that the
+application was generally accepted in terms of usability, engagement, screen
+time management, performance, and overall experience during the three-day
+evaluation period.
+STI College Pasay-EDSA 42\n\n--- PAGE 52 ---\nCONCLUSION
+Based on the findings, the researchers conclude that DaGoal successfully
+implemented its major planned functions as a gamified daily activity planner.
+The application was able to generate personalized quests, verify task
+completion, provide rewards, track user progress, support avatar customization,
+and provide screen time control features. The functional testing results also
+showed that the tested features operated according to their expected behavior.
+The evaluation results indicate that respondents generally viewed DaGoal
+positively. Usability received the highest strongly positive rating at 3.42, while
+Screen Time Management received a mean of 3.40, showing that respondents
+generally felt that the application helped increase their awareness of screen time
+and encouraged better screen time habits. Enjoyment and Engagement received
+3.22, Performance received 3.25, and Overall Experience received 3.26. The
+overall 3.31 grand mean indicates that the application was generally accepted
+by the respondents.
+Overall, DaGoal achieved its goal of developing a functional and engaging
+application that combines personalized real-world activities, gamification,
+progress tracking, and screen time control. However, since the evaluation lasted
+only three days and relied mainly on user feedback, the results should be
+considered an initial evaluation rather than proof of long-term screen time
+reduction.
+Recommendations
+For future improvement, the researchers recommend testing DaGoal for a
+longer period and with a larger and more varied group of respondents to better
+measure changes in screen time habits. Future versions may also expand the
+available quests, rewards, and avatar customization options and further improve
+app-blocking, step tracking, data synchronization, performance, and overall
+usability based on user feedback.
+STI College Pasay-EDSA 43\n\n--- PAGE 53 ---\nREFERENCES
+Apple Inc. (n.d.). Use Screen Time on your iPhone, iPad, or iPod touch. Apple Support.
+Retrieved from https://support.apple.com/en-us/108806
+Aschentrup, L., Steimer, P. A., Dadaczynski, K., McCall, T., Fischer, F., & Wrona, K.
+J. (2024). Effectiveness of gamified digital interventions in mental health
+prevention and health promotion among adults: A scoping review. BMC Public
+Health, 24(1).
+Retrieved from https://doi.org/10.1186/s12889-023-17517-3
+Dy, A. B., Dy, A. B., & Santos, S. K. (2023). Measuring effects of screen time on the
+development of children in the Philippines: A cross-sectional study. BMC
+Public Health, 23(1).
+Retrieved from https://doi.org/10.1186/s12889-023-16188-4
+Google. (n.d.). Manage how you spend time on your Android phone with Digital
+Wellbeing - Android help. Google. Retrieved from
+https://support.google.com/android/answer/9346420
+Google. (n.d.). Use Digital Wellbeing on Android devices. Google Support.
+Retrieved from https://support.google.com/android/answer/9346420
+HabitRPG, Inc. (n.d.). Habitica: Gamified task manager [Mobile app]. Apple App
+Store.
+Retrieved from https://apps.apple.com/ph/app/habitica-gamified-
+taskmanager/id994882113
+Kelly, N. (2023, December 27). Reducing your screen time in 2024. MDPI Blog.
+Retrieved from https://blog.mdpi.com/2023/12/27/reducing-screen-time-2024/
+Kemp, S. (2023). Digital 2023 global overview report. Data Reportal.
+Retrieved from https://datareportal.com/reports/digital-2023-global-overview-
+report
+STI College Pasay-EDSA 44\n\n--- PAGE 54 ---\nLifeUp Apps. (n.d.). LifeUp: Gamified to-do RPG [Mobile app]. Google Play Store.
+Retrieved from
+https://play.google.com/store/apps/details?id=net.sarasarasa.lifeup
+Metro Pacific Investments Corporation. (n.d.). mWell: Your digital healthcare partner.
+Retrieved from https://www.mwell.com.ph/
+Pieh, C., Humer, E., Hoenigl, A., Schwab, J., Mayerhofer, D., Dale, R., & Haider, K.
+(2025). Smartphone screen time reduction improves mental health: A
+randomized controlled trial. BMC Medicine, 23(1). Retrieved from
+https://doi.org/10.1186/s12916-025-03944-z
+Purnell, K. (2023, May 21). The Philippines has highest average screen time on phones
+— study. Philstar.com.
+Retrieved from
+https://www.philstar.com/lifestyle/gadgets/2023/05/21/2267517/philippines-
+has-highest-average-screen-time-phones-study
+Seppings, J. (2024, November 21). Forest: App Review - Voxel Hub. Voxel Hub.
+Retrieved from https://voxelhub.org/contributor-post/forest-app-review/
+Unstatic Ltd. Co. (n.d.). Habitify: Habit tracker (Version 13.10.0) [Mobile app]. Apple
+App Store.
+Retrieved from https://apps.apple.com/us/app/habitify-habit-
+tracker/id1111447047
+World Health Organization. (n.d.). WHO guidelines on physical activity and sedentary
+behaviour. World Health Organization.
+Retrieved From https://www.who.int/publications/i/item/9789240015128
+STI College Pasay-EDSA 45\n\n--- PAGE 55 ---\nSTI College Pasay-EDSA 46

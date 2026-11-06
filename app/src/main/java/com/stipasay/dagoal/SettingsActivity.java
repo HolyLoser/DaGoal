@@ -707,6 +707,7 @@ public class SettingsActivity extends AppCompatActivity {
                                         cursor.close();
                                     }
 
+                                    String newSessionId = java.util.UUID.randomUUID().toString();
                                     com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
                                     java.util.Map<String, Object> userMap = new java.util.HashMap<>();
                                     userMap.put("email", email);
@@ -715,6 +716,7 @@ public class SettingsActivity extends AppCompatActivity {
                                     userMap.put("gold", gold);
                                     userMap.put("xp", xp);
                                     userMap.put("streak", streak);
+                                    userMap.put("session_id", newSessionId);
 
                                     firestore.collection("users").document(uid).set(userMap);
 
@@ -724,6 +726,7 @@ public class SettingsActivity extends AppCompatActivity {
                                             .putString("user_email", email)
                                             .putString("user_uid", uid)
                                             .putString("user_nickname", username)
+                                            .putString("pref_session_id", newSessionId)
                                             .apply();
 
                                     ToastUtils.showToast(this, "Account created and profile synced! ☁️");

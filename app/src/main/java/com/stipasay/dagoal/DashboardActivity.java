@@ -354,7 +354,38 @@ public class DashboardActivity extends AppCompatActivity {
             com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
             firestoreUserListener = firestore.collection("users").document(uid)
                     .addSnapshotListener((snapshot, e) -> {
-                        if (e != null || snapshot == null || !snapshot.exists()) return;
+                        if (e != null || snapshot == null) return;
+
+                        if (!snapshot.exists()) {
+                            try {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                            } catch (Exception ignored) {}
+                            prefs.edit().clear().putBoolean("isFirstRun", true).apply();
+                            AvatarCompositor.clearCache();
+                            ToastUtils.showToast(DashboardActivity.this, "Your account was deleted from another device.");
+                            Intent intent = new Intent(DashboardActivity.this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                            return;
+                        }
+
+                        String cloudSessionId = snapshot.getString("session_id");
+                        String localSessionId = prefs.getString("pref_session_id", null);
+
+                        if (cloudSessionId != null && localSessionId != null && !cloudSessionId.equals(localSessionId)) {
+                            try {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                            } catch (Exception ignored) {}
+                            prefs.edit().clear().putBoolean("isFirstRun", true).apply();
+                            AvatarCompositor.clearCache();
+                            ToastUtils.showToast(DashboardActivity.this, "Logged Out: Your account was logged into on another device.");
+                            Intent intent = new Intent(DashboardActivity.this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                            return;
+                        }
 
                         Long cloudGold = snapshot.getLong("gold");
                         Long cloudLevel = snapshot.getLong("level");
