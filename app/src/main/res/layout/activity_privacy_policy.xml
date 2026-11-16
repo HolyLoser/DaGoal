@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ xmlns:app="http://schemas.android.com/apk/res-auto"
+ android:id="@+id/root_privacy_policy" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:background="@color/dagoal_background_light">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+  android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:background="@color/dagoal_primary">
+  <ImageButton android:id="@+id/btn_privacy_back" android:layout_width="48dp" android:layout_height="48dp"
+   android:src="@drawable/ic_arrow_back" android:padding="12dp" android:background="@drawable/bg_auth_pill"
+   android:contentDescription="@string/back" app:tint="@color/dagoal_primary_dark" />
+  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+   android:layout_marginStart="16dp" android:text="@string/privacy_policy_title" android:textColor="@color/white" android:textSize="20sp" android:textStyle="bold" />
+ </LinearLayout>
+ <WebView android:id="@+id/web_privacy_policy" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+</LinearLayout>
