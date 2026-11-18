@@ -36,6 +36,38 @@
             android:layout_marginTop="@dimen/spacing_huge"
             android:indeterminateTint="@color/dagoal_background_light" />
 
+        <LinearLayout
+            android:id="@+id/loading_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/loading_error_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite"
+                android:gravity="center"
+                android:text="@string/loading_database_error"
+                android:textColor="@color/dagoal_background_light"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btn_loading_retry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_settings_category_card"
+                android:paddingHorizontal="20dp"
+                android:text="@string/loading_retry"
+                android:textColor="@color/dagoal_primary_dark"
+                app:backgroundTint="@null" />
+        </LinearLayout>
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

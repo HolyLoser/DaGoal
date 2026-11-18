@@ -27,6 +27,43 @@ public class ScheduleAndAccountRegressionTest {
   db.delete("recurring_quest_schedules",null,null);db.delete("daily_shuffle_usage",null,null);db.delete("streak_history",null,null);db.delete("user",null,null);db.delete("daily_tasks",null,null);db.delete("quest_reward_receipts",null,null);db.delete("inventory",null,null);db.delete("inventory_consumables",null,null);DatabaseHelper.ensureUserTableExists(db);db.execSQL("UPDATE achievements SET current_progress=0");
  }
  private int scalar(String sql){try(Cursor c=db.rawQuery(sql,null)){assertTrue(c.moveToFirst());return c.getInt(0);}}
+
+ @Test public void changingShopDateDoesNotRefillRefreshes() {
+  TaskManager manager = new TaskManager(context);
+  prefs.edit().putInt("pref_shop_reroll_count_today", 5)
+          .putLong("pref_shop_refresh_window_end", QuestElapsedClock.now(context) + 60_000L)
+          .putString("pref_shop_reroll_last_date", "2000-01-01").commit();
+  assertEquals(5, manager.getShopRerollCountToday(context));
+  prefs.edit().putLong("pref_shop_refresh_window_end", QuestElapsedClock.now(context)).commit();
+  assertEquals(0, manager.getShopRerollCountToday(context));
+ }
+
+ @Test public void pendingDeletionCleansOnlyItsOwnLocalAccount() {
+  prefs.edit().putBoolean("isGuestUser", false).putString("user_uid", "current").commit();
+  int questId = todayQuest();
+  assertTrue(AccountDeletion.recordRequest(context, "other"));
+  assertTrue(AccountDeletion.clearLocal(context, "other"));
+  assertEquals(1, scalar("SELECT COUNT(*) FROM daily_tasks WHERE _id=" + questId));
+  assertNull(AccountDeletion.pendingUid(context));
+
+  assertTrue(AccountDeletion.recordRequest(context, "current"));
+  assertEquals("current", AccountDeletion.pendingUid(context));
+  assertTrue(AccountDeletion.clearLocal(context, "current"));
+  assertEquals(0, scalar("SELECT COUNT(*) FROM daily_tasks WHERE _id=" + questId));
+  assertNull(AccountDeletion.pendingUid(context));
+ }
+
+ @Test public void legacyWallClockQuestIsReanchoredWithoutAwardingProgress() {
+  int id = todayQuest();
+  db.execSQL("UPDATE daily_tasks SET quest_type=?, start_timestamp=? WHERE _id=?", new Object[]{
+          DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID, System.currentTimeMillis() - 3600_000L, id});
+  assertFalse(new TaskManager(context).checkAndCompleteAvoidanceQuests());
+  assertEquals(0, scalar("SELECT is_completed FROM daily_tasks WHERE _id=" + id));
+  try (Cursor cursor = db.rawQuery("SELECT start_timestamp FROM daily_tasks WHERE _id=?", new String[]{String.valueOf(id)})) {
+   assertTrue(cursor.moveToFirst());
+   assertTrue(QuestElapsedClock.isCurrentBoot(context, cursor.getLong(0)));
+  }
+ }
  private int quest(){ContentValues v=new ContentValues();v.put("title","Isolated audit quest");v.put(DatabaseContract.DailyTaskEntry.COLUMN_TARGET_VALUE,1);v.put("current_value",0);v.put("reward_gold",10);v.put("reward_xp",15);return (int)db.insertOrThrow("daily_tasks",null,v);}
 
 

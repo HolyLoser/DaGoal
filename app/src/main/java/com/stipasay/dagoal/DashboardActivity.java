@@ -3669,7 +3669,7 @@ public class DashboardActivity extends AppCompatActivity {
                         });
                     } else {
                         long totalTargetSeconds = target * 60L;
-                        long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - startTimestamp) / 1000L);
+                        long elapsedSeconds = QuestElapsedClock.elapsedSeconds(this, startTimestamp);
                         long remainingSeconds = Math.max(0, totalTargetSeconds - elapsedSeconds);
 
                         tvTarget.setText(TaskManager.formatDurationSeconds(remainingSeconds) + " remaining | " + rewardXp + " XP / " + rewardGold + " Gold");

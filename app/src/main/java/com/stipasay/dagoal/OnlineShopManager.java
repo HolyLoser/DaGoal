@@ -5,6 +5,10 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -49,13 +53,8 @@ public class OnlineShopManager {
         if (!todayDateStr.equals(lastShopDate)) {
             prefs.edit()
                     .putString("pref_last_shop_rotation_date", todayDateStr)
-                    .putInt("pref_daily_shop_refresh_count", 0)
                     .putInt("pref_shop_rotation_seed", (int) System.currentTimeMillis())
                     .apply();
-
-            if (isNetworkAvailable(context)) {
-                syncOnlineShopRotation(context, todayDateStr);
-            }
         }
 
         int seed = prefs.getInt("pref_shop_rotation_seed", 0);
@@ -71,43 +70,13 @@ public class OnlineShopManager {
                 .putString("pref_last_shop_rotation_date", todayDateStr)
                 .putInt("pref_shop_rotation_seed", newSeed)
                 .apply();
-
-        if (isNetworkAvailable(context)) {
-            syncOnlineShopRotation(context, todayDateStr);
-        }
-    }
-
-    private static void syncOnlineShopRotation(Context context, String dateStr) {
-        try {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            db.collection("daily_shop_rotation").document(dateStr)
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            Log.i(TAG, "Online shop rotation fetched from Firestore for date: " + dateStr);
-                        } else {
-                            SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-                            int seed = prefs.getInt("pref_shop_rotation_seed", 0);
-
-                            Map<String, Object> docData = new HashMap<>();
-                            docData.put("date", dateStr);
-                            docData.put("seed", seed);
-                            docData.put("created_at", new Date());
-
-                            db.collection("daily_shop_rotation").document(dateStr)
-                                    .set(docData)
-                                    .addOnSuccessListener(aVoid -> Log.i(TAG, "Today's shop rotation published to Firestore!"))
-                                    .addOnFailureListener(e -> Log.e(TAG, "Failed to publish rotation to Firestore", e));
-                        }
-                    })
-                    .addOnFailureListener(e -> Log.e(TAG, "Failed to connect to Firestore", e));
-        } catch (Exception e) {
-            Log.e(TAG, "Firestore initialization exception", e);
-        }
     }
 
     public static void logChestClaimOnline(Context context, int tier, int bonusGold, int bonusXp, String consumableType) {
-        if (!isNetworkAvailable(context)) return;
+        if (!isNetworkAvailable(context)
+                || context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE).getBoolean("isGuestUser", false)) return;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
         try {
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             Map<String, Object> logData = new HashMap<>();
@@ -115,11 +84,14 @@ public class OnlineShopManager {
             logData.put("gold_awarded", bonusGold);
             logData.put("xp_awarded", bonusXp);
             logData.put("consumable_awarded", consumableType != null ? consumableType : "NONE");
-            logData.put("claimed_at", new Date());
+            logData.put("claimed_at", FieldValue.serverTimestamp());
 
-            db.collection("chest_claim_logs")
-                    .add(logData)
-                    .addOnSuccessListener(ref -> Log.i(TAG, "Chest claim logged to Firestore: " + ref.getId()))
+            DocumentReference claim = db.collection("chest_claim_logs").document();
+            DocumentReference limit = db.collection("chest_claim_limits").document(user.getUid());
+            Map<String, Object> limitData = new HashMap<>();
+            limitData.put("claim_id", claim.getId());
+            limitData.put("claimed_at", FieldValue.serverTimestamp());
+            db.batch().set(claim, logData).set(limit, limitData).commit()
                     .addOnFailureListener(e -> Log.e(TAG, "Failed to log chest claim to Firestore", e));
         } catch (Exception e) {
             Log.e(TAG, "Firestore chest claim log error", e);

@@ -18,6 +18,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.appcompat.app.AlertDialog;
+
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -232,6 +234,7 @@ public class SettingsActivity extends AppCompatActivity {
                             try {
                                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
                             } catch (Exception ignored) {}
+                            DailyReminderScheduler.cancel(this);
 
                             ToastUtils.showToast(this, "Logged out successfully.");
                             Intent intent = new Intent(this, MainActivity.class);
@@ -245,6 +248,23 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         addInfoRow(container, "Delete Account", "", () -> {
+            if (!getResources().getBoolean(R.bool.firebase_account_cleanup_enabled)
+                    && (firebaseUser != null || isLoggedIn || prefs.contains("user_uid"))) {
+                showCustomConfirmDialog(R.drawable.ic_email, getColor(R.color.dagoal_secondary),
+                        getColor(R.color.dagoal_primary_dark),
+                        getString(R.string.account_delete_request_title),
+                        getString(R.string.account_delete_server_unavailable),
+                        getString(R.string.account_delete_email_support), R.drawable.bg_button_pill_dark, () -> {
+                            Intent email = new Intent(Intent.ACTION_SENDTO, android.net.Uri.parse(
+                                    "mailto:shaunocana2004@gmail.com?subject=DaGoal%20account%20deletion%20request"));
+                            try {
+                                startActivity(email);
+                            } catch (android.content.ActivityNotFoundException error) {
+                                ToastUtils.showToast(this, getString(R.string.privacy_link_unavailable));
+                            }
+                        }, getString(android.R.string.cancel), null);
+                return;
+            }
             androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
             android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_delete_account, null);
             builder.setView(dialogView);
@@ -300,39 +320,58 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void performFullAccountDeletion(com.google.firebase.auth.FirebaseUser fUser, String targetUid) {
-        String uid = targetUid;
-        if ((uid == null || uid.isEmpty()) && fUser != null) {
-            uid = fUser.getUid();
-        }
-
-        final String deletedAccountUid = uid;
-        Runnable finishLocalCleanup = () -> {
-            try {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
-            } catch (Exception ignored) {}
-
-            getSharedPreferences("DaGoalPrefs", MODE_PRIVATE).edit().remove("user_uid").commit();
-            boolean localDataCleared = DatabaseHelper.resetAccountAndUserData(this, false);
-            RecurringQuestBackup.forget(this, deletedAccountUid);
-
-            ToastUtils.showToast(this, localDataCleared ? "Account deleted successfully." : getString(R.string.account_delete_local_failed));
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
-        };
-
         if (fUser == null) {
-            if (uid == null || uid.isEmpty()) finishLocalCleanup.run();
-            else ToastUtils.showToast(this,getString(R.string.account_delete_online_failed));
+            if ((targetUid != null && !targetUid.isEmpty()) || prefs.getBoolean("isLoggedIn", false)) {
+                ToastUtils.showToast(this, getString(R.string.account_delete_online_failed));
+                return;
+            }
+            finishAccountDeletion(AccountDeletion.clearLocal(this, null));
             return;
         }
-        // A failed cloud/authentication deletion must not be reported as successful.
-        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users").document(fUser.getUid()).delete()
-                .addOnSuccessListener(ignored -> fUser.delete()
-                        .addOnSuccessListener(done -> finishLocalCleanup.run())
-                        .addOnFailureListener(error -> ToastUtils.showToast(this,getString(R.string.account_delete_online_failed))))
-                .addOnFailureListener(error -> ToastUtils.showToast(this,getString(R.string.account_delete_online_failed)));
+
+        if (!getResources().getBoolean(R.bool.firebase_account_cleanup_enabled)) {
+            ToastUtils.showToast(this, getString(R.string.account_delete_server_unavailable));
+            return;
+        }
+        String uid = fUser.getUid();
+        if (prefs.getBoolean("isGuestUser", false)
+                || (targetUid != null && !targetUid.isEmpty() && !uid.equals(targetUid))) {
+            ToastUtils.showToast(this, getString(R.string.account_delete_online_failed));
+            return;
+        }
+        if (!AccountDeletion.recordRequest(this, uid)) {
+            ToastUtils.showToast(this, getString(R.string.account_delete_local_failed));
+            return;
+        }
+        AlertDialog progress = new AlertDialog.Builder(this)
+                .setMessage(R.string.account_delete_in_progress)
+                .setCancelable(false)
+                .show();
+
+        // Firebase's Auth deletion event triggers server-side Firestore cleanup.
+        fUser.delete().addOnSuccessListener(done -> {
+            boolean cleared = AccountDeletion.clearLocal(this, uid);
+            if (!isFinishing() && !isDestroyed()) {
+                progress.dismiss();
+                finishAccountDeletion(cleared);
+            }
+        }).addOnFailureListener(error -> {
+            if (!(error instanceof com.google.firebase.FirebaseNetworkException)) {
+                AccountDeletion.clearRequest(this, uid);
+            }
+            if (isFinishing() || isDestroyed()) return;
+            progress.dismiss();
+            ToastUtils.showToast(this, getString(R.string.account_delete_online_failed));
+        });
+    }
+
+    private void finishAccountDeletion(boolean cleared) {
+        ToastUtils.showToast(this, getString(cleared ? R.string.account_delete_login_removed
+                : R.string.account_delete_local_failed));
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void showReAuthAndDeleteDialog(com.google.firebase.auth.FirebaseUser fUser, String uid) {
@@ -385,6 +424,8 @@ public class SettingsActivity extends AppCompatActivity {
                 }
 
                 btnSubmit.setEnabled(false);
+                if (btnCancel != null) btnCancel.setEnabled(false);
+                dialog.setCancelable(false);
                 btnSubmit.setText("Verifying...");
 
                 com.google.firebase.auth.AuthCredential credential =
@@ -396,6 +437,8 @@ public class SettingsActivity extends AppCompatActivity {
                         performFullAccountDeletion(fUser, uid);
                     } else {
                         btnSubmit.setEnabled(true);
+                        if (btnCancel != null) btnCancel.setEnabled(true);
+                        dialog.setCancelable(true);
                         btnSubmit.setText("Confirm & Delete");
                         Exception exc = reAuthTask.getException();
                         String err = exc != null ? exc.getMessage() : "Incorrect password";
