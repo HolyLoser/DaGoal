@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="8dp" />
+            <solid android:color="@color/dagoal_surface_variant" />
+            <stroke
+                android:width="1.5dp"
+                android:color="@color/dagoal_primary_dark" />
+            <size android:height="12dp" />
+        </shape>
+    </item>
+
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="8dp" />
+                <solid android:color="#2E8B57" />
+                <stroke
+                    android:width="1.5dp"
+                    android:color="@color/dagoal_primary_dark" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>

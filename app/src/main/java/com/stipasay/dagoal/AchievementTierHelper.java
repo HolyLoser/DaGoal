@@ -16,7 +16,21 @@ public class AchievementTierHelper {
     public static final int UNRANKED_COLOR = Color.parseColor("#3E4C33");
 
     public static int getThreshold(int baseTarget, int tierIndex) {
+        if (baseTarget == 7) {
+            return baseTarget * (tierIndex + 1);
+        }
         return baseTarget * TIER_MULTIPLIERS[tierIndex];
+    }
+
+    public static int getNextTarget(int progress, int baseTarget) {
+        int rankIndex = getCurrentRankIndex(progress, baseTarget);
+        if (rankIndex < 0) {
+            return getThreshold(baseTarget, 0);
+        }
+        if (isMaxRank(progress, baseTarget)) {
+            return getThreshold(baseTarget, TIER_MULTIPLIERS.length - 1);
+        }
+        return getThreshold(baseTarget, rankIndex + 1);
     }
 
     public static int getMaxThreshold(int baseTarget) {

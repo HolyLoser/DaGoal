@@ -1,50 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_surface_card"
     android:orientation="vertical"
-    android:background="@drawable/bg_panel_rounded"
-    android:padding="20dp">
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp">
 
-    <TextView
-        android:id="@+id/tv_wardrobe_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="My Outfits Bag"
-        android:textColor="#2D3748"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp" />
-
-    <ImageView
-        android:id="@+id/iv_avatar_preview"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <FrameLayout
+    <LinearLayout
+        android:id="@+id/drag_handle_touch_area"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="28dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center">
 
-        <GridView
-            android:id="@+id/grid_wardrobe_items"
+        <View
+            android:layout_width="50dp"
+            android:layout_height="5dp"
+            android:background="@drawable/bg_drag_handle" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_wardrobe_tab"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:numColumns="3"
-            android:horizontalSpacing="16dp"
-            android:verticalSpacing="16dp"
-            android:stretchMode="columnWidth" />
-    </FrameLayout>
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
 
-    <Button
-        android:id="@+id/btn_wardrobe_action"
-        android:layout_width="match_parent"
-        android:layout_height="54dp"
-        android:backgroundTint="#778A66"
-        android:text="Equip Item"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:textAllCaps="false" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp">
+
+                <GridView
+                    android:id="@+id/grid_wardrobe_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:horizontalSpacing="16dp"
+                    android:nestedScrollingEnabled="false"
+                    android:numColumns="3"
+                    android:stretchMode="columnWidth"
+                    android:verticalSpacing="16dp" />
+
+                <LinearLayout
+                    android:id="@+id/container_wardrobe_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/iv_wardrobe_empty_icon"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/wardrobe_icon"
+                        app:tint="@color/dagoal_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_wardrobe_empty_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/wardrobe_empty_title"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_wardrobe_empty_desc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.1"
+                        android:text="@string/wardrobe_empty_desc"
+                        android:textColor="@color/dagoal_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </FrameLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

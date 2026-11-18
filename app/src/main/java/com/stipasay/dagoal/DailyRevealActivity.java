@@ -9,13 +9,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -26,11 +28,12 @@ public class DailyRevealActivity extends AppCompatActivity {
     private TextView tvShuffleCounter;
     private Button btnAcceptTasks;
     private DatabaseHelper dbHelper;
-    private int availableShuffles = 999;
+    private int availableShuffles = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_daily_reveal);
 
         dbHelper = new DatabaseHelper(this);
@@ -39,24 +42,25 @@ public class DailyRevealActivity extends AppCompatActivity {
         btnAcceptTasks = findViewById(R.id.btn_accept_tasks);
 
         View rootLayout = findViewById(R.id.root_reveal_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
-        });
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
 
         TaskManager taskManager = new TaskManager(this);
         taskManager.generateDailyTasks();
 
-        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
+        availableShuffles = taskManager.getRemainingDailyShuffles();
+
+        tvShuffleCounter.setText("Available Shuffles today: " + availableShuffles);
         loadDailyTasksFromDatabase();
 
-        btnAcceptTasks.setOnClickListener(v -> {
+        DebouncedOnClickListener.setSafeOnClickListener(btnAcceptTasks, v -> {
             String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
             prefs.edit().putString("last_quest_generation_date", todayDateStr).apply();
 
             Intent intent = new Intent(DailyRevealActivity.this, DashboardActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             finish();
         });
@@ -96,15 +100,27 @@ public class DailyRevealActivity extends AppCompatActivity {
 
                 TextView tvTitle = taskRow.findViewById(R.id.tv_task_title);
                 TextView tvTarget = taskRow.findViewById(R.id.tv_task_target);
+                TextView tvTargetPill = taskRow.findViewById(R.id.tv_task_target_pill);
                 CheckBox btnShuffle = taskRow.findViewById(R.id.btn_shuffle_item);
+                View pbProgress = taskRow.findViewById(R.id.pb_task_progress);
+                View btnCompletedLabel = taskRow.findViewById(R.id.btn_quest_completed_label);
 
                 tvTitle.setText(title);
                 tvTarget.setText(formatTargetText(targetValue, unit));
+                
+                // Ensure other elements are hidden in reveal screen
+                if (tvTargetPill != null) tvTargetPill.setVisibility(View.GONE);
+                if (pbProgress != null) pbProgress.setVisibility(View.GONE);
+                if (btnCompletedLabel != null) btnCompletedLabel.setVisibility(View.GONE);
 
-                btnShuffle.setOnClickListener(v -> {
-                    btnShuffle.setChecked(false);
-                    handleTaskShuffle(taskId, tvTitle, tvTarget);
-                });
+                ImageButton btnCardShuffle = taskRow.findViewById(R.id.btn_card_shuffle);
+                if (btnCardShuffle != null) {
+                    btnCardShuffle.setVisibility(View.VISIBLE);
+                    btnCardShuffle.setImageResource(R.drawable.shuffle_icon);
+                    DebouncedOnClickListener.setSafeOnClickListener(btnCardShuffle, v -> handleTaskShuffle(taskId, tvTitle, tvTarget));
+                }
+
+                if (btnShuffle != null) btnShuffle.setVisibility(View.GONE);
 
                 containerDailyTasks.addView(taskRow);
             }
@@ -113,16 +129,17 @@ public class DailyRevealActivity extends AppCompatActivity {
     }
 
     private void handleTaskShuffle(int taskId, TextView tvTitle, TextView tvTarget) {
+        availableShuffles = new TaskManager(this).getRemainingDailyShuffles();
         if (availableShuffles <= 0) {
-            Toast.makeText(this, "No shuffles remaining for today!", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "No shuffles remaining for today!");
             return;
         }
 
         TaskManager taskManager = new TaskManager(this);
-        boolean success = taskManager.shuffleQuest(taskId);
+        boolean success = taskManager.shuffleDailyQuest(taskId);
 
         if (!success) {
-            Toast.makeText(this, "No alternative tasks found!", Toast.LENGTH_SHORT).show();
+            ToastUtils.showToast(this, "No alternative tasks found!");
             return;
         }
 
@@ -149,8 +166,8 @@ public class DailyRevealActivity extends AppCompatActivity {
             tvTarget.setText(formatTargetText(newTarget, newUnit));
         }
 
-        availableShuffles--;
-        tvShuffleCounter.setText("Free Shuffles available today: " + availableShuffles);
-        Toast.makeText(this, "Task shuffled successfully!", Toast.LENGTH_SHORT).show();
+        availableShuffles = taskManager.getRemainingDailyShuffles();
+        tvShuffleCounter.setText("Available Shuffles today: " + availableShuffles);
+        ToastUtils.showToast(this, "Task shuffled successfully!");
     }
 }

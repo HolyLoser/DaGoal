@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "327545894604",
+    "project_id": "dagoal",
+    "storage_bucket": "dagoal.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:327545894604:android:43edcb456e5401f420b469",
+        "android_client_info": {
+          "package_name": "com.stipasay.dagoal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZroeSyQB2EVLg86kcQWIWPKM-bV5H-O0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,36 +2,54 @@ package com.stipasay.dagoal;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
-import android.widget.Button;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.core.content.ContextCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProfilingActivity extends AppCompatActivity {
 
     private TextView tvCategoryTitle;
     private TextView tvQuestionTitle;
-    private RadioGroup rgOptions;
-    private Button btnNextQuestion;
+    private ImageButton btnBack;
+    private View frameAnimHost;
+
+    private LinearLayout cardOption1, cardOption2, cardOption3, cardOption4, cardOption5, cardOption6;
+    private TextView tvOptionText1, tvOptionText2, tvOptionText3, tvOptionText4, tvOptionText5, tvOptionText6;
+    private TextView tvOptionCheck1, tvOptionCheck2, tvOptionCheck3, tvOptionCheck4, tvOptionCheck5, tvOptionCheck6;
+
+    private LinearLayout layoutStepIndicator;
+    private final List<TextView> stepNodesList = new ArrayList<>();
+    private final List<View> stepLinesList = new ArrayList<>();
 
     private int currentQuestionIndex = 0;
+    private boolean isAnimating = false;
+    private boolean isSubmitting = false;
 
     private final String[] categories = {
+            "Adventurer Profile", "Adventurer Profile", "Adventurer Profile",
             "Physical Mobility", "Physical Mobility", "Physical Mobility",
             "Screen Time & Digital Habits", "Screen Time & Digital Habits", "Screen Time & Digital Habits",
             "Creative Outlets & Hobbies", "Creative Outlets & Hobbies", "Creative Outlets & Hobbies"
     };
 
     private final String[] questions = {
+            "What is your preferred username or nickname?",
+            "What is your age range?",
+            "How do you identify?",
             "What is your current estimated daily step count?",
             "How many days a week do you intentionally exercise or walk long distances?",
             "Do you have any minor physical limitations or joint pain that limits heavy impacts?",
@@ -44,6 +62,9 @@ public class ProfilingActivity extends AppCompatActivity {
     };
 
     private final String[][] optionsMatrix = {
+            {"Adventurer", "Hero", "Explorer", "Achiever"},
+            {"Under 18 (Youth)", "18–24 (Young Adult)", "25–49 (Adult)", "50+ (Senior)"},
+            {"Male", "Female", "Non-Binary / Prefer not to say"},
             {"Under 2,000 steps", "2,000–5,000 steps", "5,000–8,000 steps", "More than 8,000 steps"},
             {"0 days", "1–2 days", "3–5 days", "6+ days"},
             {"Yes, frequent discomfort", "Occasional stiffness", "No limitations at all"},
@@ -55,118 +76,585 @@ public class ProfilingActivity extends AppCompatActivity {
             {"Artistic sketching", "Mindfulness journaling", "Reading literature", "Manual organizing"}
     };
 
-    private final String[] userAnswers = new String[9];
+    private final String[] userAnswers = new String[12];
+    private final boolean[] selectedOptionsForMultiSelect = new boolean[6];
     private DatabaseHelper dbHelper;
+
+    private LinearLayout layoutNicknameInput;
+    private android.widget.EditText editNicknameInput;
+    private android.widget.Button btnNicknameNext;
+    private android.widget.Button btnMultiNext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppearanceHelper.applyPreferredNightMode(this);
         setContentView(R.layout.activity_profiling_questionnaire);
+
+        View rootLayout = findViewById(R.id.root_profiling_layout);
+        if (rootLayout != null) {
+            AppearanceHelper.setupEdgeToEdgeInsets(rootLayout);
+        }
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { handleBackClick(); }
+        });
 
         dbHelper = new DatabaseHelper(this);
 
         tvCategoryTitle = findViewById(R.id.tv_category_title);
         tvQuestionTitle = findViewById(R.id.tv_question_title);
-        rgOptions = findViewById(R.id.rg_options);
-        btnNextQuestion = findViewById(R.id.btn_next_question);
+        btnBack = findViewById(R.id.btn_questionnaire_back);
+        frameAnimHost = findViewById(R.id.frame_question_anim_host);
 
-        View rootLayout = findViewById(R.id.root_profiling_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
-            return insets;
+        layoutNicknameInput = findViewById(R.id.layout_nickname_input);
+        editNicknameInput = findViewById(R.id.edit_nickname_input);
+        if (editNicknameInput != null) {
+            android.text.InputFilter alphaNumericFilter = (source, start, end, dest, dstart, dend) -> {
+                for (int i = start; i < end; i++) {
+                    char c = source.charAt(i);
+                    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+                        return "";
+                    }
+                }
+                return null;
+            };
+            editNicknameInput.setFilters(new android.text.InputFilter[]{
+                    alphaNumericFilter,
+                    new android.text.InputFilter.LengthFilter(16)
+            });
+        }
+        btnNicknameNext = findViewById(R.id.btn_nickname_next);
+        btnMultiNext = findViewById(R.id.btn_multi_next);
+
+        cardOption1 = findViewById(R.id.option_card_1);
+        cardOption2 = findViewById(R.id.option_card_2);
+        cardOption3 = findViewById(R.id.option_card_3);
+        cardOption4 = findViewById(R.id.option_card_4);
+        cardOption5 = findViewById(R.id.option_card_5);
+        cardOption6 = findViewById(R.id.option_card_6);
+
+        tvOptionText1 = findViewById(R.id.tv_option_text_1);
+        tvOptionText2 = findViewById(R.id.tv_option_text_2);
+        tvOptionText3 = findViewById(R.id.tv_option_text_3);
+        tvOptionText4 = findViewById(R.id.tv_option_text_4);
+        tvOptionText5 = findViewById(R.id.tv_option_text_5);
+        tvOptionText6 = findViewById(R.id.tv_option_text_6);
+
+        tvOptionCheck1 = findViewById(R.id.tv_option_check_1);
+        tvOptionCheck2 = findViewById(R.id.tv_option_check_2);
+        tvOptionCheck3 = findViewById(R.id.tv_option_check_3);
+        tvOptionCheck4 = findViewById(R.id.tv_option_check_4);
+        tvOptionCheck5 = findViewById(R.id.tv_option_check_5);
+        tvOptionCheck6 = findViewById(R.id.tv_option_check_6);
+
+        layoutStepIndicator = findViewById(R.id.layout_step_indicator);
+        setupDynamicStepIndicator(questions.length);
+
+        if (btnBack != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnBack, v -> handleBackClick());
+        }
+
+        if (btnNicknameNext != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnNicknameNext, v -> processNicknameSubmit());
+        }
+
+        if (btnMultiNext != null) {
+            DebouncedOnClickListener.setSafeOnClickListener(btnMultiNext, v -> processMultiSelectSubmit());
+        }
+
+        android.widget.FrameLayout avatarContainer = findViewById(R.id.avatar_host_container);
+        if (avatarContainer != null) {
+            AvatarHelper.renderUserAvatar(this, avatarContainer);
+        }
+
+        boolean startLastQuestion = getIntent().getBooleanExtra("EXTRA_START_LAST_QUESTION", false);
+        if (startLastQuestion && questions.length > 0) {
+            currentQuestionIndex = questions.length - 1;
+        }
+
+        displayQuestion(currentQuestionIndex, true);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        KeyboardUtils.hideKeyboardOnTouchOutside(this, ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void setupDynamicStepIndicator(int totalQuestions) {
+        if (layoutStepIndicator == null || totalQuestions <= 0) return;
+        layoutStepIndicator.removeAllViews();
+        stepNodesList.clear();
+        stepLinesList.clear();
+
+        float density = getResources().getDisplayMetrics().density;
+        int nodeSizeDp = totalQuestions <= 6 ? 30 : 22;
+        int nodeSizePx = (int) (nodeSizeDp * density);
+        int lineHeightPx = (int) (4f * density);
+
+        for (int i = 0; i < totalQuestions; i++) {
+            TextView node = new TextView(this);
+            LinearLayout.LayoutParams nodeParams = new LinearLayout.LayoutParams(nodeSizePx, nodeSizePx);
+            node.setLayoutParams(nodeParams);
+            node.setGravity(android.view.Gravity.CENTER);
+            node.setText("");
+            node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+
+            layoutStepIndicator.addView(node);
+            stepNodesList.add(node);
+
+            if (i < totalQuestions - 1) {
+                View line = new View(this);
+                LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(0, lineHeightPx, 1.0f);
+                lineParams.setMargins(0, 0, 0, 0);
+                line.setLayoutParams(lineParams);
+                line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+                layoutStepIndicator.addView(line);
+                stepLinesList.add(line);
+            }
+        }
+    }
+
+    private void processNicknameSubmit() {
+        if (isAnimating || isSubmitting) return;
+
+        try {
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null && getCurrentFocus() != null) {
+                imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+            }
+        } catch (Exception ignored) {}
+
+        String typedName = "Adventurer";
+        if (editNicknameInput != null) {
+            String rawInput = editNicknameInput.getText().toString().trim();
+            String sanitized = rawInput.replaceAll("[^a-zA-Z0-9]", "");
+            if (!sanitized.isEmpty()) {
+                typedName = sanitized;
+                if (typedName.length() > 16) {
+                    typedName = typedName.substring(0, 16);
+                }
+            } else if (!rawInput.isEmpty()) {
+                ToastUtils.showToast(this, "Nickname can only contain letters (A-Z, a-z) and numbers (0-9).");
+                return;
+            }
+        }
+        userAnswers[0] = typedName;
+
+        isAnimating = true;
+        currentQuestionIndex = 1;
+        displayQuestionWithAnimation(1, true);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isAnimating = false;
+        displayQuestion(currentQuestionIndex, false);
+    }
+
+    private void handleBackClick() {
+        if (isAnimating || isSubmitting) return;
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            displayQuestionWithAnimation(currentQuestionIndex, false);
+        } else {
+            Intent intent = new Intent(this, AvatarCreationActivity.class);
+            intent.putExtra("extra_edit_mode", false);
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    private boolean isMultiChoiceQuestion(int index) {
+        if (index < 0 || index >= questions.length) return false;
+        String q = questions[index];
+        return q.contains("which activities do you naturally enjoy")
+                || q.contains("completely offline")
+                || q.contains("non-screen activity archetype")
+                || q.contains("archetype you want to develop");
+    }
+
+    private void displayQuestion(int index, boolean animateForward) {
+        resetOptionCardStyles();
+
+        if (tvCategoryTitle != null) tvCategoryTitle.setText(categories[index]);
+        if (tvQuestionTitle != null) tvQuestionTitle.setText(questions[index]);
+
+        if (index == 0) {
+            if (layoutNicknameInput != null) layoutNicknameInput.setVisibility(View.VISIBLE);
+            if (editNicknameInput != null && userAnswers[0] != null) {
+                editNicknameInput.setText(userAnswers[0]);
+            }
+            if (cardOption1 != null) cardOption1.setVisibility(View.GONE);
+            if (cardOption2 != null) cardOption2.setVisibility(View.GONE);
+            if (cardOption3 != null) cardOption3.setVisibility(View.GONE);
+            if (cardOption4 != null) cardOption4.setVisibility(View.GONE);
+            if (cardOption5 != null) cardOption5.setVisibility(View.GONE);
+            if (cardOption6 != null) cardOption6.setVisibility(View.GONE);
+        } else {
+            if (layoutNicknameInput != null) layoutNicknameInput.setVisibility(View.GONE);
+            if (cardOption1 != null) cardOption1.setVisibility(View.VISIBLE);
+            if (cardOption2 != null) cardOption2.setVisibility(View.VISIBLE);
+            if (cardOption3 != null) cardOption3.setVisibility(View.VISIBLE);
+
+            String[] options = optionsMatrix[index];
+
+            setupCardOption(cardOption1, tvOptionText1, options[0], 0);
+            setupCardOption(cardOption2, tvOptionText2, options[1], 1);
+            setupCardOption(cardOption3, tvOptionText3, options.length > 2 ? options[2] : "", 2);
+
+            if (options.length > 3) {
+                if (cardOption4 != null) cardOption4.setVisibility(View.VISIBLE);
+                setupCardOption(cardOption4, tvOptionText4, options[3], 3);
+            } else {
+                if (cardOption4 != null) cardOption4.setVisibility(View.GONE);
+            }
+
+            if (options.length > 4) {
+                if (cardOption5 != null) cardOption5.setVisibility(View.VISIBLE);
+                setupCardOption(cardOption5, tvOptionText5, options[4], 4);
+            } else {
+                if (cardOption5 != null) cardOption5.setVisibility(View.GONE);
+            }
+
+            if (options.length > 5) {
+                if (cardOption6 != null) cardOption6.setVisibility(View.VISIBLE);
+                setupCardOption(cardOption6, tvOptionText6, options[5], 5);
+            } else {
+                if (cardOption6 != null) cardOption6.setVisibility(View.GONE);
+            }
+
+            if (isMultiChoiceQuestion(index)) {
+                if (btnMultiNext != null) btnMultiNext.setVisibility(View.VISIBLE);
+                if (tvQuestionTitle != null) {
+                    tvQuestionTitle.setText(questions[index] + "\n(Select all that apply)");
+                }
+                java.util.Arrays.fill(selectedOptionsForMultiSelect, false);
+                String savedAnswer = userAnswers[index];
+                if (savedAnswer != null && !savedAnswer.isEmpty()) {
+                    for (int i = 0; i < options.length; i++) {
+                        if (savedAnswer.contains(options[i])) {
+                            selectedOptionsForMultiSelect[i] = true;
+                        }
+                    }
+                }
+                updateMultiSelectCardStyles();
+            } else {
+                if (btnMultiNext != null) btnMultiNext.setVisibility(View.GONE);
+                String savedAnswer = userAnswers[index];
+                if (savedAnswer != null) {
+                    for (int i = 0; i < options.length; i++) {
+                        if (savedAnswer.equals(options[i])) {
+                            highlightSelectedCard(i);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        updateStepIndicatorNodes(index);
+    }
+
+    private void setupCardOption(LinearLayout card, TextView tvText, String optionText, int optionIndex) {
+        if (card == null || tvText == null) return;
+        tvText.setText(optionText);
+
+        DebouncedOnClickListener.setSafeOnClickListener(card, v -> {
+            if (isAnimating || isSubmitting) return;
+
+            if (isMultiChoiceQuestion(currentQuestionIndex)) {
+                selectedOptionsForMultiSelect[optionIndex] = !selectedOptionsForMultiSelect[optionIndex];
+                updateMultiSelectCardStyles();
+                return;
+            }
+
+            isAnimating = true;
+            highlightSelectedCard(optionIndex);
+            userAnswers[currentQuestionIndex] = optionText;
+
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (currentQuestionIndex < questions.length - 1) {
+                    currentQuestionIndex++;
+                    displayQuestionWithAnimation(currentQuestionIndex, true);
+                } else {
+                    calculateAndSaveProfilingTiers();
+                }
+            }, 250);
+        });
+    }
+
+    private void updateMultiSelectCardStyles() {
+        LinearLayout[] cards = new LinearLayout[]{cardOption1, cardOption2, cardOption3, cardOption4, cardOption5, cardOption6};
+        TextView[] texts = new TextView[]{tvOptionText1, tvOptionText2, tvOptionText3, tvOptionText4, tvOptionText5, tvOptionText6};
+        TextView[] checks = new TextView[]{tvOptionCheck1, tvOptionCheck2, tvOptionCheck3, tvOptionCheck4, tvOptionCheck5, tvOptionCheck6};
+
+        for (int i = 0; i < cards.length; i++) {
+            if (cards[i] != null && cards[i].getVisibility() == View.VISIBLE) {
+                boolean isSelected = selectedOptionsForMultiSelect[i];
+                if (isSelected) {
+                    cards[i].setBackgroundResource(R.drawable.bg_button_pill_secondary);
+                    if (texts[i] != null) texts[i].setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                    if (checks[i] != null) checks[i].setVisibility(View.VISIBLE);
+                } else {
+                    cards[i].setBackgroundResource(R.drawable.bg_button_pill);
+                    if (texts[i] != null) texts[i].setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                    if (checks[i] != null) checks[i].setVisibility(View.GONE);
+                }
+            }
+        }
+    }
+
+    private void processMultiSelectSubmit() {
+        if (isAnimating || isSubmitting) return;
+
+        StringBuilder sb = new StringBuilder();
+        String[] options = optionsMatrix[currentQuestionIndex];
+        for (int i = 0; i < options.length; i++) {
+            if (i < selectedOptionsForMultiSelect.length && selectedOptionsForMultiSelect[i]) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(options[i]);
+            }
+        }
+
+        if (sb.length() == 0) {
+            ToastUtils.showToast(this, "Please select at least one activity to continue.");
+            return;
+        }
+
+        userAnswers[currentQuestionIndex] = sb.toString();
+        isAnimating = true;
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestionWithAnimation(currentQuestionIndex, true);
+            } else {
+                calculateAndSaveProfilingTiers();
+            }
+        }, 250);
+    }
+
+    private void displayQuestionWithAnimation(int index, boolean animateForward) {
+        if (frameAnimHost == null) {
+            displayQuestion(index, animateForward);
+            isAnimating = false;
+            return;
+        }
+
+        Animation slideOut = AnimationUtils.loadAnimation(this,
+                animateForward ? R.anim.slide_out_left : R.anim.slide_out_right);
+
+        Animation slideIn = AnimationUtils.loadAnimation(this,
+                animateForward ? R.anim.slide_in_right : R.anim.slide_in_left);
+
+        slideOut.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {}
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                displayQuestion(index, animateForward);
+                frameAnimHost.startAnimation(slideIn);
+                isAnimating = false;
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {}
         });
 
-        displayQuestion(currentQuestionIndex);
-
-        btnNextQuestion.setOnClickListener(v -> handleNextClick());
+        frameAnimHost.startAnimation(slideOut);
     }
 
-    private void displayQuestion(int index) {
-        tvCategoryTitle.setText(categories[index].toUpperCase());
-        tvQuestionTitle.setText(questions[index]);
-        rgOptions.removeAllViews();
+    private void resetOptionCardStyles() {
+        resetSingleCardStyle(cardOption1, tvOptionText1, tvOptionCheck1);
+        resetSingleCardStyle(cardOption2, tvOptionText2, tvOptionCheck2);
+        resetSingleCardStyle(cardOption3, tvOptionText3, tvOptionCheck3);
+        resetSingleCardStyle(cardOption4, tvOptionText4, tvOptionCheck4);
+        resetSingleCardStyle(cardOption5, tvOptionText5, tvOptionCheck5);
+        resetSingleCardStyle(cardOption6, tvOptionText6, tvOptionCheck6);
+    }
 
-        for (String optionText : optionsMatrix[index]) {
-            RadioButton rb = new RadioButton(this);
-            rb.setText(optionText);
-            rb.setTextSize(16);
-            rb.setTextColor(Color.DKGRAY);
+    private void resetSingleCardStyle(LinearLayout card, TextView tvText, TextView tvCheck) {
+        if (card == null || tvText == null) return;
+        card.setBackgroundResource(R.drawable.bg_button_pill);
+        tvText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+        if (tvCheck != null) tvCheck.setVisibility(View.GONE);
+    }
 
-            // Fixed the inner dimensions layout configuration types explicitly
-            RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
-                    RadioGroup.LayoutParams.MATCH_PARENT,
-                    RadioGroup.LayoutParams.WRAP_CONTENT
-            );
-            params.setMargins(0, 8, 0, 8);
-            rb.setLayoutParams(params);
+    private void highlightSelectedCard(int optionIndex) {
+        resetOptionCardStyles();
 
-            rb.setPadding(16, 16, 16, 16);
-            rgOptions.addView(rb);
+        LinearLayout selectedCard = cardOption1;
+        TextView selectedText = tvOptionText1;
+        TextView selectedCheck = tvOptionCheck1;
+
+        if (optionIndex == 1) {
+            selectedCard = cardOption2;
+            selectedText = tvOptionText2;
+            selectedCheck = tvOptionCheck2;
+        } else if (optionIndex == 2) {
+            selectedCard = cardOption3;
+            selectedText = tvOptionText3;
+            selectedCheck = tvOptionCheck3;
+        } else if (optionIndex == 3) {
+            selectedCard = cardOption4;
+            selectedText = tvOptionText4;
+            selectedCheck = tvOptionCheck4;
+        } else if (optionIndex == 4) {
+            selectedCard = cardOption5;
+            selectedText = tvOptionText5;
+            selectedCheck = tvOptionCheck5;
+        } else if (optionIndex == 5) {
+            selectedCard = cardOption6;
+            selectedText = tvOptionText6;
+            selectedCheck = tvOptionCheck6;
+        }
+
+        if (selectedCard != null) {
+            selectedCard.setBackgroundResource(R.drawable.bg_button_pill_secondary);
+        }
+        if (selectedText != null) {
+            selectedText.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+        }
+        if (selectedCheck != null) {
+            selectedCheck.setVisibility(View.VISIBLE);
         }
     }
 
-    private void handleNextClick() {
-        int selectedId = rgOptions.getCheckedRadioButtonId();
+    private void updateStepIndicatorNodes(int index) {
+        if (stepNodesList.isEmpty()) return;
 
-        if (selectedId == -1) {
-            Toast.makeText(this, "Please select an option to proceed.", Toast.LENGTH_SHORT).show();
-            return;
+        for (int i = 0; i < stepNodesList.size(); i++) {
+            TextView node = stepNodesList.get(i);
+            if (node == null) continue;
+
+            if (i == index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_active);
+                node.setText("");
+                node.setAlpha(1.0f);
+            } else if (i < index) {
+                node.setBackgroundResource(R.drawable.bg_step_node_completed);
+                node.setText("✔");
+                node.setTextColor(ContextCompat.getColor(this, R.color.dagoal_primary_dark));
+                node.setAlpha(1.0f);
+            } else {
+                node.setBackgroundResource(R.drawable.bg_step_node_inactive);
+                node.setText("");
+                node.setAlpha(1.0f);
+            }
         }
 
-        RadioButton selectedRb = findViewById(selectedId);
-
-        if (selectedRb == null) {
-            Toast.makeText(this, "Selection error. Please choose again.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        userAnswers[currentQuestionIndex] = selectedRb.getText().toString();
-
-        if (currentQuestionIndex < 8) {
-            currentQuestionIndex++;
-            displayQuestion(currentQuestionIndex);
-        } else {
-            calculateAndSaveProfilingTiers();
+        for (int i = 0; i < stepLinesList.size(); i++) {
+            View line = stepLinesList.get(i);
+            if (line == null) continue;
+            line.setBackgroundColor(ContextCompat.getColor(this, R.color.dagoal_background_light));
+            if (i < index) {
+                line.setAlpha(1.0f);
+            } else {
+                line.setAlpha(0.85f);
+            }
         }
     }
 
     private void calculateAndSaveProfilingTiers() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
+        String chosenNickname = userAnswers[0] != null ? userAnswers[0] : "Adventurer";
+        String ageRangeStr = userAnswers[1] != null ? userAnswers[1] : "18–24";
+
+        int ageInt = 21;
+        if (ageRangeStr.contains("Under 18") || ageRangeStr.contains("Youth")) ageInt = 16;
+        else if (ageRangeStr.contains("18–24") || ageRangeStr.contains("Young Adult")) ageInt = 21;
+        else if (ageRangeStr.contains("25–49") || ageRangeStr.contains("25–35") || ageRangeStr.contains("Adult")) ageInt = 35;
+        else if (ageRangeStr.contains("50+") || ageRangeStr.contains("65") || ageRangeStr.contains("Senior") || ageRangeStr.contains("Mature")) ageInt = 58;
+
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        DatabaseHelper.ensureUserTableExists(db);
+
+        // Update nickname and age in user SQLite table
+        ContentValues userValues = new ContentValues();
+        userValues.put(DatabaseContract.UserEntry.COLUMN_NAME, chosenNickname);
+        userValues.put("username", chosenNickname);
+        userValues.put(DatabaseContract.UserEntry.COLUMN_AGE, ageInt);
+
+        android.database.Cursor checkCursor = db.rawQuery("SELECT _id FROM user WHERE _id = 1", null);
+        if (checkCursor != null && checkCursor.moveToFirst()) {
+            db.update(DatabaseContract.UserEntry.TABLE_NAME, userValues, "_id = 1", null);
+            checkCursor.close();
+        } else {
+            userValues.put("_id", 1);
+            userValues.put(DatabaseContract.UserEntry.COLUMN_XP, 0);
+            userValues.put(DatabaseContract.UserEntry.COLUMN_GOLD, 0);
+            userValues.put(DatabaseContract.UserEntry.COLUMN_STREAK, 0);
+            db.insert(DatabaseContract.UserEntry.TABLE_NAME, null, userValues);
+            if (checkCursor != null) checkCursor.close();
+        }
+
+        SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
+        prefs.edit()
+                .putBoolean("isFirstRun", false)
+                .putInt("pref_onboarding_step", 3)
+                .putString("user_nickname", chosenNickname)
+                .apply();
+
         double physicalMultiplier = 1.0;
         double detoxMultiplier = 1.0;
         double creativeMultiplier = 1.0;
 
-        if (userAnswers[0].contains("5,000") || userAnswers[1].contains("3–5 days")) {
+        if (userAnswers[3] != null && (userAnswers[3].contains("5,000") || (userAnswers[4] != null && userAnswers[4].contains("3–5 days")))) {
             physicalMultiplier = 2.0;
-        } else if (userAnswers[0].contains("8,000") || userAnswers[1].contains("6+ days")) {
+        } else if (userAnswers[3] != null && (userAnswers[3].contains("8,000") || (userAnswers[4] != null && userAnswers[4].contains("6+ days")))) {
             physicalMultiplier = 3.5;
         }
 
-        if (userAnswers[3].contains("6–8 hours") || userAnswers[4].contains("Frequently")) {
+        if (userAnswers[6] != null && (userAnswers[6].contains("6–8 hours") || (userAnswers[7] != null && userAnswers[7].contains("Frequently")))) {
             detoxMultiplier = 1.5;
-        } else if (userAnswers[3].contains("More than 8 hours") || userAnswers[4].contains("Constantly")) {
+        } else if (userAnswers[6] != null && (userAnswers[6].contains("More than 8 hours") || (userAnswers[7] != null && userAnswers[7].contains("Constantly")))) {
             detoxMultiplier = 2.0;
         }
 
-        if (userAnswers[7].contains("30–60 minutes")) {
+        if (userAnswers[10] != null && userAnswers[10].contains("30–60 minutes")) {
             creativeMultiplier = 1.5;
-        } else if (userAnswers[7].contains("Over an hour")) {
+        } else if (userAnswers[10] != null && userAnswers[10].contains("Over an hour")) {
             creativeMultiplier = 2.0;
         }
 
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
         saveMetricRow(db, "Physical Step Multiplier", String.valueOf(physicalMultiplier));
         saveMetricRow(db, "Detox Duration Multiplier", String.valueOf(detoxMultiplier));
         saveMetricRow(db, "Creative Activity Multiplier", String.valueOf(creativeMultiplier));
-        saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[6]);
+        saveMetricRow(db, "Preferred Offline Hobby Type", userAnswers[9] != null ? userAnswers[9] : "General");
+        if (userAnswers.length > 11 && userAnswers[11] != null) {
+            saveMetricRow(db, "Secondary Activity Archetype", userAnswers[11]);
+        }
 
-        android.content.SharedPreferences prefs = getSharedPreferences("DaGoalPrefs", MODE_PRIVATE);
         prefs.edit().putBoolean("isFirstRun", false).apply();
+
+        // Sync profile state to Firestore cloud if user is logged in
+        String userUid = prefs.getString("user_uid", null);
+        if (userUid != null && !userUid.isEmpty()) {
+            try {
+                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                java.util.Map<String, Object> updateMap = new java.util.HashMap<>();
+                updateMap.put("username", chosenNickname);
+                updateMap.put("age", ageInt);
+                updateMap.put("level", 1);
+                updateMap.put("gold", 0);
+                updateMap.put("xp", 0);
+                updateMap.put("streak", 0);
+                firestore.collection("users").document(userUid).set(updateMap, com.google.firebase.firestore.SetOptions.merge());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
         TaskManager taskManager = new TaskManager(ProfilingActivity.this);
         taskManager.generateDailyTasks();
 
-        Toast.makeText(this, "Profile Tier and Tasks Generated!", Toast.LENGTH_LONG).show();
+        ToastUtils.showToast(this, "Profile Tier and Tasks Generated!");
 
         Intent intent = new Intent(ProfilingActivity.this, AppSelectionActivity.class);
         startActivity(intent);

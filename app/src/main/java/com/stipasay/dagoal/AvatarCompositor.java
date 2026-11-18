@@ -1,0 +1,807 @@
+package com.stipasay.dagoal;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.util.LruCache;
+import android.util.Log;
+import androidx.core.content.ContextCompat;
+
+public class AvatarCompositor {
+
+    private static final LruCache<Integer, Float> sOutfitTorsoCenters = new LruCache<>(32);
+
+    private static final int MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB LruCache
+    private static final LruCache<String, Bitmap> sBitmapCache = new LruCache<String, Bitmap>(MAX_CACHE_SIZE_BYTES) {
+        @Override
+        protected int sizeOf(String key, Bitmap bitmap) {
+            return bitmap.getByteCount();
+        }
+    };
+
+    private static final int[][] sSampledSkinPalettes = new int[11][2];
+    private static boolean sPalettesSampled = false;
+
+    private static final int[][] SKIN_TONE_PALETTES = new int[][]{
+        { Color.parseColor("#FFF0E5"), Color.parseColor("#E6D3C8") }, // 1: Very Fair / Porcelain
+        { Color.parseColor("#FDDFD0"), Color.parseColor("#E2C3B4") }, // 2: Fair Warm
+        { Color.parseColor("#F5CBA7"), Color.parseColor("#DBAE8F") }, // 3: Peach
+        { Color.parseColor("#E5B898"), Color.parseColor("#CB9C7E") }, // 4: Warm Beige
+        { Color.parseColor("#D4A373"), Color.parseColor("#B9885E") }, // 5: Golden Olive
+        { Color.parseColor("#C68B59"), Color.parseColor("#AB7041") }, // 6: Bronze
+        { Color.parseColor("#A0653B"), Color.parseColor("#864D28") }, // 7: Warm Chestnut
+        { Color.parseColor("#834A29"), Color.parseColor("#6A3415") }, // 8: Deep Caramel
+        { Color.parseColor("#63381B"), Color.parseColor("#4A250F") }, // 9: Rich Espresso
+        { Color.parseColor("#48250F"), Color.parseColor("#331606") }, // 10: Dark Umber
+        { Color.parseColor("#2E1405"), Color.parseColor("#1C0A02") }  // 11: Deep Ebony
+    };
+
+    public static void clearCache() {
+        sBitmapCache.evictAll();
+    }
+
+    private static void sampleExactSkinPalettesIfNeeded(Context context) {
+        if (sPalettesSampled || context == null) return;
+        synchronized (sSampledSkinPalettes) {
+            if (sPalettesSampled) return;
+            for (int i = 0; i < 11; i++) {
+                int skinNum = i + 1;
+                int resId = context.getResources().getIdentifier("skin_tone" + skinNum, "drawable", context.getPackageName());
+                if (resId == 0) resId = R.drawable.skin_tone1;
+
+                Drawable d = ContextCompat.getDrawable(context, resId);
+                if (d != null) {
+                    Bitmap bmp;
+                    if (d instanceof BitmapDrawable) {
+                        bmp = ((BitmapDrawable) d).getBitmap();
+                    } else {
+                        bmp = Bitmap.createBitmap(d.getIntrinsicWidth() > 0 ? d.getIntrinsicWidth() : 200,
+                                d.getIntrinsicHeight() > 0 ? d.getIntrinsicHeight() : 200,
+                                Bitmap.Config.ARGB_8888);
+                        Canvas c = new Canvas(bmp);
+                        d.setBounds(0, 0, c.getWidth(), c.getHeight());
+                        d.draw(c);
+                    }
+
+                    int w = bmp.getWidth();
+                    int h = bmp.getHeight();
+                    int[] pixels = new int[w * h];
+                    bmp.getPixels(pixels, 0, w, 0, 0, w, h);
+
+                    int mainR = 0, mainG = 0, mainB = 0, mainCount = 0;
+                    int shadowR = 0, shadowG = 0, shadowB = 0, shadowCount = 0;
+
+                    for (int p : pixels) {
+                        int a = (p >> 24) & 0xff;
+                        if (a < 100) continue;
+                        int r = (p >> 16) & 0xff;
+                        int g = (p >> 8) & 0xff;
+                        int b = p & 0xff;
+
+                        if (r < 50 && g < 50 && b < 50) continue;
+
+                        int brightness = (r + g + b) / 3;
+                        if (brightness > 130) {
+                            mainR += r; mainG += g; mainB += b; mainCount++;
+                        } else {
+                            shadowR += r; shadowG += g; shadowB += b; shadowCount++;
+                        }
+                    }
+
+                    if (mainCount > 0) {
+                        sSampledSkinPalettes[i][0] = Color.rgb(mainR / mainCount, mainG / mainCount, mainB / mainCount);
+                    } else {
+                        sSampledSkinPalettes[i][0] = SKIN_TONE_PALETTES[i][0];
+                    }
+
+                    if (shadowCount > 0) {
+                        sSampledSkinPalettes[i][1] = Color.rgb(shadowR / shadowCount, shadowG / shadowCount, shadowB / shadowCount);
+                    } else {
+                        sSampledSkinPalettes[i][1] = SKIN_TONE_PALETTES[i][1];
+                    }
+                } else {
+                    sSampledSkinPalettes[i][0] = SKIN_TONE_PALETTES[i][0];
+                    sSampledSkinPalettes[i][1] = SKIN_TONE_PALETTES[i][1];
+                }
+            }
+            sPalettesSampled = true;
+        }
+    }
+
+    public static Bitmap renderAvatarBitmap(Context context, AvatarConfig config, int outputSizePx) {
+        if (context == null || config == null || outputSizePx <= 0) return null;
+
+        String cacheKey = config.getCacheKey(outputSizePx);
+        Bitmap cached = sBitmapCache.get(cacheKey);
+        if (cached != null && !cached.isRecycled()) {
+            Log.d("AvatarDebug", "renderAvatarBitmap HIT cacheKey=" + cacheKey + " hash=" + System.identityHashCode(cached));
+            return cached;
+        }
+
+        Log.d("AvatarDebug", "renderAvatarBitmap MISS cacheKey=" + cacheKey + " accessoryAssetId=" + config.accessoryAssetId);
+
+        float density = context.getResources().getDisplayMetrics().density;
+        float outputSizeDp = outputSizePx / density;
+        float scale = outputSizeDp / 320.0f; // Scale factor relative to 320dp canonical canvas
+
+        float topPaddingPx = dpToPx(60.0f, density) * scale;
+        int bitmapWidth = outputSizePx;
+        int bitmapHeight = Math.round(outputSizePx + topPaddingPx);
+
+        Bitmap bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+
+        float hairScale = 1.02f;
+        float hairTranslationY = topPaddingPx - dpToPx(60.0f, density) * scale;
+        if ("08".equals(config.selectedHairBase)) {
+            hairTranslationY += dpToPx(12.0f, density) * scale;
+        }
+        float hairTranslationX = -dpToPx(1.5f, density) * scale;
+
+        // 0. Layer 0: Back Hair (_b)
+        if (config.hairIndex > 0) {
+            int backRes = context.getResources().getIdentifier("hairstyle_" + config.selectedHairBase + "b", "drawable", context.getPackageName());
+            if (backRes != 0) {
+                Bitmap backBitmap = generateTintedBitmap(context, backRes, config.selectedHairColor);
+                drawHairLayerFittingCanvas(canvas, backBitmap, backRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY, hairScale);
+            }
+        }
+
+        // 1. Layer 1: Body Skin Tone (Dynamic Tinting of base_skin.png)
+        Bitmap skinBitmap = generateSkinToneBitmap(context, config.skinIndex);
+        if (skinBitmap != null) {
+            drawLayerFittingCanvas(canvas, skinBitmap, R.drawable.base_skin, context, paint, outputSizePx, 0, topPaddingPx);
+        } else {
+            drawDrawableFittingCanvas(canvas, context, R.drawable.base_skin, paint, outputSizePx, 0, topPaddingPx);
+        }
+
+        // 1.2 Layer 1.2: Base Shorts (ALWAYS-ON lower body clothing)
+        drawDrawableFittingCanvas(canvas, context, R.drawable.shorts, paint, outputSizePx, 0, topPaddingPx);
+
+        // 1.5 Layer 1.5: Clothes / Wardrobe Upper Body Outfit
+        int clothesRes = 0;
+        if (config.clothesAssetId != null && !config.clothesAssetId.isEmpty()) {
+            clothesRes = context.getResources().getIdentifier(config.clothesAssetId, "drawable", context.getPackageName());
+        }
+        if (clothesRes == 0) {
+            clothesRes = R.drawable.tank_top;
+        }
+
+        if (clothesRes == R.drawable.tank_top) {
+            // The default top is already registered to the body canvas.
+            drawDrawableFittingCanvas(canvas, context, clothesRes, paint, outputSizePx, 0, topPaddingPx);
+        } else {
+            // Shop outfits share a 1080px template with the neckline near y=275.
+            // Scale and register that template to the body's neckline near y=595.
+            float outfitHeight = outputSizePx * 0.70f;
+            float outfitWidth = outputSizePx * 0.71f;
+            // Register each asset's torso center to the body, including off-center shirt drawings.
+            // A small horizontal allowance covers the tapered torso without a skin seam.
+            float torsoCenter = outputSizePx * (536.0f / 1080.0f);
+            float outfitLeft = torsoCenter - outfitWidth * getOutfitTorsoCenter(context, clothesRes);
+            float outfitTop = topPaddingPx + outputSizePx * (400.0f / 1080.0f);
+            RectF outfitRect = new RectF(outfitLeft, outfitTop,
+                    outfitLeft + outfitWidth, outfitTop + outfitHeight);
+            drawDrawableInRect(canvas, context, clothesRes, outfitRect, paint);
+        }
+
+        // 2. Layer 2: Eyes (Paired Left _a & Right _b)
+        int baseEyeSizeDp = getEyeSizeDp(config.selectedEyeBase);
+        int baseContainerWidthDp = getEyeContainerWidthDp(config.selectedEyeBase);
+
+        float eyesBoxWidthPx = dpToPx(baseContainerWidthDp, density) * scale;
+        float eyesBoxHeightPx = dpToPx(65.0f, density) * scale;
+        float eyesBottomMarginPx = dpToPx(65.0f, density) * scale;
+        float eyeSizePx = dpToPx(baseEyeSizeDp, density) * scale;
+
+        float eyesBoxLeft = (outputSizePx - eyesBoxWidthPx) / 2.0f;
+        float eyesBoxTop = topPaddingPx + (outputSizePx - eyesBoxHeightPx) / 2.0f - eyesBottomMarginPx;
+
+        String leftName = config.selectedEyeBase + "_a";
+        String rightName = config.selectedEyeBase + "_b";
+        if ("ring_solid_lash_long".equals(config.selectedEyeBase)) {
+            leftName = "ring_solid_lash_long_a_512x512";
+        }
+
+        int leftRes = context.getResources().getIdentifier(leftName, "drawable", context.getPackageName());
+        int rightRes = context.getResources().getIdentifier(rightName, "drawable", context.getPackageName());
+        if (leftRes == 0) leftRes = R.drawable.eye_category_icon;
+        if (rightRes == 0) rightRes = leftRes;
+
+        Bitmap leftBitmap = generateTintedBitmap(context, leftRes, config.selectedEyeColor);
+        Bitmap rightBitmap = generateTintedBitmap(context, rightRes, config.selectedEyeColor);
+
+        RectF leftRect = new RectF(eyesBoxLeft, eyesBoxTop + (eyesBoxHeightPx - eyeSizePx) / 2.0f,
+                eyesBoxLeft + eyeSizePx, eyesBoxTop + (eyesBoxHeightPx + eyeSizePx) / 2.0f);
+        RectF rightRect = new RectF(eyesBoxLeft + eyesBoxWidthPx - eyeSizePx, eyesBoxTop + (eyesBoxHeightPx - eyeSizePx) / 2.0f,
+                eyesBoxLeft + eyesBoxWidthPx, eyesBoxTop + (eyesBoxHeightPx + eyeSizePx) / 2.0f);
+
+        if (leftBitmap != null) canvas.drawBitmap(leftBitmap, null, leftRect, paint);
+        else drawDrawableInRect(canvas, context, leftRes, leftRect, paint);
+
+        if (rightBitmap != null) canvas.drawBitmap(rightBitmap, null, rightRect, paint);
+        else drawDrawableInRect(canvas, context, rightRes, rightRect, paint);
+
+        // 3. Layer 3: Cheeks / Blush
+        if (config.cheeksIndex > 0) {
+            float cheeksBoxWidthPx = dpToPx(176.0f, density) * scale;
+            float cheeksBoxHeightPx = dpToPx(40.0f, density) * scale;
+            float cheeksBottomMarginPx = dpToPx(35.0f, density) * scale;
+
+            float cheeksBoxLeft = (outputSizePx - cheeksBoxWidthPx) / 2.0f;
+            float cheeksBoxTop = topPaddingPx + (outputSizePx - cheeksBoxHeightPx) / 2.0f - cheeksBottomMarginPx;
+
+            int styleIndex = config.cheeksIndex - 1;
+            int blushColor = (styleIndex == 4) ? getFrecklesColorInt(config.selectedColorName) : getBlushColorInt(config.selectedColorName);
+
+            Bitmap blushBitmap = generateBlushBitmap(context, blushColor, styleIndex);
+
+            if (blushBitmap != null) {
+                if (styleIndex == 4) { // Freckles bounds: wider horizontally and higher vertically
+                    float frecklesWidthPx = dpToPx(170.0f, density) * scale;
+                    float frecklesHeightPx = dpToPx(140.0f, density) * scale;
+                    float frecklesLeft = (outputSizePx - frecklesWidthPx) / 2.0f;
+                    float frecklesTop = topPaddingPx + (outputSizePx - frecklesHeightPx) / 2.0f - dpToPx(38.0f, density) * scale;
+                    RectF centerFrecklesRect = new RectF(frecklesLeft, frecklesTop, frecklesLeft + frecklesWidthPx, frecklesTop + frecklesHeightPx);
+                    canvas.drawBitmap(blushBitmap, null, centerFrecklesRect, paint);
+                } else {
+                    float cheekWidthPx = dpToPx(50.0f, density) * scale;
+                    float cheekHeightPx = dpToPx(35.0f, density) * scale;
+
+                    RectF cLeftRect = new RectF(cheeksBoxLeft, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+                    RectF cRightRect = new RectF(cheeksBoxLeft + cheeksBoxWidthPx - cheekWidthPx, cheeksBoxTop + (cheeksBoxHeightPx - cheekHeightPx) / 2.0f,
+                            cheeksBoxLeft + cheeksBoxWidthPx, cheeksBoxTop + (cheeksBoxHeightPx + cheekHeightPx) / 2.0f);
+
+                    canvas.drawBitmap(blushBitmap, null, cLeftRect, paint);
+                    canvas.drawBitmap(blushBitmap, null, cRightRect, paint);
+                }
+            }
+        }
+
+        // 4. Layer 4: Nose (Independent selectedNoseColorName; pure black #1E1E1E when "black")
+        boolean isSmallNose = "square_nose".equals(config.selectedNoseShape);
+        float baseNoseSizeDp = isSmallNose ? 34.0f : 50.0f;
+        float noseSizePx = dpToPx(baseNoseSizeDp, density) * scale;
+        float noseBottomMarginPx = dpToPx(48.0f, density) * scale;
+
+        float noseLeft = (outputSizePx - noseSizePx) / 2.0f;
+        float noseTop = topPaddingPx + (outputSizePx - noseSizePx) / 2.0f - noseBottomMarginPx;
+        RectF noseRect = new RectF(noseLeft, noseTop, noseLeft + noseSizePx, noseTop + noseSizePx);
+
+        int noseRes = context.getResources().getIdentifier(config.selectedNoseShape, "drawable", context.getPackageName());
+        if (noseRes == 0) noseRes = R.drawable.nose_category_icon;
+
+        int noseColor = getSwatchColorInt(config.selectedNoseColorName);
+        Bitmap tintedNose = generateTintedBitmap(context, noseRes, noseColor);
+        if (tintedNose != null) canvas.drawBitmap(tintedNose, null, noseRect, paint);
+        else drawDrawableInRect(canvas, context, noseRes, noseRect, paint);
+
+        // 5. Layer 5: Mouth (Independent selectedMouthColorName; 84dp size & 28dp margin for smile_bucktooth)
+        boolean isBucktooth = "smile_bucktooth".equals(config.selectedMouthShape);
+        float baseMouthSizeDp = isBucktooth ? 84.0f : 60.0f;
+        float baseMouthBottomMarginDp = isBucktooth ? 28.0f : 24.0f;
+
+        float mouthSizePx = dpToPx(baseMouthSizeDp, density) * scale;
+        float mouthBottomMarginPx = dpToPx(baseMouthBottomMarginDp, density) * scale;
+
+        float mouthLeft = (outputSizePx - mouthSizePx) / 2.0f;
+        float mouthTop = topPaddingPx + (outputSizePx - mouthSizePx) / 2.0f - mouthBottomMarginPx;
+        RectF mouthRect = new RectF(mouthLeft, mouthTop, mouthLeft + mouthSizePx, mouthTop + mouthSizePx);
+
+        int mouthRes = context.getResources().getIdentifier(config.selectedMouthShape, "drawable", context.getPackageName());
+        if (mouthRes == 0) mouthRes = R.drawable.lips_category_icon;
+
+        int mouthColor = getSwatchColorInt(config.selectedMouthColorName);
+        Bitmap tintedMouth = generateTintedBitmap(context, mouthRes, mouthColor);
+        if (tintedMouth != null) canvas.drawBitmap(tintedMouth, null, mouthRect, paint);
+        else drawDrawableInRect(canvas, context, mouthRes, mouthRect, paint);
+
+        // 5.5 Layer 5.5: Glasses Accessories (Over the Eyes at 0.76f scale)
+        String glassesAsset = (config.glassesAssetId != null && !config.glassesAssetId.isEmpty()) ? config.glassesAssetId : config.accessoryAssetId;
+        if (glassesAsset != null && !glassesAsset.isEmpty()) {
+            int accessoryRes = context.getResources().getIdentifier(glassesAsset, "drawable", context.getPackageName());
+            if (accessoryRes == 0 && glassesAsset.startsWith("accessory_")) {
+                int lastUnderscore = glassesAsset.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    accessoryRes = context.getResources().getIdentifier(glassesAsset.substring(0, lastUnderscore), "drawable", context.getPackageName());
+                }
+            }
+            if (accessoryRes != 0) {
+                int color = config.glassesColor != 0 ? config.glassesColor : config.accessoryColor;
+                Bitmap accessoryBitmap = generateAccessoryBitmap(context, accessoryRes, color);
+
+                float baseFaceTranslationY = topPaddingPx - dpToPx(58.0f, density) * scale + dpToPx(12.0f, density) * scale;
+                float accessoryScale = 0.60f;
+                float scaledSize = outputSizePx * accessoryScale;
+                float offsetX = (outputSizePx - scaledSize) / 1.95f + hairTranslationX;
+                float offsetY = (outputSizePx - scaledSize) / 2.5f + baseFaceTranslationY;
+                RectF accessoryRect = new RectF(offsetX, offsetY, offsetX + scaledSize, offsetY + scaledSize);
+
+                if (accessoryBitmap != null) {
+                    canvas.drawBitmap(accessoryBitmap, null, accessoryRect, paint);
+                } else {
+                    drawDrawableInRect(canvas, context, accessoryRes, accessoryRect, paint);
+                }
+            }
+        }
+
+        // 6. Layer 6: Front Hair / Bangs (_a)
+        if (config.hairIndex > 0) {
+            int frontRes = context.getResources().getIdentifier("hairstyle_" + config.selectedHairBase + "a", "drawable", context.getPackageName());
+            if (frontRes != 0) {
+                Bitmap frontBitmap = generateTintedBitmap(context, frontRes, config.selectedHairColor);
+                drawHairLayerFittingCanvas(canvas, frontBitmap, frontRes, context, paint, outputSizePx, hairTranslationX, hairTranslationY, hairScale);
+            }
+        }
+
+        // 6.5 & 7. Layer 6.5 / 7: Head & Hat Accessories (Hair Bow, Flowers, Butterfly, Hats)
+        String hatAsset = config.hatAssetId;
+        // Legacy accessory aliases may point to glasses; only headwear belongs in this layer.
+        if ((hatAsset == null || hatAsset.isEmpty()) && config.accessoryAssetId != null
+                && (config.accessoryAssetId.contains("hat") || config.accessoryAssetId.contains("hair"))) {
+            hatAsset = config.accessoryAssetId;
+        }
+        if (hatAsset != null && !hatAsset.isEmpty()) {
+            int color = config.hatColor != 0 ? config.hatColor : config.accessoryColor;
+            int hatRes = context.getResources().getIdentifier(hatAsset, "drawable", context.getPackageName());
+            if (hatRes == 0 && hatAsset.startsWith("accessory_")) {
+                int lastUnderscore = hatAsset.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    hatRes = context.getResources().getIdentifier(hatAsset.substring(0, lastUnderscore), "drawable", context.getPackageName());
+                }
+            }
+
+            if (hatRes != 0) {
+                Bitmap hatBitmap = generateAccessoryBitmap(context, hatRes, color);
+                if (hatAsset.contains("hair")) {
+                    float hairAccScale = 0.65f;
+                    float scaledHairAccSize = outputSizePx * hairAccScale;
+                    float hairAccOffsetX = (outputSizePx - scaledHairAccSize) / 150.0f + hairTranslationX + dpToPx(130.0f, density) * scale;
+                    float hairAccOffsetY = hairTranslationY - dpToPx(0.75f, density) * scale;
+                    RectF hairAccRect = new RectF(hairAccOffsetX, hairAccOffsetY, hairAccOffsetX + scaledHairAccSize, hairAccOffsetY + scaledHairAccSize);
+
+                    if (hatBitmap != null) {
+                        canvas.drawBitmap(hatBitmap, null, hairAccRect, paint);
+                    } else {
+                        drawDrawableInRect(canvas, context, hatRes, hairAccRect, paint);
+                    }
+                } else {
+                    float hatScale = 1.40f;
+                    float scaledHatSize = outputSizePx * hatScale;
+                    float hatOffsetX = (outputSizePx - scaledHatSize) / 2.0f + hairTranslationX;
+                    float hatOffsetY = hairTranslationY - dpToPx(155.0f, density) * scale;
+                    RectF hatRect = new RectF(hatOffsetX, hatOffsetY, hatOffsetX + scaledHatSize, hatOffsetY + scaledHatSize);
+
+                    if (hatBitmap != null) {
+                        canvas.drawBitmap(hatBitmap, null, hatRect, paint);
+                    } else {
+                        drawDrawableInRect(canvas, context, hatRes, hatRect, paint);
+                    }
+                }
+            }
+        }
+
+        sBitmapCache.put(cacheKey, bitmap);
+        return bitmap;
+    }
+
+    public static Bitmap generateSkinToneBitmap(Context context, int skinIndex) {
+        if (context == null) return null;
+        sampleExactSkinPalettesIfNeeded(context);
+
+        Drawable drawable = ContextCompat.getDrawable(context, R.drawable.base_skin);
+        if (drawable == null) return null;
+
+        Bitmap bitmap;
+        if (drawable instanceof BitmapDrawable) {
+            bitmap = ((BitmapDrawable) drawable).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+        } else {
+            int w = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : 320;
+            int h = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : 320;
+            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+        }
+
+        int clampedIndex = Math.max(0, Math.min(skinIndex, sSampledSkinPalettes.length - 1));
+        int mainColor = sSampledSkinPalettes[clampedIndex][0];
+        int shadowColor = sSampledSkinPalettes[clampedIndex][1];
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >> 24) & 0xff;
+            if (a == 0) continue;
+
+            int r = (p >> 16) & 0xff;
+            int g = (p >> 8) & 0xff;
+            int b = p & 0xff;
+
+            // Outlines
+            if (r < 50 && g < 50 && b < 50) {
+                continue;
+            }
+
+            // Pure White -> Main Skin
+            if (r > 220 && g > 220 && b > 220) {
+                pixels[i] = (a << 24) | (Color.red(mainColor) << 16) | (Color.green(mainColor) << 8) | Color.blue(mainColor);
+            } else {
+                // Light Gray -> Darker Chest / Shadow
+                pixels[i] = (a << 24) | (Color.red(shadowColor) << 16) | (Color.green(shadowColor) << 8) | Color.blue(shadowColor);
+            }
+        }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+        return bitmap;
+    }
+
+    public static Bitmap generateAccessoryBitmap(Context context, int drawableRes, int targetColor) {
+        Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
+        if (drawable == null) return null;
+
+        Bitmap bitmap;
+        if (drawable instanceof BitmapDrawable) {
+            bitmap = ((BitmapDrawable) drawable).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+        } else {
+            int w = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : 320;
+            int h = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : 320;
+            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+        }
+
+        String resEntryName = "";
+        try {
+            resEntryName = context.getResources().getResourceEntryName(drawableRes);
+        } catch (Exception ignored) {}
+
+        boolean isSunglasses = resEntryName.contains("sunglasses");
+        boolean isHueTintedAccessory = resEntryName.contains("hat") || resEntryName.contains("hair");
+
+        float[] targetHsv = new float[3];
+        Color.colorToHSV(targetColor, targetHsv);
+        float targetHue = targetHsv[0];
+        float targetSat = targetHsv[1];
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >> 24) & 0xff;
+            if (a < 30) continue;
+
+            if (isHueTintedAccessory) {
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isGrayOrWhiteFabric = (r > 40) && (Math.abs(r - g) < 40) && (Math.abs(g - b) < 40);
+
+                if (isGrayOrWhiteFabric) {
+                    float[] pixelHsv = new float[3];
+                    Color.colorToHSV(p, pixelHsv);
+                    pixelHsv[0] = targetHue;
+                    if (targetSat > 0) {
+                        pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.80f);
+                    }
+                    pixels[i] = Color.HSVToColor(a, pixelHsv);
+                } else {
+                    pixels[i] = p;
+                }
+            } else if (isSunglasses) {
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isLightFrame = (r > 100 && g > 100 && b > 100);
+                if (isLightFrame && a >= 50) {
+                    if (targetColor == Color.parseColor("#1E1E1E") || resEntryName.contains("black")) {
+                        pixels[i] = (a << 24) | (0x1e << 16) | (0x1e << 8) | 0x1e;
+                    } else {
+                        float[] pixelHsv = new float[3];
+                        Color.colorToHSV(p, pixelHsv);
+                        pixelHsv[0] = targetHue;
+                        if (targetSat > 0) {
+                            pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                        }
+                        pixels[i] = Color.HSVToColor(a, pixelHsv);
+                    }
+                } else {
+                    pixels[i] = p;
+                }
+            } else {
+                int r = (p >> 16) & 0xff;
+                int g = (p >> 8) & 0xff;
+                int b = p & 0xff;
+
+                boolean isLightFrame = (r > 100 && g > 100 && b > 100);
+                if (isLightFrame && a >= 50) {
+                    if (targetColor == Color.parseColor("#1E1E1E") || resEntryName.contains("black")) {
+                        pixels[i] = (a << 24) | (0x1e << 16) | (0x1e << 8) | 0x1e;
+                    } else {
+                        float[] pixelHsv = new float[3];
+                        Color.colorToHSV(p, pixelHsv);
+                        pixelHsv[0] = targetHue;
+                        if (targetSat > 0) {
+                            pixelHsv[1] = Math.max(pixelHsv[1], targetSat * 0.85f);
+                        }
+                        pixels[i] = Color.HSVToColor(a, pixelHsv);
+                    }
+                } else {
+                    pixels[i] = p;
+                }
+            }
+        }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+        return bitmap;
+    }
+
+    public static Bitmap cropTransparentBitmap(Bitmap src) {
+        if (src == null) return null;
+        int width = src.getWidth();
+        int height = src.getHeight();
+        if (width <= 0 || height <= 0) return src;
+
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        int[] pixels = new int[width * height];
+        src.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int y = 0; y < height; y++) {
+            int rowOffset = y * width;
+            for (int x = 0; x < width; x++) {
+                int alpha = (pixels[rowOffset + x] >> 24) & 0xff;
+                if (alpha > 20) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            return src;
+        }
+
+        minX = Math.max(0, minX - 2);
+        minY = Math.max(0, minY - 2);
+        maxX = Math.min(width - 1, maxX + 2);
+        maxY = Math.min(height - 1, maxY + 2);
+
+        int cropWidth = maxX - minX + 1;
+        int cropHeight = maxY - minY + 1;
+
+        try {
+            return Bitmap.createBitmap(src, minX, minY, cropWidth, cropHeight);
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
+    private static void drawHairLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY, float hairScale) {
+        float scaledWidth = outputSizePx * hairScale;
+        float scaledHeight = outputSizePx * hairScale;
+        float extraX = (scaledWidth - outputSizePx) / 2.0f;
+        float extraY = (scaledHeight - outputSizePx) / 2.0f;
+
+        RectF rect = new RectF(transX - extraX, transY - extraY, transX + scaledWidth - extraX, transY + scaledHeight - extraY);
+        if (bitmap != null) {
+            canvas.drawBitmap(bitmap, null, rect, paint);
+        } else {
+            drawDrawableInRect(canvas, context, drawableRes, rect, paint);
+        }
+    }
+
+    private static void drawLayerFittingCanvas(Canvas canvas, Bitmap bitmap, int drawableRes, Context context, Paint paint, int outputSizePx, float transX, float transY) {
+        RectF rect = new RectF(transX, transY, outputSizePx + transX, outputSizePx + transY);
+        if (bitmap != null) {
+            canvas.drawBitmap(bitmap, null, rect, paint);
+        } else {
+            drawDrawableInRect(canvas, context, drawableRes, rect, paint);
+        }
+    }
+
+    private static float getOutfitTorsoCenter(Context context, int drawableRes) {
+        Float cached = sOutfitTorsoCenters.get(drawableRes);
+        if (cached != null) return cached;
+        float center = 0.5f;
+        Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
+        if (drawable instanceof BitmapDrawable) {
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            int width = bitmap.getWidth();
+            int y = Math.min(bitmap.getHeight() - 1, Math.round(bitmap.getHeight() * (600.0f / 1080.0f)));
+            int left = width / 2;
+            int right = left;
+            if (Color.alpha(bitmap.getPixel(left, y)) > 200) {
+                while (left > 0 && Color.alpha(bitmap.getPixel(left - 1, y)) > 200) left--;
+                while (right < width - 1 && Color.alpha(bitmap.getPixel(right + 1, y)) > 200) right++;
+                center = (left + right + 1) / (2.0f * width);
+            }
+        }
+        sOutfitTorsoCenters.put(drawableRes, center);
+        return center;
+    }
+
+    private static void drawDrawableFittingCanvas(Canvas canvas, Context context, int drawableRes, Paint paint, int outputSizePx, float transX, float transY) {
+        RectF rect = new RectF(transX, transY, outputSizePx + transX, outputSizePx + transY);
+        drawDrawableInRect(canvas, context, drawableRes, rect, paint);
+    }
+
+    private static void drawDrawableInRect(Canvas canvas, Context context, int drawableRes, RectF rect, Paint paint) {
+        Drawable d = ContextCompat.getDrawable(context, drawableRes);
+        if (d != null) {
+            d.setBounds((int) rect.left, (int) rect.top, (int) rect.right, (int) rect.bottom);
+            d.draw(canvas);
+        }
+    }
+
+    public static Bitmap generateTintedBitmap(Context context, int drawableRes, int targetColor) {
+        Drawable drawable = ContextCompat.getDrawable(context, drawableRes);
+        if (drawable == null) return null;
+
+        Bitmap bitmap;
+        if (drawable instanceof BitmapDrawable) {
+            bitmap = ((BitmapDrawable) drawable).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+        } else {
+            int w = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : 200;
+            int h = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : 200;
+            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+        }
+
+        int targetR = Color.red(targetColor);
+        int targetG = Color.green(targetColor);
+        int targetB = Color.blue(targetColor);
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >> 24) & 0xff;
+            if (a < 30) continue;
+
+            int r = (p >> 16) & 0xff;
+            int g = (p >> 8) & 0xff;
+            int b = p & 0xff;
+
+            boolean isWhite = (r > 200 && g > 200 && b > 200);
+
+            if (isWhite) {
+                pixels[i] = p;
+            } else {
+                pixels[i] = (a << 24) | (targetR << 16) | (targetG << 8) | targetB;
+            }
+        }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+        return bitmap;
+    }
+
+    private static int getEyeSizeDp(String eyeBase) {
+        if ("bigeye".equals(eyeBase) || "bigeyes2".equals(eyeBase) || "chill".equals(eyeBase) || "paceye".equals(eyeBase) || "smallpupil".equals(eyeBase)) {
+            return 72;
+        }
+        return 60;
+    }
+
+    private static int getEyeContainerWidthDp(String eyeBase) {
+        if ("bigeye".equals(eyeBase) || "bigeyes2".equals(eyeBase) || "chill".equals(eyeBase) || "brow_teardrop_lash_long".equals(eyeBase)) {
+            return 145;
+        }
+        if ("smallpupil".equals(eyeBase)) {
+            return 135;
+        }
+        return 132;
+    }
+
+    private static Bitmap generateBlushBitmap(Context context, int colorInt, int styleIndex) {
+        int widthPx = 110;
+        int heightPx = 75;
+
+        if (styleIndex == 4) { // Freckles
+            return generateTintedBitmap(context, R.drawable.blush_freckles, colorInt);
+        }
+
+        float featherFactor = 0.75f;
+        int alpha = 180;
+
+        if (styleIndex == 0) {
+            featherFactor = 0.25f;
+            alpha = 210;
+        } else if (styleIndex == 1) {
+            featherFactor = 0.5f;
+            alpha = 195;
+        } else if (styleIndex == 2) {
+            featherFactor = 0.75f;
+            alpha = 180;
+        } else if (styleIndex == 3) {
+            featherFactor = 0.95f;
+            alpha = 150;
+        }
+
+        Bitmap bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        float centerX = widthPx / 2.0f;
+        float centerY = heightPx / 2.0f;
+        float radius = Math.min(centerX, centerY);
+
+        canvas.save();
+        canvas.scale(1.0f, (float) heightPx / (float) widthPx, centerX, centerY);
+
+        int r = Color.red(colorInt);
+        int g = Color.green(colorInt);
+        int b = Color.blue(colorInt);
+
+        int centerColor = Color.argb(alpha, r, g, b);
+        int edgeColor = Color.argb(0, r, g, b);
+
+        float innerStop = Math.max(0.05f, 1.0f - featherFactor);
+
+        RadialGradient shader = new RadialGradient(
+                centerX, centerY, radius,
+                new int[]{centerColor, centerColor, edgeColor},
+                new float[]{0.0f, innerStop, 1.0f},
+                Shader.TileMode.CLAMP
+        );
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setShader(shader);
+        canvas.drawCircle(centerX, centerY, radius, paint);
+        canvas.restore();
+
+        return bitmap;
+    }
+
+    private static int getSwatchColorInt(String colorName) {
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#FFFFFF");
+        if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#1E1E1E");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#800000");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF7A38");
+        return Color.parseColor("#FFC2B4"); // Soft Nude / Peach
+    }
+
+    private static int getBlushColorInt(String colorName) {
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#C82828");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#FF8C00");
+        return Color.parseColor("#FF8A8A");
+    }
+
+    private static int getFrecklesColorInt(String colorName) {
+        if ("darkred".equalsIgnoreCase(colorName)) return Color.parseColor("#7A2424");
+        if ("orange".equalsIgnoreCase(colorName)) return Color.parseColor("#B86B28");
+        if ("black".equalsIgnoreCase(colorName)) return Color.parseColor("#4A3728");
+        if ("brown".equalsIgnoreCase(colorName)) return Color.parseColor("#6D4C41");
+        if ("white".equalsIgnoreCase(colorName)) return Color.parseColor("#C4A484");
+        return Color.parseColor("#8B5A2B");
+    }
+
+    private static float dpToPx(float dp, float density) {
+        return dp * density;
+    }
+}

@@ -1,83 +1,392 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root_profiling_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F4EB"
-    android:fitsSystemWindows="true">
+    android:background="@color/dagoal_primary"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_large">
 
-    <LinearLayout
+    <!-- Top Navigation Bar (Back Button) -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/spacing_small">
 
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1.2"
-            android:background="#E1C6A7">
+        <ImageButton
+            android:id="@+id/btn_questionnaire_back"
+            android:layout_width="@dimen/icon_button_size"
+            android:layout_height="@dimen/icon_button_size"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_auth_pill"
+            android:contentDescription="Back"
+            android:padding="@dimen/spacing_small"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/dagoal_primary_dark" />
+    </RelativeLayout>
 
-            <TextView
-                android:id="@+id/tv_category_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CATEGORY"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="24dp" />
+    <!-- Dynamic Step Indicator Bar (Positioned Top of Profiling Card) -->
+    <LinearLayout
+        android:id="@+id/layout_step_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_micro" />
 
-            <ImageView
-                android:layout_width="140dp"
-                android:layout_height="140dp"
-                android:layout_centerInParent="true"
-                android:src="@android:drawable/sym_def_app_icon" />
-        </RelativeLayout>
+    <!-- Question Content Frame (Slide Animated) with BG Profiling Card -->
+    <FrameLayout
+        android:id="@+id/frame_question_anim_host"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="@dimen/spacing_normal">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1.5"
-            android:background="#FFFFFF"
-            android:elevation="8dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_profiling_card"
             android:orientation="vertical"
-            android:padding="24dp">
-
-            <TextView
-                android:id="@+id/tv_question_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Question Text Placeholder"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#2D3748"
-                android:gravity="center"
-                android:layout_marginBottom="20dp" />
+            android:padding="@dimen/spacing_large">
 
             <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_marginBottom="16dp">
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:overScrollMode="never"
+                android:scrollbars="none">
 
-                <RadioGroup
-                    android:id="@+id/rg_options"
+                <LinearLayout
+                    android:id="@+id/card_question_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btn_next_question"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="Next"
-                android:backgroundTint="#FF9F43"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textAllCaps="false" />
+                    <TextView
+                        android:id="@+id/tv_category_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/spacing_tiny"
+                        android:gravity="center"
+                        android:text="Adventurer Profile"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="@dimen/text_size_header"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_question_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/spacing_extra_large"
+                        android:gravity="center"
+                        android:text="What is your preferred username or nickname?"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="@dimen/text_size_subhead" />
+
+                    <!-- Username / Nickname Input Box -->
+                    <LinearLayout
+                        android:id="@+id/layout_nickname_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/button_height_standard"
+                            android:layout_marginBottom="@dimen/spacing_large"
+                            android:background="@drawable/bg_auth_pill"
+                            android:gravity="center"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="@dimen/spacing_medium">
+
+                            <EditText
+                                android:id="@+id/edit_nickname_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@android:color/transparent"
+                                android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                                android:gravity="center"
+                                android:hint="Letters &amp; numbers only (max 16)"
+                                android:inputType="textVisiblePassword"
+                                android:maxLength="16"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:textColor="@color/dagoal_primary_dark"
+                                android:textColorHint="@color/dagoal_hint"
+                                android:textSize="@dimen/text_size_subhead"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_nickname_next"
+                            android:layout_width="@dimen/logo_width_medium"
+                            android:layout_height="@dimen/button_height_standard"
+                            android:background="@drawable/bg_button_primary_pill"
+                            android:text="Next"
+                            android:textAllCaps="false"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_header"
+                            android:textStyle="bold"
+                            app:backgroundTint="@null" />
+                    </LinearLayout>
+
+                    <!-- 6 Option Pill Cards (Centered Single-Column) -->
+                    <LinearLayout
+                        android:id="@+id/option_card_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_1"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 1"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_1"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 2"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_2"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 3"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_3"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_4"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 4"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_4"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_5"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_5"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 5"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_5"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/option_card_6"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_target_min_height"
+                        android:paddingVertical="8dp"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_button_pill"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_normal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_option_text_6"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="sample answer 6"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_subhead"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_option_check_6"
+                            android:layout_width="@dimen/icon_size_medium"
+                            android:layout_height="@dimen/icon_size_medium"
+                            android:gravity="center"
+                            android:text="✔"
+                            android:textColor="@color/dagoal_primary_dark"
+                            android:textSize="@dimen/text_size_title"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <!-- Multi-Select Submit Next Button -->
+                    <Button
+                        android:id="@+id/btn_multi_next"
+                        android:layout_width="@dimen/logo_width_medium"
+                        android:layout_height="@dimen/button_height_standard"
+                        android:layout_marginTop="@dimen/spacing_normal"
+                        android:background="@drawable/bg_button_primary_pill"
+                        android:text="Next"
+                        android:textAllCaps="false"
+                        android:textColor="@color/dagoal_primary_dark"
+                        android:textSize="@dimen/text_size_header"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        app:backgroundTint="@null" />
+
+                </LinearLayout>
+            </ScrollView>
         </LinearLayout>
-    </LinearLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </FrameLayout>
+
+    <!-- Bottom Character Display Canvas -->
+    <FrameLayout
+        android:id="@+id/avatar_host_container"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/avatar_host_height_large"
+        android:layout_gravity="bottom|center_horizontal" />
+
+</LinearLayout>
