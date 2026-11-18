@@ -192,7 +192,7 @@ public class TaskManager {
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME,
                     cursor.getString(cursor.getColumnIndexOrThrow(DatabaseContract.DailyTaskEntry.COLUMN_PACKAGE_NAME)));
             if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
-                values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+                values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, QuestElapsedClock.now(appContext));
             } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
                 values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, (long) StepTrackingService.getStepsToday(appContext));
             }
@@ -1750,7 +1750,7 @@ public class TaskManager {
     public void startAvoidanceQuest(int taskId) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+        values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, QuestElapsedClock.now(appContext));
         db.update(
                 DatabaseContract.DailyTaskEntry.TABLE_NAME,
                 values,
@@ -1790,7 +1790,18 @@ public class TaskManager {
                     continue;
                 }
 
-                long elapsedMinutes = (System.currentTimeMillis() - startTimestamp) / 60000L;
+                if (!QuestElapsedClock.isCurrentBoot(appContext, startTimestamp)) {
+                    ContentValues restart = new ContentValues();
+                    restart.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, QuestElapsedClock.now(appContext));
+                    restart.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
+                    restart.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0);
+                    db.update(DatabaseContract.DailyTaskEntry.TABLE_NAME, restart,
+                            DatabaseContract.DailyTaskEntry._ID + " = ? AND "
+                                    + DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP + " = ?",
+                            new String[]{String.valueOf(taskId), String.valueOf(startTimestamp)});
+                    continue;
+                }
+                long elapsedMinutes = QuestElapsedClock.elapsedSeconds(appContext, startTimestamp) / 60L;
                 int clampedElapsed = (int) Math.min(elapsedMinutes, targetMinutes);
 
                 ContentValues progressValues = new ContentValues();
@@ -1818,12 +1829,13 @@ public class TaskManager {
         public java.util.List<String> targetPackages;
         public int targetValue;
         public long startTimestamp;
+        private Context context;
 
         public long getRemainingSeconds() {
             if (startTimestamp <= 0) {
                 return targetValue * 60L;
             }
-            long elapsedSeconds = Math.max(0, (System.currentTimeMillis() - startTimestamp) / 1000L);
+            long elapsedSeconds = QuestElapsedClock.elapsedSeconds(context, startTimestamp);
             return Math.max(0, (targetValue * 60L) - elapsedSeconds);
         }
 
@@ -1865,6 +1877,7 @@ public class TaskManager {
                 String packageName = cursor.getString(2);
                 quest.targetValue = cursor.getInt(3);
                 quest.startTimestamp = cursor.getLong(4);
+                quest.context = appContext;
 
                 quest.targetPackages = new java.util.ArrayList<>();
                 if (packageName != null && !packageName.trim().isEmpty()) {
@@ -1925,7 +1938,8 @@ public class TaskManager {
             }
             cursor.close();
         }
-        return snoozeUntil;
+        return QuestElapsedClock.isCurrentBoot(appContext, snoozeUntil)
+                ? QuestElapsedClock.uptime(snoozeUntil) : 0;
     }
 
     public int handleIgnorePressed(int taskId) {
@@ -1934,7 +1948,7 @@ public class TaskManager {
 
         int newStage = stage + 1;
         int minutes = 5;
-        long snoozeUntil = System.currentTimeMillis() + (long) minutes * 60000L;
+        long snoozeUntil = QuestElapsedClock.now(appContext) + (long) minutes * 60000L;
 
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
@@ -1950,7 +1964,7 @@ public class TaskManager {
                 null, null, null
         );
 
-        long currentStartTimestamp = System.currentTimeMillis();
+        long currentStartTimestamp = QuestElapsedClock.now(appContext);
         int rewardGold = 0;
         int rewardXp = 0;
 
@@ -1964,7 +1978,8 @@ public class TaskManager {
         }
 
         // Pause timer by shifting startTimestamp forward by the ignored duration (minutes)
-        long baseTimestamp = currentStartTimestamp > 0 ? currentStartTimestamp : System.currentTimeMillis();
+        long baseTimestamp = QuestElapsedClock.isCurrentBoot(appContext, currentStartTimestamp)
+                ? currentStartTimestamp : QuestElapsedClock.now(appContext);
         long newStartTimestamp = baseTimestamp + (long) minutes * 60000L;
 
         // Deduct 25% penalty from quest rewards
@@ -2012,8 +2027,9 @@ public class TaskManager {
             cursor.close();
         }
 
-        if (currentStartTimestamp > 0) {
-            long newStartTimestamp = Math.max(0, currentStartTimestamp - unusedMs);
+        if (QuestElapsedClock.isCurrentBoot(appContext, currentStartTimestamp)) {
+            long newStartTimestamp = currentStartTimestamp
+                    - Math.min(QuestElapsedClock.uptime(currentStartTimestamp), unusedMs);
             ContentValues values = new ContentValues();
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, 0L);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, newStartTimestamp);
@@ -2028,7 +2044,7 @@ public class TaskManager {
     }
 
     public void snoozeAvoidanceQuestSeconds(int taskId, int seconds) {
-        long snoozeUntil = System.currentTimeMillis() + (long) seconds * 1000L;
+        long snoozeUntil = QuestElapsedClock.now(appContext) + (long) seconds * 1000L;
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_SNOOZE_UNTIL, snoozeUntil);
@@ -2179,7 +2195,7 @@ public class TaskManager {
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_QUEST_TYPE, questType);
         values.put(DatabaseContract.DailyTaskEntry.COLUMN_CURRENT_VALUE, 0);
         if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_SCREEN_AVOID.equals(questType)) {
-            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, System.currentTimeMillis());
+            values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, QuestElapsedClock.now(appContext));
         } else if (DatabaseContract.DailyTaskEntry.QUEST_TYPE_STEPS.equals(questType)) {
             int currentSteps = StepTrackingService.getStepsToday(appContext);
             values.put(DatabaseContract.DailyTaskEntry.COLUMN_START_TIMESTAMP, (long) currentSteps);
@@ -2348,13 +2364,19 @@ public class TaskManager {
 
     public int getShopRerollCountToday(Context context) {
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        String lastDate = prefs.getString("pref_shop_reroll_last_date", "");
-        if (!todayDateStr.equals(lastDate)) {
-            prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr).putInt("pref_shop_reroll_count_today", 0).apply();
+        int count = prefs.getInt("pref_shop_reroll_count_today", 0);
+        if (count == 0) return 0;
+        long nextWindow = prefs.getLong("pref_shop_refresh_window_end", 0);
+        long now = QuestElapsedClock.now(context);
+        if (!QuestElapsedClock.isCurrentBoot(context, nextWindow)) {
+            // A legacy count or reboot never grants a new allowance early.
+            prefs.edit().putLong("pref_shop_refresh_window_end", now + 86_400_000L).apply();
+        } else if (now >= nextWindow) {
+            prefs.edit().remove("pref_shop_refresh_window_end")
+                    .putInt("pref_shop_reroll_count_today", 0).apply();
             return 0;
         }
-        return prefs.getInt("pref_shop_reroll_count_today", 0);
+        return count;
     }
 
     public int getShopRefreshCost(Context context) {
@@ -2375,19 +2397,22 @@ public class TaskManager {
     public boolean performShopRefresh(Context context) {
         int count = getShopRerollCountToday(context);
         if (count >= 5) {
-            ToastUtils.showToast(context, "Maximum daily shop refreshes reached (5/5)!");
+            ToastUtils.showToast(context, "You can refresh the shop 5 times per 24 hours.");
             return false;
         }
 
         int cost = getShopRefreshCost(context);
         android.content.SharedPreferences prefs = context.getSharedPreferences("DaGoalPrefs", Context.MODE_PRIVATE);
-        String todayDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        android.content.SharedPreferences.Editor refreshUsage = prefs.edit()
+                .putInt("pref_shop_reroll_count_today", count + 1);
+        if (count == 0) {
+            refreshUsage.putLong("pref_shop_refresh_window_end", QuestElapsedClock.now(context) + 86_400_000L);
+        }
 
         if (cost == 0) {
             useConsumable(DatabaseContract.InventoryConsumableEntry.TYPE_SHOP_REFRESH);
             syncUserProfileToFirestore(context);
-            prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr)
-                    .putInt("pref_shop_reroll_count_today", count + 1).apply();
+            refreshUsage.apply();
             OnlineShopManager.forceShopRotationRefresh(context);
             ToastUtils.showToast(context, "Shop Refreshed using Token! (" + (count + 1) + "/5) 🔄");
             return true;
@@ -2400,8 +2425,7 @@ public class TaskManager {
                 db.update("user", values, "_id = 1", null);
                 syncUserProfileToFirestore(context);
 
-                prefs.edit().putString("pref_shop_reroll_last_date", todayDateStr)
-                        .putInt("pref_shop_reroll_count_today", count + 1).apply();
+                refreshUsage.apply();
                 OnlineShopManager.forceShopRotationRefresh(context);
                 ToastUtils.showToast(context, "Shop Refreshed! (-" + cost + "g) (" + (count + 1) + "/5) 🔄");
                 return true;

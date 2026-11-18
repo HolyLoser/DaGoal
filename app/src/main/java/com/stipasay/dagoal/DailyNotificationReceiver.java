@@ -19,17 +19,17 @@ public class DailyNotificationReceiver extends BroadcastReceiver {
     public static final String ACTION_MIDNIGHT_QUESTS = "com.stipasay.dagoal.ACTION_MIDNIGHT_QUESTS";
     public static final String ACTION_EVENING_REMINDER = "com.stipasay.dagoal.ACTION_EVENING_REMINDER";
     private static final String CHANNEL_ID = "dagoal_daily_notifications";
-    private static final int NOTIF_MIDNIGHT_ID = 801;
-    private static final int NOTIF_EVENING_ID = 802;
+    static final int NOTIF_MIDNIGHT_ID = 801;
+    static final int NOTIF_EVENING_ID = 802;
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
         String action = intent.getAction();
+        if (!DailyReminderScheduler.hasActiveSession(context)) return;
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            android.content.SharedPreferences prefs=context.getSharedPreferences("DaGoalPrefs",Context.MODE_PRIVATE);
-            if(prefs.getBoolean("isLoggedIn",false) || prefs.getBoolean("isGuestUser",false)) DailyReminderScheduler.schedule(context);
+            DailyReminderScheduler.schedule(context);
             return;
         }
         createNotificationChannel(context);
@@ -67,7 +67,8 @@ public class DailyNotificationReceiver extends BroadcastReceiver {
             }
             return hasIncomplete;
         } catch (Exception e) {
-            return true;
+            android.util.Log.w("DailyReminder", "Could not check incomplete quests", e);
+            return false;
         }
     }
 

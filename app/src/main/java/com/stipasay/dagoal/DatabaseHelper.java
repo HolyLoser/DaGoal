@@ -372,6 +372,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     "pref_active_xp_boost_type", "pref_active_gold_boost_type", "pref_chest_bar_points",
                     "pref_chest_bar_current_tier", "pref_chest_bar_cycle", "pref_streak_prediction_target",
                     "pref_streak_prediction_claimed", "pref_shop_reroll_last_date", "pref_shop_reroll_count_today",
+                    "pref_shop_refresh_window_end",
                     "pref_last_shop_rotation_date", "pref_shop_rotation_seed", TaskManager.PENDING_PROFILE_SYNC};
             for (String key : accountKeys) editor.remove(key);
             if (!keepTodayQuests) {

@@ -91,7 +91,7 @@ public class AppMonitorService extends Service {
         }
 
         String foregroundPackage = getForegroundPackageName();
-        long now = System.currentTimeMillis();
+        long now = android.os.SystemClock.elapsedRealtime();
 
         Set<String> allBlockedPackages = new HashSet<>();
         for (TaskManager.ActiveAvoidanceQuest quest : activeQuests) {

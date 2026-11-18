@@ -137,4 +137,12 @@
     <string name="shop_refresh_gold">Refresh · %1$d Gold · %2$d/5</string>
     <string name="shop_refresh_token">Refresh · 1 Token · %1$d/5</string>
     <string name="shop_refresh_maxed">Maxed · 5/5</string>
+    <string name="loading_database_error">DaGoal couldn’t open your saved data. Please try again.</string>
+    <string name="loading_retry">Try again</string>
+    <string name="account_delete_in_progress">Deleting your account…</string>
+    <string name="account_delete_request_title">Request account deletion</string>
+    <string name="account_delete_server_unavailable">Send a request from your DaGoal account email. Our team will verify it and delete your account and cloud data.\n\nshaunocana2004@gmail.com\nNever include your password.</string>
+    <string name="account_delete_email_support">Open email app</string>
+    <string name="account_delete_login_removed">Local data cleared.</string>
+    <string name="account_delete_recovery_retry">DaGoal couldn’t check your pending account deletion. Connect to the internet and try again.</string>
 </resources>

@@ -19,6 +19,9 @@ val hasReleaseSigning = listOf(releaseStorePath, releaseStorePassword, releaseKe
 
 android {
     namespace = "com.stipasay.dagoal"
+    buildFeatures {
+        resValues = true
+    }
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -33,6 +36,8 @@ android {
         versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        resValue("bool", "firebase_account_cleanup_enabled",
+            (providers.gradleProperty("dagoalFirebaseAccountCleanup").orNull == "true").toString())
     }
 
     signingConfigs {

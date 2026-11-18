@@ -25,7 +25,7 @@ Future builds must reuse this identity. Signing settings may instead be supplied
 - Fixed release lint errors in profiling back navigation and the package-scoped task-progress broadcast.
 - Disabled cleartext HTTP; Firebase continues to use HTTPS.
 - Added an offline privacy screen accessible from the welcome screen and Settings, using the existing design tokens. Public hosting copies are alongside this file.
-- Account deletion waits for cloud-profile and authentication deletion before reporting success and clearing local data. Connection/authentication failures keep the session and show an error.
+- The in-app registered-account deletion flow waits for Firebase Auth and delegates cloud cleanup to the Delete User Data extension. It is disabled by default until the extension has been verified. See [account deletion rollout](ACCOUNT-DELETION.md).
 - Step tracking uses one sensor source, retains the day's reported count across counter resets, and handles missing activity permission before foreground startup.
 - Daily reminder alarms are restored after reboot for an active guest or signed-in session; notification permission is checked before posting.
 

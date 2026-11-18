@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{uid} {
+      // Profiles are private backups. Values supplied by the client are not proof of earned rewards.
+      allow get, create, update, delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /chest_claim_logs/{claimId} {
+      // Client telemetry is unverified. Never use these events to award Gold or XP.
+      allow create: if signedIn()
+        && getAfter(/databases/$(database)/documents/chest_claim_limits/$(request.auth.uid)).data.claim_id == claimId
+        && getAfter(/databases/$(database)/documents/chest_claim_limits/$(request.auth.uid)).data.claimed_at == request.time
+        && request.resource.data.keys().hasAll(
+          ['tier', 'gold_awarded', 'xp_awarded', 'consumable_awarded', 'claimed_at'])
+        && request.resource.data.keys().hasOnly(
+          ['tier', 'gold_awarded', 'xp_awarded', 'consumable_awarded', 'claimed_at'])
+        && request.resource.data.tier is int
+        && request.resource.data.tier >= 1
+        && request.resource.data.tier <= 4
+        && request.resource.data.gold_awarded is int
+        && request.resource.data.gold_awarded >= 0
+        && request.resource.data.xp_awarded is int
+        && request.resource.data.xp_awarded >= 0
+        && request.resource.data.consumable_awarded is string
+        && request.resource.data.consumable_awarded.size() <= 64
+        && request.resource.data.claimed_at == request.time;
+    }
+    match /chest_claim_limits/{uid} {
+      function validClaimUpdate() {
+        let data = request.resource.data;
+        return signedIn() && request.auth.uid == uid
+          && data.keys().hasOnly(['claim_id', 'claimed_at'])
+          && data.claim_id is string && data.claim_id.matches('^[A-Za-z0-9]{20}$')
+          && data.claimed_at == request.time
+          && existsAfter(/databases/$(database)/documents/chest_claim_logs/$(data.claim_id));
+      }
+      allow create: if validClaimUpdate();
+      allow update: if validClaimUpdate()
+        && request.time >= resource.data.claimed_at + duration.value(1, 'm');
+      allow delete: if signedIn() && request.auth.uid == uid
+        && request.time >= resource.data.claimed_at + duration.value(1, 'm');
+    }
+    // The shop rotates locally. Shared shop documents and other unmatched paths are denied.
+  }
+}
